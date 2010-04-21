@@ -24,6 +24,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.VerifyKeyListener;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.texteditor.ITextEditorExtension3;
 import org.eclipse.ui.texteditor.link.EditorLinkedModeUI;
 import org.erlide.core.erlang.ErlToken;
@@ -32,10 +33,10 @@ import org.erlide.jinterface.util.ErlLogger;
 
 import erlang.ErlideScanner;
 
-class ErlangEditorBracketInserter implements VerifyKeyListener,
+public class ErlangEditorBracketInserter implements VerifyKeyListener,
 		ILinkedModeListener {
 
-	private final ErlangEditor fErlangEditor;
+	private final TextEditor fTextEditor;
 	private final ISourceViewer fSourceViewer;
 
 	public static class BracketLevel {
@@ -172,7 +173,7 @@ class ErlangEditorBracketInserter implements VerifyKeyListener,
 
 		// early pruning to slow down normal typing as little as possible
 		if (!event.doit
-				|| fErlangEditor.getInsertMode() != ITextEditorExtension3.SMART_INSERT) {
+				|| fTextEditor.getInsertMode() != ITextEditorExtension3.SMART_INSERT) {
 			return;
 		}
 		switch (event.character) {
@@ -255,7 +256,7 @@ class ErlangEditorBracketInserter implements VerifyKeyListener,
 					return;
 				}
 
-				if (!fErlangEditor.validateEditorInputState()) {
+				if (!fTextEditor.validateEditorInputState()) {
 					return;
 				}
 			}
@@ -486,10 +487,10 @@ class ErlangEditorBracketInserter implements VerifyKeyListener,
 		}
 	}
 
-	public ErlangEditorBracketInserter(final ErlangEditor erlangEditor,
+	public ErlangEditorBracketInserter(final TextEditor textEditor,
 			final ISourceViewer sourceViewer) {
 		super();
-		fErlangEditor = erlangEditor;
+		fTextEditor = textEditor;
 		fSourceViewer = sourceViewer;
 	}
 }

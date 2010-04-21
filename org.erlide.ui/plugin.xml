@@ -16,6 +16,18 @@
             symbolicFontName="org.eclipse.jface.textfont">
          <contentTypeBinding contentTypeId="org.erlide.core.content.erlang"/>
       </editor>
+      <editor
+            class="org.erlide.ui.editors.scratchpad.ErlangScratchPad"
+            default="true"
+            extensions="erlScratchPad"
+            icon="icons/full/obj16/erlang_srcFile.png"
+            id="org.erlide.ui.editors.scratchpad.erlangScratchPad"
+            name="Erlang Scratch Pad"
+            symbolicFontName="org.eclipse.jface.textfont">
+         <contentTypeBinding
+               contentTypeId="org.erlide.core.content.erlang">
+         </contentTypeBinding>
+      </editor>
    </extension>
    <extension
          point="org.eclipse.ui.editorActions">
@@ -961,6 +973,13 @@
                icon="icons/full/obj16/erlang_NewModule.png"
                id="org.erlide.ui.menuModuleAction"
                label="New Module"
+               menubarPath="erlideMenu2">
+         </action>
+         <action
+               class="org.erlide.ui.editors.scratchpad.NewErlangModuleAction"
+               icon="icons/full/obj16/erlang_NewModule.png"
+               id="org.erlide.ui.menuNewScratchPadAction"
+               label="New Scratch Pad"
                menubarPath="erlideMenu2">
          </action>
 

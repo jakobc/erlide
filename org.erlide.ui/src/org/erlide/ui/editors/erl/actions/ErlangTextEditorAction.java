@@ -28,7 +28,6 @@ import org.erlide.jinterface.backend.BackendException;
 import org.erlide.jinterface.backend.util.Util;
 import org.erlide.jinterface.util.ErlLogger;
 import org.erlide.ui.actions.ActionMessages;
-import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.util.ErlModelUtils;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -88,11 +87,13 @@ public class ErlangTextEditorAction extends TextEditorAction {
 	 *            text {@link IDocument}
 	 * @param selection
 	 *            selection affected by command (extended by extendSelection)
+	 * @param textEditor
+	 *            TODO
 	 * @return new {@link ITextSelection} with all text up to selection
 	 */
-	protected ITextSelection getTextSelection(final IDocument document,
-			final ITextSelection selection) {
-		final IErlModule m = ErlModelUtils.getModule(getTextEditor());
+	public static ITextSelection getTextSelection(final IDocument document,
+			final ITextSelection selection, final ITextEditor textEditor) {
+		final IErlModule m = ErlModelUtils.getModule(textEditor);
 		if (m != null) {
 			final int offset1 = selection.getOffset(), offset2 = offset1
 					+ selection.getLength();
@@ -210,6 +211,11 @@ public class ErlangTextEditorAction extends TextEditorAction {
 		}
 	}
 
+	protected ITextSelection getTextSelection(final IDocument document,
+			final ITextSelection selection) {
+		return getTextSelection(document, selection, getTextEditor());
+	}
+
 	/**
 	 * @param length
 	 * @param aSelection
@@ -238,15 +244,7 @@ public class ErlangTextEditorAction extends TextEditorAction {
 	 *            the selection range
 	 */
 	protected void selectAndReveal(final int newOffset, final int newLength) {
-		final ITextEditor editor = getTextEditor();
-		if (editor instanceof ErlangEditor) {
-			final ErlangEditor erlEditor = (ErlangEditor) editor;
-			erlEditor.selectAndReveal(newOffset, newLength);
-		} else {
-			// this is too intrusive, but will never get called anyway
-			getTextEditor().selectAndReveal(newOffset, newLength);
-		}
-
+		getTextEditor().selectAndReveal(newOffset, newLength);
 	}
 
 }

@@ -86,7 +86,7 @@ public class ErlangSearchActionGroup extends ActionGroup {
 		// fOccurrencesGroup = new OccurrencesSearchGroup(fEditor);
 	}
 
-	private ErlangSearchActionGroup(final IWorkbenchSite site) {
+	public ErlangSearchActionGroup(final IWorkbenchSite site) {
 		fReferencesGroup = new ReferencesSearchGroup(site);
 		// fReadAccessGroup = new ReadReferencesSearchGroup(site);
 		// fWriteAccessGroup = new WriteReferencesSearchGroup(site);

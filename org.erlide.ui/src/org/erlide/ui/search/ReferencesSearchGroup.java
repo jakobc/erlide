@@ -41,7 +41,7 @@ public class ReferencesSearchGroup extends ActionGroup {
 	private static final String MENU_TEXT = "References";
 
 	private final IWorkbenchSite fSite;
-	private ErlangEditor fEditor;
+	private final ErlangEditor fEditor;
 	private IActionBars fActionBars;
 
 	private final String fGroupId;
@@ -62,6 +62,7 @@ public class ReferencesSearchGroup extends ActionGroup {
 	 *            the view part that owns this action group
 	 */
 	public ReferencesSearchGroup(final IWorkbenchSite site) {
+		fEditor = null;
 		fSite = site;
 		fGroupId = IContextMenuConstants.GROUP_SEARCH;
 

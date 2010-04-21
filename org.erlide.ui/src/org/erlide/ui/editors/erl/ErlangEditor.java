@@ -332,7 +332,7 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 			if (key.indexOf('/') != -1
 					&& key.split("/")[0]
 							.equals(SmartTypingPreferencePage.SMART_TYPING_KEY)) {
-				getBracketInserterPrefs();
+				readBracketInserterPrefs(getBracketInserter());
 			}
 		}
 	}
@@ -1131,7 +1131,7 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 	public void createPartControl(final Composite parent) {
 		super.createPartControl(parent);
 
-		getBracketInserterPrefs();
+		readBracketInserterPrefs(getBracketInserter());
 
 		final ISourceViewer sourceViewer = getSourceViewer();
 		if (sourceViewer instanceof ITextViewerExtension) {
@@ -1172,10 +1172,10 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 	}
 
 	@SuppressWarnings("boxing")
-	void getBracketInserterPrefs() {
+	public static void readBracketInserterPrefs(
+			final ErlangEditorBracketInserter bracketInserter) {
 		final List<Boolean> prefs = SmartTypingPreferencePage
 				.getBracketInserterPreferences();
-		final ErlangEditorBracketInserter bracketInserter = getBracketInserter();
 		bracketInserter.setCloseAtomsEnabled(prefs
 				.get(SmartTypingPreferencePage.ATOMS));
 		bracketInserter.setCloseBracketsEnabled(prefs
@@ -1646,7 +1646,7 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 		return fActionGroups;
 	}
 
-	private boolean isFoldingEnabled() {
+	public static boolean isFoldingEnabled() {
 		return ErlideUIPlugin.getDefault().getPreferenceStore().getBoolean(
 				PreferenceConstants.EDITOR_FOLDING_ENABLED);
 	}
