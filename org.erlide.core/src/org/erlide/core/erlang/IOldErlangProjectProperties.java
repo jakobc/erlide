@@ -3,16 +3,13 @@ package org.erlide.core.erlang;
 import java.util.Collection;
 
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.erlide.backend.runtime.RuntimeInfo;
 import org.erlide.backend.runtime.RuntimeVersion;
 
 public interface IOldErlangProjectProperties {
 
-    public abstract void load(final IEclipsePreferences node);
-
-    public abstract void store(final IEclipsePreferences node);
+    public abstract void store();
 
     public abstract Collection<IPath> getIncludeDirs();
 
