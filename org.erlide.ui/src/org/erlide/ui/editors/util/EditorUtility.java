@@ -50,7 +50,7 @@ import org.erlide.ui.internal.ErlideUIPlugin;
 import com.google.common.collect.Lists;
 
 /**
- * A number of routines for working with JavaElements in editors.
+ * A number of routines for working with ErlElements in editors.
  * 
  * Use 'isOpenInEditor' to test if an element is already open in a editor Use
  * 'openInEditor' to force opening an element in a editor With 'getWorkingCopy'
@@ -115,7 +115,13 @@ public class EditorUtility {
      */
     public static IEditorPart openInEditor(final Object inputElement,
             final boolean activate) throws PartInitException {
-        final IEditorPart editorPart = isOpenInEditor(inputElement);
+        final IEditorInput input = getEditorInput(inputElement);
+        if (input == null) {
+            return null;
+        }
+        final IEditorPart editorPart = openInEditor(input,
+                getEditorID(input, inputElement), activate);
+
         if (editorPart != null && inputElement instanceof IErlElement) {
             revealInEditor(editorPart, (IErlElement) inputElement);
             return editorPart;
@@ -123,12 +129,6 @@ public class EditorUtility {
 
         if (inputElement instanceof IFile) {
             return openInEditor((IFile) inputElement, activate);
-        }
-
-        final IEditorInput input = getEditorInput(inputElement);
-        if (input != null) {
-            return openInEditor(input, getEditorID(input, inputElement),
-                    activate);
         }
 
         return null;

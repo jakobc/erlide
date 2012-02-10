@@ -11,6 +11,7 @@
 package org.erlide.backend;
 
 import java.util.Collection;
+import java.util.Map;
 
 import org.erlide.utils.Tuple;
 import org.osgi.framework.Bundle;
@@ -25,9 +26,7 @@ public interface ICodeBundle {
 
     Collection<String> getEbinDirs();
 
-    Collection<String> getPluginCode();
-
-    Collection<Tuple<String, CodeContext>> getPaths();
+    Map<String, CodeContext> getPaths();
 
     Collection<Tuple<String, String>> getInits();
 

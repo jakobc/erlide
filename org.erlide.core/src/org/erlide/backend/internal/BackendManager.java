@@ -44,6 +44,7 @@ import org.erlide.jinterface.ErlLogger;
 import org.erlide.jinterface.epmd.EpmdWatcher;
 import org.erlide.jinterface.epmd.IEpmdListener;
 import org.erlide.jinterface.rpc.IRpcCallSite;
+import org.erlide.launch.EpmdWatchJob;
 import org.erlide.utils.SystemUtils;
 import org.erlide.utils.Tuple;
 import org.osgi.framework.Bundle;
@@ -281,7 +282,7 @@ public final class BackendManager implements IEpmdListener, IBackendManager {
         final String pluginId = extension.getContributor().getName();
         final Bundle plugin = Platform.getBundle(pluginId);
 
-        final List<Tuple<String, CodeContext>> paths = Lists.newArrayList();
+        final Map<String, CodeContext> paths = Maps.newHashMap();
         final List<Tuple<String, String>> inits = Lists.newArrayList();
         for (final IConfigurationElement el : extension
                 .getConfigurationElements()) {
@@ -289,7 +290,7 @@ public final class BackendManager implements IEpmdListener, IBackendManager {
                 final String dir = el.getAttribute("path");
                 final String t = el.getAttribute("context").toUpperCase();
                 final CodeContext type = Enum.valueOf(CodeContext.class, t);
-                paths.add(new Tuple<String, CodeContext>(dir, type));
+                paths.put(dir, type);
             } else if ("init".equals(el.getName())) {
                 final String module = el.getAttribute("module");
                 final String function = el.getAttribute("function");
@@ -303,8 +304,7 @@ public final class BackendManager implements IEpmdListener, IBackendManager {
     }
 
     @Override
-    public void addBundle(final Bundle b,
-            final Collection<Tuple<String, CodeContext>> paths,
+    public void addBundle(final Bundle b, final Map<String, CodeContext> paths,
             final Collection<Tuple<String, String>> inits) {
         final ICodeBundle p = findBundle(b);
         if (p != null) {
