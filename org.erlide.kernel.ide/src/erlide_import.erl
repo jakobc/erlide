@@ -17,9 +17,6 @@
 %% API Functions
 %%
 
-%% import(L) ->
-%%     import("", L).
-
 import(Prefix0, L) ->
     M0 = filter_out_dotnames(L),
     M = filter_out_tilde(M0),
