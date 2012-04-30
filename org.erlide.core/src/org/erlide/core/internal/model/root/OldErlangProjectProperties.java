@@ -66,7 +66,7 @@ public final class OldErlangProjectProperties implements
             return;
         }
 
-        if (SystemUtils.hasFeatureEnabled("erlide.newprops")) {
+        if (SystemUtils.getInstance().hasFeatureEnabled("erlide.newprops")) {
             try {
                 final ErlProjectInfoBuilder builder = new ErlProjectInfoBuilder();
                 final ErlProjectInfo npp = builder
@@ -126,7 +126,7 @@ public final class OldErlangProjectProperties implements
         }
         final IEclipsePreferences node = new ProjectScope(project)
                 .getNode(ErlangCore.PLUGIN_ID);
-        if (SystemUtils.hasFeatureEnabled("erlide.newprops")) {
+        if (SystemUtils.getInstance().hasFeatureEnabled("erlide.newprops")) {
             try {
                 final ErlProjectInfo npp = PropertiesUtils.convertOld(this);
                 final ErlProjectInfoBuilder builder = new ErlProjectInfoBuilder();
@@ -280,7 +280,7 @@ public final class OldErlangProjectProperties implements
         return nukeOutputOnClean;
     }
 
-    public void setNukeOutputOnClean(boolean nukeOutputOnClean) {
+    public void setNukeOutputOnClean(final boolean nukeOutputOnClean) {
         this.nukeOutputOnClean = nukeOutputOnClean;
     }
 

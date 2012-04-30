@@ -44,18 +44,17 @@ import org.eclipse.ui.editors.text.EditorsUI;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.IBackendManager;
+import org.erlide.core.model.erlang.ErlToken;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlPreprocessorDef;
 import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.ErlToken;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlideDoc;
 import org.erlide.core.services.search.OpenResult;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.IRpcCallSite;
 import org.erlide.ui.actions.OpenAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.internal.ErlBrowserInformationControlInput;
@@ -281,7 +280,7 @@ public class ErlTextHover implements ITextHover,
         try {
             final IProject project = erlProject == null ? null : erlProject
                     .getWorkspaceProject();
-            final IRpcCallSite b = erlProject == null ? ide : backendManager
+            final IBackend b = erlProject == null ? ide : backendManager
                     .getBuildBackend(project);
 
             final IErlModel model = ErlModelManager.getErlangModel();
@@ -293,7 +292,9 @@ public class ErlTextHover implements ITextHover,
             // ErlLogger.debug("getHoverInfo getDocFromScan " + r1);
             final OtpErlangTuple t = (OtpErlangTuple) r1;
             if (Util.isOk(t)) {
-                final String docStr = Util.stringValue(t.elementAt(1));
+                String docStr = Util.stringValue(t.elementAt(1));
+                final byte[] s = docStr.getBytes(Charset.forName("ISO-8859-1"));
+                docStr = new String(s, Charset.forName("UTF-8"));
                 final OpenResult or = new OpenResult(t.elementAt(2));
                 result.append(docStr);
                 element = or;

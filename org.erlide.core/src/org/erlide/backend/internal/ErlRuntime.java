@@ -12,13 +12,18 @@ package org.erlide.backend.internal;
 
 import java.io.IOException;
 
+import org.eclipse.debug.core.DebugException;
+import org.eclipse.debug.core.model.IProcess;
 import org.erlide.backend.IErlRuntime;
+import org.erlide.core.MessageReporter;
+import org.erlide.core.MessageReporter.ReporterPosition;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.jinterface.rpc.IRpcCallback;
 import org.erlide.jinterface.rpc.IRpcFuture;
 import org.erlide.jinterface.rpc.IRpcResultCallback;
 import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.jinterface.rpc.RpcHelper;
+import org.erlide.utils.SystemUtils;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -44,11 +49,15 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
     private OtpNode localNode;
     private final Object localNodeLock = new Object();
     private final String cookie;
+    private boolean reported;
+    private final IProcess process;
 
-    public ErlRuntime(final String name, final String cookie) {
+    public ErlRuntime(final String name, final String cookie,
+            final IProcess process) {
         state = State.DISCONNECTED;
         peerName = name;
         this.cookie = cookie;
+        this.process = process;
         startLocalNode();
         // if (epmdWatcher.isRunningNode(name)) {
         // connect();
@@ -194,6 +203,7 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
         synchronized (connectLock) {
             switch (state) {
             case DISCONNECTED:
+                reported = false;
                 if (connectRetry()) {
                     state = State.CONNECTED;
                 } else {
@@ -203,9 +213,33 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
             case CONNECTED:
                 break;
             case DOWN:
-                final String msg = "Backend '%s' is down";
-                // XXX restart it??
-                throw new RpcException(String.format(msg, peerName));
+                final String fmt = "Backend '%s' is down";
+                final String msg = String.format(fmt, peerName);
+                if (!reported) {
+                    final String user = System.getProperty("user.name");
+                    final String bigMsg = msg
+                            + "\n\n"
+                            + "This error is not recoverable, please restart the application."
+                            + "\n\n"
+                            + "If an error report "
+                            + user
+                            + "_<timestamp>.txt has been created in your home directory, "
+                            + "please consider reporting the problem. \n"
+                            + (SystemUtils
+                                    .hasFeatureEnabled("erlide.ericsson.user") ? ""
+                                    : "http://www.assembla.com/spaces/erlide/support/tickets");
+                    MessageReporter.showError(bigMsg, ReporterPosition.MODAL);
+                    reported = true;
+                }
+                try {
+                    if (process != null) {
+                        process.terminate();
+                    }
+                } catch (final DebugException e) {
+                    ErlLogger.info(e);
+                }
+                // TODO restart it??
+                throw new RpcException(msg);
             }
         }
     }
@@ -252,6 +286,9 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
     @Override
     public void send(final String fullNodeName, final String name,
             final Object msg) throws SignatureException, RpcException {
+        // XXX
+        state = State.DOWN;
+        //
         tryConnect();
         rpcHelper.send(localNode, fullNodeName, name, msg);
     }

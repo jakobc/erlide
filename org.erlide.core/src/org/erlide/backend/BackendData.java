@@ -34,9 +34,9 @@ import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.backend.runtimeinfo.RuntimeInfoManager;
 import org.erlide.core.model.erlang.ModuleKind;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.launch.BeamLocator;
 import org.erlide.launch.ErlLaunchAttributes;
 import org.erlide.launch.ErlangLaunchDelegate;
+import org.erlide.launch.IBeamLocator;
 import org.erlide.launch.debug.ErlDebugConstants;
 import org.erlide.utils.SystemUtils;
 
@@ -47,7 +47,7 @@ public final class BackendData extends GenericBackendData {
     public static final String PROJECT_NAME_SEPARATOR = ";";
 
     private RuntimeInfoManager runtimeInfoManager;
-    private BeamLocator beamLocator;
+    private IBeamLocator beamLocator;
 
     public BackendData(final RuntimeInfoManager runtimeInfoManager,
             final ILaunchConfiguration config, final String mode) {
@@ -163,6 +163,9 @@ public final class BackendData extends GenericBackendData {
             workingCopy = type.newInstance(null, name);
             workingCopy.setAttribute(DebugPlugin.ATTR_CONSOLE_ENCODING,
                     "ISO-8859-1");
+            workingCopy.setAttribute(DebugPlugin.ATTR_PROCESS_FACTORY_ID,
+                    "org.erlide.core.ertsProcessFactory");
+
             workingCopy.setAttribute(ErlLaunchAttributes.NODE_NAME,
                     info.getNodeName());
             workingCopy.setAttribute(ErlLaunchAttributes.RUNTIME_NAME,
@@ -171,7 +174,8 @@ public final class BackendData extends GenericBackendData {
                     info.getCookie());
             // workingCopy.setAttribute(ErlLaunchAttributes.CONSOLE,
             // !options.contains(BackendOptions.NO_CONSOLE));
-            if (SystemUtils.hasFeatureEnabled("erlide.internal.shortname")) {
+            if (SystemUtils.getInstance().hasFeatureEnabled(
+                    "erlide.internal.shortname")) {
                 workingCopy.setAttribute(ErlLaunchAttributes.USE_LONG_NAME,
                         false);
                 info.useLongName(false);
@@ -326,11 +330,11 @@ public final class BackendData extends GenericBackendData {
         config.setAttribute(key, value);
     }
 
-    public void setBeamLocator(final BeamLocator beamLocator) {
+    public void setBeamLocator(final IBeamLocator beamLocator) {
         this.beamLocator = beamLocator;
     }
 
-    public BeamLocator getBeamLocator() {
+    public IBeamLocator getBeamLocator() {
         return beamLocator;
     }
 }

@@ -16,16 +16,16 @@ import com.google.common.collect.Lists;
 
 public class TestCaseData {
 
-    //@formatter:off
     enum TestState {
         // order is important!
+        //@formatter:off
         NOT_RUN,
         SUCCESS,
         SKIPPED,
         RUNNING,
         FAILED
+        //@formatter:on
     }
-    //@formatter:on
 
     public class FailLocations {
 
@@ -118,13 +118,17 @@ public class TestCaseData {
                 f = b.getQuotedAtom("F");
                 a = b.get("A");
                 final String aa = a.toString();
-                final String args = a instanceof OtpErlangLong ? " / "
-                        + a.toString() : " ( "
-                        + aa.substring(1, aa.length() - 2) + " )";
+                final String args;
+                if (a instanceof OtpErlangLong) {
+                    args = " / " + aa;
+                } else {
+                    final String aas = aa.length() > 2 ? aa.substring(1,
+                            aa.length() - 2) : "";
+                    args = " ( " + aas + " )";
+                }
                 return m + " : " + f + args;
-            } catch (final TermParserException e) {
-                ErlLogger.warn(e);
-            } catch (final OtpErlangException e) {
+            } catch (final Exception e) {
+                System.out.println(">>> " + item);
                 ErlLogger.warn(e);
             }
             return item.toString();

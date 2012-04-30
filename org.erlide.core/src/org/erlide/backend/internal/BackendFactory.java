@@ -15,6 +15,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
+import org.eclipse.debug.core.model.IProcess;
 import org.erlide.backend.BackendData;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.BackendUtils;
@@ -67,8 +68,10 @@ public class BackendFactory implements IBackendFactory {
             if (launch == null) {
                 launch = launchPeer(data);
             }
+            final IProcess mainProcess = launch.getProcesses().length == 0 ? null
+                    : launch.getProcesses()[0];
             final IErlRuntime runtime = new ErlRuntime(nodeName,
-                    info.getCookie());
+                    info.getCookie(), mainProcess);
             b = internal ? new InternalBackend(data, runtime)
                     : new ExternalBackend(data, runtime);
             b.initialize();
@@ -83,7 +86,7 @@ public class BackendFactory implements IBackendFactory {
         final ILaunchConfiguration launchConfig = data.asLaunchConfiguration();
         try {
             final boolean registerForDebug = data.getLaunch() != null
-                    || SystemUtils.isDeveloper();
+                    || SystemUtils.getInstance().isDeveloper();
             return launchConfig.launch(ILaunchManager.RUN_MODE,
                     new NullProgressMonitor(), false, registerForDebug);
         } catch (final CoreException e) {
@@ -98,10 +101,10 @@ public class BackendFactory implements IBackendFactory {
         result.setDebug(false);
         result.setAutostart(true);
         result.setConsole(false);
-        if (SystemUtils.isDeveloper()) {
+        if (SystemUtils.getInstance().isDeveloper()) {
             result.setConsole(true);
         }
-        if (SystemUtils.hasFeatureEnabled("erlide.monitor.ide")) {
+        if (SystemUtils.getInstance().isMonitoringIdeBackend()) {
             result.setMonitored(true);
         }
         return result;

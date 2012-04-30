@@ -58,6 +58,7 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.eclipse.ui.dialogs.PropertyPage;
+import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangCore;
 import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
@@ -71,7 +72,6 @@ import org.erlide.core.services.builder.DialyzerUtils;
 import org.erlide.core.services.builder.DialyzerUtils.DialyzerErrorException;
 import org.erlide.core.services.builder.ErlideDialyze;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.IRpcCallSite;
 import org.erlide.jinterface.rpc.RpcException;
 import org.osgi.service.prefs.BackingStoreException;
 
@@ -172,7 +172,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
         final Composite group = prefsComposite;// new Composite(prefsComposite,
                                                // SWT.NONE);
         group.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
-        group.setLayout(new GridLayout(1, false));
+        // group.setLayout(new GridLayout(1, false));
         createDialyzeCheckbox(group);
         createPltSelection(group);
         createPltCheck(group);
@@ -286,6 +286,8 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
         fEditButton = new Button(buttons, SWT.PUSH);
         fEditButton.setText("Change...");
+        gd = new GridData();
+        gd.horizontalAlignment = GridData.HORIZONTAL_ALIGN_FILL;
         fEditButton.setLayoutData(gd);
         fEditButton.addListener(SWT.Selection, new Listener() {
             @Override
@@ -296,6 +298,8 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
         fRemoveButton = new Button(buttons, SWT.PUSH);
         fRemoveButton.setText("Remove");
+        gd = new GridData();
+        gd.horizontalAlignment = GridData.HORIZONTAL_ALIGN_FILL;
         fRemoveButton.setLayoutData(gd);
         fRemoveButton.addListener(SWT.Selection, new Listener() {
             @Override
@@ -648,7 +652,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
                 final String alternatePltFileDirectory = DialyzerPreferences
                         .getAlternatePLTFileDirectoryFromPreferences();
                 checkIfPltFilesShouldBeCopied(alternatePltFileDirectory);
-                final IRpcCallSite backend = CoreUtil
+                final IBackend backend = CoreUtil
                         .getBuildOrIdeBackend(fProject);
                 for (final String pltPath : selectedPLTPaths) {
                     checkPlt(pltPath, alternatePltFileDirectory, monitor,
@@ -715,7 +719,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
         private void checkPlt(final String pltPath,
                 final String alternatePltFileDirectory,
-                final IProgressMonitor monitor, final IRpcCallSite backend)
+                final IProgressMonitor monitor, final IBackend backend)
                 throws DialyzerErrorException, BackingStoreException,
                 ErlModelException, RpcException {
             try {

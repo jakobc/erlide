@@ -38,6 +38,7 @@ import org.eclipse.debug.core.model.IStreamsProxy;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendData;
 import org.erlide.backend.BackendException;
+import org.erlide.backend.BackendHelper;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.IBackendManager;
 import org.erlide.backend.ICodeBundle;
@@ -205,9 +206,6 @@ public abstract class Backend implements IStreamListener, IBackend {
 
     @Override
     public void send(final OtpErlangPid pid, final Object msg) {
-        if (!runtime.isAvailable()) {
-            return;
-        }
         try {
             runtime.send(pid, msg);
         } catch (final SignatureException e) {
@@ -219,9 +217,6 @@ public abstract class Backend implements IStreamListener, IBackend {
 
     @Override
     public void send(final String name, final Object msg) {
-        if (!runtime.isAvailable()) {
-            return;
-        }
         try {
             runtime.send(getFullNodeName(), name, msg);
         } catch (final SignatureException e) {
@@ -346,7 +341,7 @@ public abstract class Backend implements IStreamListener, IBackend {
 
     @Override
     public boolean isStopped() {
-        return stopped;
+        return stopped || !runtime.isAvailable();
     }
 
     @Override
@@ -864,6 +859,25 @@ public abstract class Backend implements IStreamListener, IBackend {
             }
         } catch (final ErlModelException e) {
             ErlLogger.warn(e);
+        }
+    }
+
+    @Override
+    public void setMonitoring(final boolean on) {
+        try {
+            call("erlide_kernel_common", "set_monitoring", "o", on);
+        } catch (final RpcException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void setMonitoringInterval(final int monitoringInterval) {
+        try {
+            call("erlide_kernel_common", "set_monitoring_interval", "i",
+                    monitoringInterval);
+        } catch (final RpcException e) {
+            e.printStackTrace();
         }
     }
 
