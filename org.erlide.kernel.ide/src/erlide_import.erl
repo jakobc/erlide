@@ -10,7 +10,7 @@
 %%
 %% Exported Functions
 %%
--export([import/2]).
+-export([import/2, detect/2]).
 %% -compile(export_all).
 
 %%
@@ -27,6 +27,16 @@ import(Prefix0, L) ->
                      Prefix0++"/"
              end,
 	import(Prefix, M, new_empty(), new_empty(), new_empty(), none, new_empty()).
+
+
+recu_dir(Dir) ->
+    case filelib:list_dir(Dir) of
+        {ok, L} -> [Dir ++ "/" ++ recu_dir(F) || F <- L];
+        _ -> Dir
+    end.
+
+detect(Prefix, Dirs) ->
+    import(Prefix, [recu_dir(D) || D <- Dirs]).
 
 %%
 %% Local Functions

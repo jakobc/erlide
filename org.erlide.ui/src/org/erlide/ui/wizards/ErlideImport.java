@@ -38,4 +38,16 @@ public class ErlideImport {
         }
         return null;
     }
+
+    public static ErlProjectImport detectProjectDirectories(final IBackend b,
+            final String prefix, final List<String> dirs) {
+        OtpErlangObject res = null;
+        try {
+            res = b.call("erlide_import", "detect", "sls", prefix, dirs);
+            return new ErlProjectImport(res);
+        } catch (final RpcException e) {
+            ErlLogger.warn(e);
+        }
+        return null;
+    }
 }

@@ -9,7 +9,6 @@
  *******************************************************************************/
 package org.erlide.ui.properties;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.resources.IProject;
@@ -21,6 +20,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.ComboFieldEditor;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -31,17 +31,18 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.dialogs.FileSystemElement;
-import org.eclipse.ui.wizards.datatransfer.FileSystemStructureProvider;
 import org.erlide.backend.BackendCore;
 import org.erlide.core.internal.model.root.ProjectPreferencesConstants;
 import org.erlide.core.model.root.ErlModelManager;
+import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.wizards.ErlProjectImport;
 import org.erlide.ui.wizards.ErlideImport;
+import org.erlide.utils.PreferencesUtils;
 
 import com.bdaum.overlayPages.FieldEditorOverlayPage;
+import com.google.common.collect.Lists;
 
 public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
 
@@ -62,10 +63,11 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
 
     @Override
     protected void createFieldEditors() {
-        final IProject prj = (IProject) getElement().getAdapter(IProject.class);
+        final IProject project = (IProject) getElement().getAdapter(
+                IProject.class);
 
         try {
-            prj.getFolder(new Path(".settings")).refreshLocal(
+            project.getFolder(new Path(".settings")).refreshLocal(
                     IResource.DEPTH_ONE, null);
         } catch (final CoreException e) {
         }
@@ -73,18 +75,18 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
         final Composite fieldEditorParent = getFieldEditorParent();
         final ProjectDirectoryFieldEditor out = new ProjectDirectoryFieldEditor(
                 ProjectPreferencesConstants.OUTPUT_DIR, "Output directory:",
-                fieldEditorParent, prj, false);
+                fieldEditorParent, project, false);
         addField(out);
 
         final ProjectPathEditor src = new ProjectPathEditor(
                 ProjectPreferencesConstants.SOURCE_DIRS, "Source directories:",
-                "Select directory:", fieldEditorParent, prj);
+                "Select directory:", fieldEditorParent, project);
         addField(src);
 
         final ProjectPathEditor inc = new ProjectPathEditor(
                 ProjectPreferencesConstants.INCLUDE_DIRS,
                 "Include directories:", "Select directory:", fieldEditorParent,
-                prj);
+                project);
         addField(inc);
 
         // IPreferenceStore ps = getPreferenceStore();
@@ -136,34 +138,29 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
     };
 
     protected void detectDirectories() {
-        final List<?> selectedResources = mainPage.getSelectedResources();
-        final List<String> filesAndDirs = new ArrayList<String>(
-                selectedResources.size());
-        final FileSystemStructureProvider provider = FileSystemStructureProvider.INSTANCE;
-        for (final Object o : selectedResources) {
-            final FileSystemElement fse = (FileSystemElement) o;
-            final Object fso = fse.getFileSystemObject();
-            final String s = provider.getFullPath(fso);
-            filesAndDirs.add(s);
+        final IProject project = (IProject) getElement().getAdapter(
+                IProject.class);
+        final IErlModel model = ErlModelManager.getErlangModel();
+        final IErlProject erlProject = model.getErlangProject(project);
+        final List<String> dirs = Lists.newArrayList();
+        dirs.add(erlProject.getOutputLocation().toPortableString());
+        for (final IPath p : erlProject.getSourceDirs()) {
+            dirs.add(p.toPortableString());
         }
-        final String projectPath = mainPage.getProjectPath().toString();
-        final ErlProjectImport epi = ErlideImport
-                .importProject(BackendCore.getBackendManager().getIdeBackend(),
-                        projectPath, filesAndDirs);
-        final IPath beamDir = new Path(epi.getBeamDir());
-        importIncludeAndSourceDirsPage.setup(projectPath, epi.getDirectories(),
-                epi.getIncludeDirs(), epi.getSourceDirs(), beamDir);
-        resources = epi.getResources();
-        final List<Object> fileSystemObjects = new ArrayList<Object>();
-        for (final Object o : selectedResources) {
-            final FileSystemElement fse = (FileSystemElement) o;
-            final Object fso = fse.getFileSystemObject();
-            final String s = provider.getFullPath(fso);
-            if (epi.getResources().contains(s)) {
-                fileSystemObjects.add(((FileSystemElement) o)
-                        .getFileSystemObject());
-            }
+        for (final IPath p : erlProject.getIncludeDirs()) {
+            dirs.add(p.toPortableString());
         }
+        final String projectPath = erlProject.getFilePath();
+        final ErlProjectImport epi = ErlideImport.detectProjectDirectories(
+                BackendCore.getBackendManager().getIdeBackend(), projectPath,
+                dirs);
+        final IPreferenceStore preferenceStore = getPreferenceStore();
+        preferenceStore.setValue(ProjectPreferencesConstants.OUTPUT_DIR,
+                new Path(epi.getBeamDir()).toPortableString());
+        preferenceStore.setValue(ProjectPreferencesConstants.SOURCE_DIRS,
+                PreferencesUtils.packList(epi.getSourceDirs()));
+        preferenceStore.setValue(ProjectPreferencesConstants.INCLUDE_DIRS,
+                PreferencesUtils.packList(epi.getIncludeDirs()));
     }
 
     @Override
