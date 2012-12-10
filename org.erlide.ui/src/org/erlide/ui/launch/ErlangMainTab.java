@@ -40,13 +40,13 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.Text;
-import org.erlide.core.CoreScope;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.backend.ErlDebugConstants;
-import org.erlide.core.backend.ErlLaunchAttributes;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.launch.ErlLaunchAttributes;
+import org.erlide.launch.debug.ErlDebugConstants;
 import org.erlide.ui.util.SWTUtil;
 
 public class ErlangMainTab extends AbstractLaunchConfigurationTab {
@@ -59,6 +59,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
     /**
      * @wbp.parser.entryPoint
      */
+    @Override
     public void createControl(final Composite parent) {
         final Composite comp = new Composite(parent, SWT.NONE);
         setControl(comp);
@@ -70,7 +71,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
 
         Collection<IErlProject> projects;
         try {
-            projects = CoreScope.getModel().getErlangProjects();
+            projects = ErlModelManager.getErlangModel().getErlangProjects();
             final List<String> ps = new ArrayList<String>();
             for (final IErlProject p : projects) {
                 ps.add(p.getName());
@@ -98,6 +99,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         gd_table_1.minimumWidth = 256;
         table_1.setLayoutData(gd_table_1);
         projectsTable.addCheckStateListener(new ICheckStateListener() {
+            @Override
             @SuppressWarnings("synthetic-access")
             public void checkStateChanged(final CheckStateChangedEvent event) {
                 updateLaunchConfigurationDialog();
@@ -164,6 +166,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
      */
     static class ProjectsContentProvider implements IStructuredContentProvider {
 
+        @Override
         public Object[] getElements(final Object inputElement) {
             final java.util.List<String> ps = new ArrayList<String>();
 
@@ -184,9 +187,11 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
             return ps.toArray(new String[0]);
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public void inputChanged(final Viewer viewer, final Object oldInput,
                 final Object newInput) {
         }
@@ -198,10 +203,12 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
      * 
      */
     static class ProjectsLabelProvider implements ITableLabelProvider {
+        @Override
         public Image getColumnImage(final Object element, final int columnIndex) {
             return null;
         }
 
+        @Override
         public String getColumnText(final Object element, final int columnIndex) {
             if (element instanceof String) {
                 return (String) element;
@@ -209,21 +216,26 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
             return "?" + element;
         }
 
+        @Override
         public void addListener(final ILabelProviderListener listener) {
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public boolean isLabelProperty(final Object element,
                 final String property) {
             return false;
         }
 
+        @Override
         public void removeListener(final ILabelProviderListener listener) {
         }
     }
 
+    @Override
     public void setDefaults(final ILaunchConfigurationWorkingCopy config) {
         config.setAttribute(ErlLaunchAttributes.PROJECTS, "");
         config.setAttribute(ErlLaunchAttributes.MODULE, "");
@@ -233,6 +245,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
                 ErlDebugConstants.DEFAULT_DEBUG_FLAGS);
     }
 
+    @Override
     public void initializeFrom(final ILaunchConfiguration config) {
         initializeProjects(config);
         initializeStart(config);
@@ -288,6 +301,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         }
     }
 
+    @Override
     public void performApply(final ILaunchConfigurationWorkingCopy config) {
         applyProjects(config);
         applyStart(config);
@@ -323,6 +337,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         return result;
     }
 
+    @Override
     public String getName() {
         return "Erlang";
     }
@@ -335,7 +350,8 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         return true;
     }
 
-    protected final ModifyListener fBasicModifyListener = new ModifyListener() {
+    private final ModifyListener fBasicModifyListener = new ModifyListener() {
+        @Override
         @SuppressWarnings("synthetic-access")
         public void modifyText(final ModifyEvent evt) {
             updateLaunchConfigurationDialog();

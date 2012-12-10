@@ -43,14 +43,14 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
-import org.erlide.core.CoreScope;
-import org.erlide.core.debug.ErlangDebugTarget;
-import org.erlide.core.debug.ErlangDebugTarget.TraceChangedEventData;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.debug.ui.tracing.DebugTraceEvent;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.launch.debug.model.ErlangDebugTarget;
+import org.erlide.launch.debug.model.TraceChangedEventData;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.util.EditorUtility;
 import org.erlide.ui.internal.ErlideUIPlugin;
@@ -83,6 +83,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
 
     private final class TreeContentProvider implements ITreeContentProvider {
 
+        @Override
         public void dispose() {
 
         }
@@ -127,6 +128,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
         //
         // }
 
+        @Override
         public Object[] getChildren(final Object parentElement) {
             if (parentElement instanceof ILaunch) {
                 final ILaunch launch = (ILaunch) parentElement;
@@ -140,6 +142,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
             return NO_CHILDREN;
         }
 
+        @Override
         public Object[] getElements(final Object inputElement) {
             // if (debugTarget == null) {
             // return NO_CHILDREN;
@@ -153,10 +156,12 @@ public class DebuggerTraceView extends AbstractDebugView implements
             // return traceList.toArray(new Object[traceList.size()]);
         }
 
+        @Override
         public Object getParent(final Object element) {
             return parentMap.get(element);
         }
 
+        @Override
         public boolean hasChildren(final Object element) {
             if (element instanceof DebugTraceEvent) {
                 return false;
@@ -164,6 +169,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
             return true;
         }
 
+        @Override
         public void inputChanged(final Viewer theViewer, final Object oldInput,
                 final Object newInput) {
         }
@@ -317,6 +323,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
 
         viewer.getTree().addMouseListener(new MouseListener() {
 
+            @Override
             public void mouseDoubleClick(final MouseEvent e) {
                 final Object o = getSelectedInTree();
                 if (o instanceof OtpErlangTuple) {
@@ -338,9 +345,11 @@ public class DebuggerTraceView extends AbstractDebugView implements
                 }
             }
 
+            @Override
             public void mouseDown(final MouseEvent e) {
             }
 
+            @Override
             public void mouseUp(final MouseEvent e) {
             }
 
@@ -461,7 +470,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
         }
 
         IEditorPart part = null;
-        final IErlElementLocator model = CoreScope.getModel();
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         IErlModule module;
         try {
             module = model.findModule(moduleName);
@@ -515,9 +524,11 @@ public class DebuggerTraceView extends AbstractDebugView implements
             treeColumn.setMoveable(true);
             treeColumn.addSelectionListener(new SelectionListener() {
 
+                @Override
                 public void widgetDefaultSelected(final SelectionEvent e) {
                 }
 
+                @Override
                 public void widgetSelected(final SelectionEvent e) {
                 }
             });
@@ -599,6 +610,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
     public void setFocus() {
     }
 
+    @Override
     public void handleDebugEvents(final DebugEvent[] events) {
         for (final DebugEvent event : events) {
             if (event.getKind() == DebugEvent.MODEL_SPECIFIC
@@ -621,6 +633,7 @@ public class DebuggerTraceView extends AbstractDebugView implements
         final Display display = viewer.getControl().getDisplay();
         if (!display.isDisposed()) {
             display.asyncExec(new Runnable() {
+                @Override
                 public void run() {
                     if (viewer == null || viewer.getControl().isDisposed()) {
                         return;

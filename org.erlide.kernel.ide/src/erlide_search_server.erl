@@ -25,8 +25,8 @@
 %% called from Java
 -export([start/0, 
          stop/0,
-         find_refs/3,
-         start_find_refs/4,
+         find_refs/4,
+         start_find_refs/5,
          cancel_find_refs/1]).
 
 %% called from Erlang
@@ -50,9 +50,14 @@
 %%
 
 -define(SERVER, erlide_search_server).
+-define(N_MODULES_KEPT, 5).
 
--record(state, {modules=[], dummy}). %% FIXME still too simple data mode
--record(module, {scanner_name, module_name, refs}).
+-record(module, {scanner_name :: atom(),
+		 sequence_number :: integer(),
+                 module_name :: string(),
+                 refs :: list()}).
+-record(state, {modules=[] :: list(#module{}),
+                sequence_number :: integer()}).
 
 %%
 %% API Functions
@@ -64,11 +69,6 @@ start() ->
 stop() ->
     server_cmd(stop).
 
-%% add_modules(Modules) ->
-%%     R = server_cmd(add_modules, Modules),
-%%     ?D(state()),
-%%     R.
-
 state() ->
     server_cmd(state).
 
@@ -76,22 +76,22 @@ modules() ->
     server_cmd(modules).
 
 %% modules is {ScannerName, ModulePath}
-find_refs(Pattern, Modules, StateDir) 
+find_refs(Pattern, Modules, StateDir, UpdateSearchServer) 
   when is_tuple(Pattern), is_list(Modules), is_list(StateDir) ->
-    find_refs([Pattern], Modules, StateDir);
-find_refs(Pattern, Modules, StateDir) 
+    find_refs([Pattern], Modules, StateDir, UpdateSearchServer);
+find_refs(Pattern, Modules, StateDir, UpdateSearchServer) 
   when is_list(Pattern), is_list(Modules), is_list(StateDir) ->
-    R = server_cmd(find_refs, {Pattern, Modules, StateDir}),
+    R = server_cmd(find_refs, {Pattern, Modules, StateDir, UpdateSearchServer}),
     R.
 
 %% 
-start_find_refs(JPid, Pattern, Modules, StateDir)
+start_find_refs(JPid, Pattern, Modules, StateDir, UpdateSearchServer)
   when is_tuple(Pattern), is_list(Modules), is_list(StateDir) ->
-    start_find_refs(JPid, [Pattern], Modules, StateDir); 
-start_find_refs(JPid, Pattern, Modules, StateDir)
+    start_find_refs(JPid, [Pattern], Modules, StateDir, UpdateSearchServer); 
+start_find_refs(JPid, Pattern, Modules, StateDir, UpdateSearchServer)
   when is_list(Pattern), is_list(Modules), is_list(StateDir) ->
     ?D({JPid, Pattern}),
-    R = server_cmd(start_find_refs, {Pattern, Modules, JPid, StateDir}),
+    R = server_cmd(start_find_refs, {Pattern, Modules, JPid, StateDir, UpdateSearchServer}),
     R.
 
 remove_module(ScannerName) ->
@@ -114,7 +114,7 @@ start(undefined) ->
                   erlang:yield(),
                   erlang:register(?SERVER, self()),
                   Self ! started,
-                  loop(#state{})
+                  loop(#state{sequence_number=0})
           end),
     receive
         started ->
@@ -156,12 +156,6 @@ loop(State) ->
 
 cmd(Cmd, From, Args, State) ->
     try
-        case get(logging) of
-            on ->
-                put(log, get(log)++[{Cmd, Args}]);
-            _ ->
-                ok
-        end,
         case do_cmd(Cmd, Args, State) of
             {R, NewState} ->
                 reply(Cmd, From, R),
@@ -187,16 +181,16 @@ reply(Cmd, From, R) ->
 
 do_cmd(add_module_refs, {ScannerName, Refs}, State) ->
     do_add_module_refs(ScannerName, Refs, State);
-do_cmd(find_refs, {Ref, Modules, StateDir}, State) ->
+do_cmd(find_refs, {Ref, Modules, StateDir, UpdateSearchServer}, State) ->
     ?D(Ref),
     ?D(Modules),
     ?D(State),
-    R = do_find_refs(Modules, Ref, StateDir, State, []),
+    R = do_find_refs(Modules, Ref, StateDir, State, UpdateSearchServer, []),
     ?D(R),
     R;
-do_cmd(start_find_refs, {Pattern, Modules, JPid, StateDir}, State) ->
+do_cmd(start_find_refs, {Pattern, Modules, JPid, StateDir, UpdateSearchServer}, State) ->
     ?D(start_find_refs),
-    R = do_start_find_refs(Pattern, Modules, JPid, StateDir, State),
+    R = do_start_find_refs(Pattern, Modules, JPid, StateDir, UpdateSearchServer, State),
     R;
 do_cmd(cancel_find_refs, Pid, State) ->
     Pid ! cancel,
@@ -210,30 +204,33 @@ do_cmd(modules, _, #state{modules=Modules} = State) ->
     Names = [M || #module{scanner_name=M} <- Modules],
     {Names, State}.
 
-do_start_find_refs(Pattern, Modules, JPid, StateDir, State) ->
+do_start_find_refs(Pattern, Modules, JPid, StateDir, UpdateSearchServer, State) ->
     ?D({do_start_find_refs, Pattern, JPid}),
     Pid = spawn_link(fun() ->
                              ModuleChunks = chunkify(Modules, 10),
                              ?D({JPid, length(ModuleChunks)}),
                              JPid ! {start, length(ModuleChunks)},
                              ?D({JPid, length(ModuleChunks)}),
-                             R = do_background_find_refs(ModuleChunks, Pattern, JPid, StateDir, State),
+                             R = do_background_find_refs(ModuleChunks, Pattern, JPid, StateDir, UpdateSearchServer, State),
                              ?D({stop, R}),
                              JPid ! {stop, R}
                      end),
     {Pid, State}.
 
-do_background_find_refs([], _Pattern, _JPid, _StateDir, _State) ->
+do_background_find_refs([], _Pattern, _JPid, _StateDir, _UpdateSearchServer, _State) ->
     ok;
-do_background_find_refs([Chunk | Rest], Pattern, JPid, StateDir, State) ->
-    {R, _State} = do_find_refs(Chunk, Pattern, StateDir, State, []),
+do_background_find_refs([Chunk | Rest], Pattern, JPid, StateDir, 
+			UpdateSearchServer, State) ->
+    {R, _State} = do_find_refs(Chunk, Pattern, StateDir, State, 
+			       UpdateSearchServer, []),
     ?D({1, R}),
     JPid ! {progress, {self(), 1, R}},
     receive
         cancel -> 
             ok
     after 0 ->
-            do_background_find_refs(Rest, Pattern, JPid, StateDir, State)
+            do_background_find_refs(Rest, Pattern, JPid, StateDir, 
+				    UpdateSearchServer, State)
     end.
 
 chunkify(List, N) ->
@@ -252,16 +249,17 @@ chunkify_aux(List, 0, Acc) ->
 chunkify_aux([H | T], N, Acc) ->
     chunkify_aux(T, N-1, [H | Acc]).
 
-do_find_refs([], _, _, State, Acc) ->
+do_find_refs([], _, _, State, _, Acc) ->
     {{ok, Acc}, State};
 do_find_refs([{ScannerName, ModulePath} | Rest], Pattern, StateDir, 
-             #state{modules=Modules} = State, Acc0) ->
+             #state{modules=Modules} = State, UpdateSearchServer, Acc0) ->
     ?D(ScannerName),
-    Refs = get_module_refs(ScannerName, ModulePath, StateDir, Modules),
+    Refs = get_module_refs(ScannerName, ModulePath, StateDir, Modules,
+			   UpdateSearchServer),
     Mod = get_module_name(ModulePath),
     Acc1 = find_data(Refs, Pattern, Mod, ModulePath, Acc0),
     ?D(Acc1),
-    do_find_refs(Rest, Pattern, StateDir, State, Acc1).
+    do_find_refs(Rest, Pattern, StateDir, State, UpdateSearchServer, Acc1).
 
 get_module_name(ModulePath) ->
     L = filename:rootname(filename:basename(ModulePath)),
@@ -288,10 +286,10 @@ is_def(#record_field_def{}) -> true;
 is_def(_) -> false.
 
 check_pattern(Pattern, Mod, #local_call{function=F, arity=A}, _, _, _)->
-    lists:member(#external_call{module=Mod, function=F, arity=A}, Pattern);
+    check_function_ref(#external_call{module=Mod, function=F, arity=A}, Pattern);
 check_pattern(Pattern, Mod, #function_def{function=F, arity=A} = FD, _, _, _)->
-    lists:member(FD, Pattern) orelse
-		lists:member(#function_def_mod{module=Mod, function=F, arity=A}, Pattern);
+    check_function_ref(FD, Pattern) orelse
+        check_function_ref(#function_def_mod{module=Mod, function=F, arity=A}, Pattern);
 check_pattern(Pattern, Mod, #type_ref{module='_', type=T}, _, _, _) ->
     lists:member(#type_ref{module=Mod, type=T}, Pattern);
 check_pattern(Pattern, _Mod, #var_ref{}=VR, F, A, C) ->
@@ -301,6 +299,19 @@ check_pattern(Pattern, _Mod, #var_def{}=VD, F, A, C) ->
 check_pattern(Pattern, _Mod, D, _, _, _) ->
 %%     ?D({check_pattern, Pattern, D}),
     lists:member(D, Pattern).
+
+check_function_ref(_, []) ->
+    false;
+check_function_ref(#external_call{module=Mod, function=F, arity=A1}, [#external_call{module=Mod, function=F, arity=A2}|_]) ->
+    A1==A2 orelse A2==undefined;
+check_function_ref(#function_def{function=F, arity=A1}, [#function_def{function=F, arity=A2}|_]) ->
+    A1==A2 orelse A2==undefined;
+check_function_ref(#function_def_mod{module=Mod, function=F, arity=A1}, [#function_def_mod{module=Mod, function=F, arity=A2}|_]) ->
+    A1==A2 orelse A2==undefined;
+check_function_ref(X, [_|Tail]) ->
+    check_function_ref(X, Tail).
+
+    
 
 check_var_pattern([], _, _, _, _) ->
 	false;
@@ -312,7 +323,7 @@ check_var_pattern([#var_pattern{vardefref=VL, function=F, arity=A, clause=C} | R
 check_var_pattern([_ | Rest], V, F, A, C) ->
 	check_var_pattern(Rest, V, F, A, C).
 
-get_module_refs(ScannerName, ModulePath, StateDir, Modules) ->
+get_module_refs(ScannerName, ModulePath, StateDir, Modules, UpdateSearchServer) ->
     ?D(Modules),
     case lists:keysearch(ScannerName, #module.scanner_name, Modules) of
         {value, #module{refs=Refs}} ->
@@ -320,16 +331,18 @@ get_module_refs(ScannerName, ModulePath, StateDir, Modules) ->
             Refs;
         false ->
             ?D(ok),
-            read_module_refs(ScannerName, ModulePath, StateDir)
+            get_module_refs(ScannerName, ModulePath, StateDir, UpdateSearchServer)
     end.
 
-read_module_refs(ScannerName, ModulePath, StateDir) ->
-    ?D({read_module_refs, ScannerName, ModulePath}),
-    R = erlide_noparse:read_module_refs(ScannerName, ModulePath, StateDir),
+get_module_refs(ScannerName, ModulePath, StateDir, UpdateSearchServer) ->
+    ?D({get_module_refs, ScannerName, ModulePath}),
+    R = erlide_noparse:get_module_refs(ScannerName, ModulePath, StateDir,
+				       UpdateSearchServer),
     ?D(R),
     R.
 
-do_add_module_refs(ScannerName, Refs, #state{modules=Modules0} = State) ->
-    Modules1 = lists:keydelete(ScannerName, #module.scanner_name, Modules0),
-    Modules2 = [#module{scanner_name=ScannerName, refs=Refs} | Modules1],
-    State#state{modules=Modules2}.
+do_add_module_refs(ScannerName, Refs, #state{modules=Modules0, sequence_number=SequenceNumber} = State) ->
+    SequenceNumber1 = SequenceNumber+1,
+    Modules1 = [M || M <- Modules0, M#module.sequence_number + ?N_MODULES_KEPT > SequenceNumber1, M#module.scanner_name /= ScannerName],
+    Modules2 = [#module{scanner_name=ScannerName, refs=Refs, sequence_number=SequenceNumber1} | Modules1],
+    State#state{modules=Modules2, sequence_number=SequenceNumber1}.

@@ -32,20 +32,19 @@ import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.CoreScope;
 import org.erlide.core.internal.model.root.ErlElementDelta;
 import org.erlide.core.model.erlang.IErlComment;
 import org.erlide.core.model.erlang.IErlMember;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.erlang.ISourceRange;
+import org.erlide.core.model.erlang.ISourceReference;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
 import org.erlide.core.model.root.IErlElementDelta;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.root.ISourceRange;
-import org.erlide.core.model.root.ISourceReference;
-import org.erlide.core.model.util.ElementChangedEvent;
 import org.erlide.core.model.util.IElementChangedListener;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.editors.erl.ErlangEditor;
@@ -55,6 +54,7 @@ import org.erlide.ui.internal.DocumentCharacterIterator;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.prefs.PreferenceConstants;
 import org.erlide.ui.util.ErlModelUtils;
+import org.erlide.ui.util.PerformanceTuning;
 
 public class DefaultErlangFoldingStructureProvider implements
         IProjectionListener, IErlangFoldingStructureProvider,
@@ -148,6 +148,7 @@ public class DefaultErlangFoldingStructureProvider implements
             fSet = set;
         }
 
+        @Override
         public boolean match(final ErlangProjectionAnnotation annotation) {
             if (stateMatch(annotation) && !annotation.isComment()
                     && !annotation.isMarkedDeleted()) {
@@ -158,27 +159,6 @@ public class DefaultErlangFoldingStructureProvider implements
             }
             return false;
         }
-    }
-
-    class ElementChangedListener implements IElementChangedListener {
-
-        /*
-         * @see
-         * org.eclipse.jdt.core.IElementChangedListener#elementChanged(org.eclipse
-         * .jdt.core.ElementChangedEvent)
-         */
-        public void elementChanged(final ElementChangedEvent e) {
-            IErlElementDelta delta = e.getDelta();
-            if (delta == null) {
-                return;
-            }
-            delta = delta.findElement(fModule);
-            if (delta == null) {
-                return;
-            }
-            processDelta(delta);
-        }
-
     }
 
     /**
@@ -199,6 +179,7 @@ public class DefaultErlangFoldingStructureProvider implements
          * @seeorg.eclipse.jface.text.source.projection.IProjectionPosition#
          * computeFoldingRegions(org.eclipse.jface.text.IDocument)
          */
+        @Override
         public IRegion[] computeProjectionRegions(final IDocument document)
                 throws BadLocationException {
             final DocumentCharacterIterator sequence = new DocumentCharacterIterator(
@@ -305,6 +286,7 @@ public class DefaultErlangFoldingStructureProvider implements
          * @seeorg.eclipse.jface.text.source.projection.IProjectionPosition#
          * computeCaptionOffset(org.eclipse.jface.text.IDocument)
          */
+        @Override
         public int computeCaptionOffset(final IDocument document) {
             // return 0;
             final DocumentCharacterIterator sequence = new DocumentCharacterIterator(
@@ -346,6 +328,7 @@ public class DefaultErlangFoldingStructureProvider implements
          * @seeorg.eclipse.jface.text.source.projection.IProjectionPosition#
          * computeFoldingRegions(org.eclipse.jface.text.IDocument)
          */
+        @Override
         public IRegion[] computeProjectionRegions(final IDocument document)
                 throws BadLocationException {
             int nameStart = offset;
@@ -410,6 +393,7 @@ public class DefaultErlangFoldingStructureProvider implements
          * @seeorg.eclipse.jface.text.source.projection.IProjectionPosition#
          * computeCaptionOffset(org.eclipse.jface.text.IDocument)
          */
+        @Override
         public int computeCaptionOffset(final IDocument document)
                 throws BadLocationException {
             int nameStart = offset;
@@ -453,6 +437,7 @@ public class DefaultErlangFoldingStructureProvider implements
             super(matchCollapsed);
         }
 
+        @Override
         public boolean match(final ErlangProjectionAnnotation annotation) {
             if (stateMatch(annotation) && !annotation.isComment()
                     && !annotation.isMarkedDeleted()) {
@@ -470,6 +455,7 @@ public class DefaultErlangFoldingStructureProvider implements
             super(matchCollapsed);
         }
 
+        @Override
         public boolean match(final ErlangProjectionAnnotation annotation) {
             if (stateMatch(annotation) && annotation.isComment()
                     && !annotation.isMarkedDeleted()) {
@@ -496,6 +482,7 @@ public class DefaultErlangFoldingStructureProvider implements
 
     private final Filter fExpandAllFilter = new Filter() {
 
+        @Override
         public boolean match(final ErlangProjectionAnnotation annotation) {
             return annotation.isCollapsed();
         }
@@ -505,24 +492,26 @@ public class DefaultErlangFoldingStructureProvider implements
     public DefaultErlangFoldingStructureProvider() {
     }
 
+    @Override
     public void install(final ITextEditor editor, final ProjectionViewer viewer) {
         if (editor instanceof ErlangEditor) {
             fFirstTimeInitialCollapse = true;
             fEditor = editor;
             fViewer = viewer;
             fViewer.addProjectionListener(this);
-            final IErlModel mdl = CoreScope.getModel();
+            final IErlModel mdl = ErlModelManager.getErlangModel();
             mdl.addModelChangeListener(this);
         }
     }
 
+    @Override
     public void uninstall() {
         if (isInstalled()) {
             projectionDisabled();
             fViewer.removeProjectionListener(this);
             fViewer = null;
             fEditor = null;
-            CoreScope.getModel().removeModelChangeListener(this);
+            ErlModelManager.getErlangModel().removeModelChangeListener(this);
         }
     }
 
@@ -534,6 +523,7 @@ public class DefaultErlangFoldingStructureProvider implements
      * @seeorg.eclipse.jface.text.source.projection.IProjectionListener#
      * projectionEnabled()
      */
+    @Override
     public void projectionEnabled() {
         // http://home.ott.oti.com/teams/wswb/anon/out/vms/index.html
         // projectionEnabled messages are not always paired with
@@ -545,8 +535,6 @@ public class DefaultErlangFoldingStructureProvider implements
 
         initialize();
         if (fEditor instanceof ErlangEditor && fModule != null) {
-            fElementListener = new ElementChangedListener();
-            CoreScope.getModel().addElementChangedListener(fElementListener);
             boolean structureKnown = false;
             try {
                 structureKnown = fModule.isStructureKnown();
@@ -571,14 +559,17 @@ public class DefaultErlangFoldingStructureProvider implements
      * @seeorg.eclipse.jface.text.source.projection.IProjectionListener#
      * projectionDisabled()
      */
+    @Override
     public void projectionDisabled() {
         fCachedDocument = null;
         if (fElementListener != null) {
-            CoreScope.getModel().removeElementChangedListener(fElementListener);
+            ErlModelManager.getErlangModel().removeElementChangedListener(
+                    fElementListener);
             fElementListener = null;
         }
     }
 
+    @Override
     public void initialize() {
         if (!isInstalled()) {
             return;
@@ -776,12 +767,14 @@ public class DefaultErlangFoldingStructureProvider implements
         final IDocumentProvider provider = fEditor.getDocumentProvider();
 
         try {
-
-            fCachedDocument = provider.getDocument(fEditor.getEditorInput());
             fCachedModel = model;
-
-            // fFirstType= null;
-            // fHasHeaderComment = false;
+            fCachedDocument = provider.getDocument(fEditor.getEditorInput());
+            if (fCachedDocument.getNumberOfLines() > PerformanceTuning.get()
+                    .getFoldingLimit()) {
+                // disable folding for files larger than this
+                model.removeAllAnnotations();
+                return;
+            }
 
             final Map<ErlangProjectionAnnotation, Position> additions = new HashMap<ErlangProjectionAnnotation, Position>();
             final List<ErlangProjectionAnnotation> deletions = new ArrayList<ErlangProjectionAnnotation>();
@@ -984,6 +977,7 @@ public class DefaultErlangFoldingStructureProvider implements
 
         final Comparator<Tuple> comparator = new Comparator<Tuple>() {
 
+            @Override
             public int compare(final Tuple o1, final Tuple o2) {
                 return o1.position.getOffset() - o2.position.getOffset();
             }
@@ -995,24 +989,29 @@ public class DefaultErlangFoldingStructureProvider implements
         return map;
     }
 
+    @Override
     public void collapseFunctions() {
         modifyFiltered(fCollapseFunctionsFilter, false);
     }
 
+    @Override
     public void collapseComments() {
         modifyFiltered(fCollapseCommentsFilter, false);
     }
 
+    @Override
     public void expandAll() {
         modifyFiltered(fExpandAllFilter, true);
     }
 
+    @Override
     public void collapseElements(final IErlElement[] elements) {
         final Set<IErlElement> set = new HashSet<IErlElement>(
                 Arrays.asList(elements));
         modifyFiltered(new ErlangElementSetFilter(set, false), false);
     }
 
+    @Override
     public void expandElements(final IErlElement[] elements) {
         final Set<IErlElement> set = new HashSet<IErlElement>(
                 Arrays.asList(elements));
@@ -1063,8 +1062,8 @@ public class DefaultErlangFoldingStructureProvider implements
                 modified.toArray(new Annotation[modified.size()]));
     }
 
+    @Override
     public void elementChanged(final IErlElement element) {
-        // TODO fixa elementchangelistener n?n g?ng
         if (fEditor == null) {
             return;
         }

@@ -13,12 +13,12 @@ package org.erlide.core.internal.model.erlang;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.erlide.core.common.Util;
 import org.erlide.core.internal.model.root.ErlMember;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IParent;
+import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -43,10 +43,12 @@ public class ErlFunctionClause extends ErlMember implements IErlFunctionClause {
         return pars;
     }
 
+    @Override
     public String getHead() {
         return head;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.CLAUSE;
     }
@@ -70,16 +72,19 @@ public class ErlFunctionClause extends ErlMember implements IErlFunctionClause {
         return head;
     }
 
+    @Override
     public String getFunctionName() {
         final IErlElement element = (IErlElement) getParent();
         return element.getName();
     }
 
+    @Override
     public int getArity() {
         final IErlFunction f = (IErlFunction) getParent();
         return f.getArity();
     }
 
+    @Override
     public List<String> getParameters() {
         return parameters;
     }

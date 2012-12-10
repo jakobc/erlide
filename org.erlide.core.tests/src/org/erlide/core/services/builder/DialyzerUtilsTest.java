@@ -1,8 +1,6 @@
 package org.erlide.core.services.builder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,8 +16,8 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.test.support.ErlideTestUtils;
@@ -105,7 +103,7 @@ public class DialyzerUtilsTest {
             // putting a dialyzer warning on it
             final int lineNumber = 3;
             final String message = "test message";
-            final IErlElementLocator model = erlProject.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             MarkerUtils.addDialyzerWarningMarker(model, erlModule.getResource()
                     .getLocation().toPortableString(), lineNumber, message);
             // then
@@ -143,12 +141,12 @@ public class DialyzerUtilsTest {
                     "f([_ | _]=L ->\n    atom_to_list(L).\n");
             externalInclude = ErlideTestUtils.createTmpFile(
                     "external_includes", externalFile.getAbsolutePath());
-            MarkerUtils.removeDialyzerMarkers(root);
+            MarkerUtils.removeDialyzerMarkersFor(root);
             // when
             // putting dialyzer warning markers on the external file
             final String message = "test message";
             final int lineNumber = 2;
-            final IErlElementLocator model = erlProject.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             MarkerUtils.addDialyzerWarningMarker(model,
                     externalFile.getAbsolutePath(), lineNumber, message);
             // then
@@ -171,7 +169,7 @@ public class DialyzerUtilsTest {
                 assertEquals(message, marker.getAttribute(IMarker.MESSAGE));
             }
         } finally {
-            MarkerUtils.removeDialyzerMarkers(root);
+            MarkerUtils.removeDialyzerMarkersFor(root);
             if (externalInclude != null && externalInclude.exists()) {
                 externalInclude.delete();
             }
@@ -212,8 +210,9 @@ public class DialyzerUtilsTest {
             final Map<IErlProject, Set<IErlModule>> modules = new HashMap<IErlProject, Set<IErlModule>>();
             final IResource selectedResource = selectResource(select,
                     erlProject, a);
-            DialyzerUtils.addModulesFromResource(CoreScope.getModel(),
-                    selectedResource, modules);
+            DialyzerUtils
+                    .addModulesFromResource(ErlModelManager.getErlangModel(),
+                            selectedResource, modules);
             final List<String> names = new ArrayList<String>();
             final List<IPath> includeDirs = new ArrayList<IPath>();
             final List<String> files = new ArrayList<String>();
@@ -309,7 +308,7 @@ public class DialyzerUtilsTest {
 
     @Test
     public void dialyzeBinaryOnProjectWithErrorFile() throws Exception {
-        // http://www.assembla.com/spaces/erlide/tickets/616-dialyzer-Ð-crash-on-binary-analysis-and-files-with-errors
+        // http://www.assembla.com/spaces/erlide/tickets/616-dialyzer-ï¿½-crash-on-binary-analysis-and-files-with-errors
         IErlProject erlProject = null;
         try {
             // given
@@ -334,8 +333,9 @@ public class DialyzerUtilsTest {
             // when
             // collecting files to dialyze
             final Map<IErlProject, Set<IErlModule>> modules = new HashMap<IErlProject, Set<IErlModule>>();
-            DialyzerUtils.addModulesFromResource(CoreScope.getModel(),
-                    erlProject.getResource(), modules);
+            DialyzerUtils.addModulesFromResource(
+                    ErlModelManager.getErlangModel(), erlProject.getResource(),
+                    modules);
             final List<String> names = new ArrayList<String>();
             final List<IPath> includeDirs = new ArrayList<IPath>();
             final List<String> files = new ArrayList<String>();

@@ -7,13 +7,12 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.backend.IBackendListener;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfo;
-import org.erlide.core.common.IDisposable;
-import org.erlide.core.rpc.IRpcCallSite;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.BackendData;
+import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendListener;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.IDisposable;
 
 public class ErlConsoleManager implements IDisposable, IBackendListener {
     private final Map<IBackend, IConsole> consoles;
@@ -28,17 +27,22 @@ public class ErlConsoleManager implements IDisposable, IBackendListener {
         BackendCore.getBackendManager().addBackendListener(this);
     }
 
+    @Override
     public void runtimeAdded(final IBackend b) {
-        if (b == null || !b.getRuntimeInfo().hasConsole()) {
+        if (b == null) {
             return;
         }
-        final RuntimeInfo info = b.getRuntimeInfo();
+        final BackendData info = b.getData();
+        if (!info.hasConsole()) {
+            return;
+        }
         ErlLogger.debug("console ADDED to " + info);
         final ErlangConsole console = new ErlangConsole(b);
         conMan.addConsoles(new IConsole[] { console });
         consoles.put(b, console);
     }
 
+    @Override
     public void runtimeRemoved(final IBackend b) {
         ErlLogger.debug("console REMOVED from " + b.getRuntimeInfo());
         final IConsole console = consoles.get(b);
@@ -48,11 +52,13 @@ public class ErlConsoleManager implements IDisposable, IBackendListener {
         conMan.removeConsoles(new IConsole[] { console });
     }
 
+    @Override
     public void dispose() {
         BackendCore.getBackendManager().removeBackendListener(this);
     }
 
-    public void moduleLoaded(final IRpcCallSite backend,
-            final IProject project, final String moduleName) {
+    @Override
+    public void moduleLoaded(final IBackend backend, final IProject project,
+            final String moduleName) {
     }
 }

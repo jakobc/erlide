@@ -13,12 +13,21 @@ package org.erlide.ui.util.eclipse.text;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 
+import org.eclipse.core.runtime.FileLocator;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTError;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
+import org.erlide.ui.internal.ErlideUIPlugin;
+import org.osgi.framework.Bundle;
+
+import com.google.common.base.Charsets;
 
 /**
  * Provides a set of convenience methods for creating HTML pages.
@@ -29,11 +38,10 @@ import org.eclipse.swt.widgets.Display;
  */
 public class HTMLPrinter {
 
-    static RGB BG_COLOR_RGB = new RGB(255, 255, 225); // RGB value of
-    // info bg color
-    // on WindowsXP
-    static RGB FG_COLOR_RGB = new RGB(0, 0, 0); // RGB value of info fg
-    // color on WindowsXP
+    static RGB BG_COLOR_RGB = new RGB(255, 255, 225);
+    static RGB FG_COLOR_RGB = new RGB(0, 0, 0);
+    private static FontData fontData;
+    private static URL fgStyleSheet;
 
     static {
         final Display display = Display.getDefault();
@@ -43,6 +51,7 @@ public class HTMLPrinter {
                     /*
                      * @see java.lang.Runnable#run()
                      */
+                    @Override
                     public void run() {
                         BG_COLOR_RGB = display.getSystemColor(
                                 SWT.COLOR_INFO_BACKGROUND).getRGB();
@@ -57,6 +66,7 @@ public class HTMLPrinter {
                 }
             }
         }
+        initStyleSheet();
     }
 
     private HTMLPrinter() {
@@ -107,26 +117,6 @@ public class HTMLPrinter {
         }
 
         return null;
-    }
-
-    public static void insertPageProlog(final StringBuffer buffer,
-            final int position, RGB fgRGB, RGB bgRGB, final String styleSheet) {
-        if (fgRGB == null) {
-            fgRGB = FG_COLOR_RGB;
-        }
-        if (bgRGB == null) {
-            bgRGB = BG_COLOR_RGB;
-        }
-
-        final StringBuffer pageProlog = new StringBuffer(300);
-
-        pageProlog.append("<html>"); //$NON-NLS-1$
-
-        appendStyleSheetURL(pageProlog, styleSheet);
-
-        appendColors(pageProlog, fgRGB, bgRGB);
-
-        buffer.insert(position, pageProlog.toString());
     }
 
     private static void appendColors(final StringBuffer pageProlog,
@@ -185,59 +175,60 @@ public class HTMLPrinter {
     }
 
     private static void appendStyleSheetURL(final StringBuffer buffer,
-            final String styleSheet) {
-        if (styleSheet == null) {
-            return;
-        }
-
-        buffer.append("<head><style CHARSET=\"ISO-8859-1\" TYPE=\"text/css\">"); //$NON-NLS-1$
-        buffer.append(styleSheet);
-        buffer.append("</style></head>"); //$NON-NLS-1$
-    }
-
-    private static void appendStyleSheetURL(final StringBuffer buffer,
             final URL styleSheetURL) {
         if (styleSheetURL == null) {
             return;
         }
 
         buffer.append("<head>"); //$NON-NLS-1$
+        buffer.append("<meta charset='utf-8'>");
 
-        buffer.append("<LINK REL=\"stylesheet\" HREF= \""); //$NON-NLS-1$
+        buffer.append("<link rel=\"stylesheet\" href= \""); //$NON-NLS-1$
         buffer.append(styleSheetURL);
-        buffer.append("\" CHARSET=\"ISO-8859-1\" TYPE=\"text/css\">"); //$NON-NLS-1$
+        buffer.append("\" charset=\"ISO-8859-1\" type=\"text/css\">"); //$NON-NLS-1$
 
         buffer.append("</head>"); //$NON-NLS-1$
     }
 
     public static void insertPageProlog(final StringBuffer buffer,
-            final int position) {
-        final StringBuffer pageProlog = new StringBuffer(60);
-        pageProlog.append("<html>"); //$NON-NLS-1$
-        appendColors(pageProlog, FG_COLOR_RGB, BG_COLOR_RGB);
-        buffer.insert(position, pageProlog.toString());
-    }
-
-    public static void insertPageProlog(final StringBuffer buffer,
             final int position, final URL styleSheetURL) {
         final StringBuffer pageProlog = new StringBuffer(300);
+        updateDialogFontData();
         pageProlog.append("<html>"); //$NON-NLS-1$
-        appendStyleSheetURL(pageProlog, styleSheetURL);
+        if (styleSheetURL != null) {
+            appendStyleSheetURL(pageProlog, styleSheetURL);
+        }
+        appendFontData(pageProlog);
         appendColors(pageProlog, FG_COLOR_RGB, BG_COLOR_RGB);
         buffer.insert(position, pageProlog.toString());
     }
 
-    public static void insertPageProlog(final StringBuffer buffer,
-            final int position, final String styleSheet) {
-        insertPageProlog(buffer, position, null, null, styleSheet);
+    private static void appendFontData(final StringBuffer buffer) {
+        final String size = Integer.toString(fontData.getHeight())
+                + ("carbon".equals(SWT.getPlatform()) ? "px" : "pt");
+        buffer.append("<style type=\"text/css\">body {font-size:").append(size)
+                .append("; font-family:'").append(fontData.getName())
+                .append("',serif;}</style>");
     }
 
-    public static void addPageProlog(final StringBuffer buffer) {
-        insertPageProlog(buffer, buffer.length());
+    public static void updateDialogFontData() {
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                fontData = JFaceResources.getTextFont().getFontData()[0];
+            }
+        };
+        final Display display = Display.getDefault();
+        // have to execute in UI thread only
+        if (display.getThread() != Thread.currentThread()) {
+            display.syncExec(runnable);
+        } else {
+            runnable.run();
+        }
     }
 
     public static void addPageEpilog(final StringBuffer buffer) {
-        buffer.append("</font></body></html>"); //$NON-NLS-1$
+        buffer.append("</body></html>"); //$NON-NLS-1$
     }
 
     public static void startBulletList(final StringBuffer buffer) {
@@ -280,52 +271,37 @@ public class HTMLPrinter {
         }
     }
 
-    /**
-     * Replaces the following style attributes of the font definition of the
-     * <code>html</code> element:
-     * <ul>
-     * <li>font-size</li>
-     * <li>font-weight</li>
-     * <li>font-style</li>
-     * <li>font-family</li>
-     * </ul>
-     * The font's name is used as font family, a <code>sans-serif</code> default
-     * font family is appended for the case that the given font name is not
-     * available.
-     * <p>
-     * If the listed font attributes are not contained in the passed style list,
-     * nothing happens.
-     * </p>
-     * 
-     * @param styles
-     *            CSS style definitions
-     * @param fontData
-     *            the font information to use
-     * @return the modified style definitions
-     * @since 3.3
-     */
-    public static String convertTopLevelFont(String styles,
-            final FontData fontData) {
-        final boolean bold = (fontData.getStyle() & SWT.BOLD) != 0;
-        final boolean italic = (fontData.getStyle() & SWT.ITALIC) != 0;
-
-        // See: https://bugs.eclipse.org/bugs/show_bug.cgi?id=155993
-        final String size = Integer.toString(fontData.getHeight())
-                + ("carbon".equals(SWT.getPlatform()) ? "px" : "pt"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-
-        final String family = "'" + fontData.getName() + "',sans-serif"; //$NON-NLS-1$ //$NON-NLS-2$
-        styles = styles
-                .replaceFirst(
-                        "(html\\s*\\{.*(?:\\s|;)font-size:\\s*)\\d+pt(\\;?.*\\})", "$1" + size + "$2"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        styles = styles
-                .replaceFirst(
-                        "(html\\s*\\{.*(?:\\s|;)font-weight:\\s*)\\w+(\\;?.*\\})", "$1" + (bold ? "bold" : "normal") + "$2"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        styles = styles
-                .replaceFirst(
-                        "(html\\s*\\{.*(?:\\s|;)font-style:\\s*)\\w+(\\;?.*\\})", "$1" + (italic ? "italic" : "normal") + "$2"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        styles = styles
-                .replaceFirst(
-                        "(html\\s*\\{.*(?:\\s|;)font-family:\\s*).+?(;.*\\})", "$1" + family + "$2"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        return styles;
+    public static String fixEncoding(final String comment) {
+        try {
+            final byte[] bytes = comment.getBytes(Charsets.ISO_8859_1);
+            final ByteBuffer bb = ByteBuffer.wrap(bytes);
+            final CharBuffer cb = Charsets.UTF_8.newDecoder().decode(bb);
+            return cb.toString();
+        } catch (final Exception e) {
+            // it was Latin-1
+        }
+        return comment;
     }
+
+    public static String asHtml(final String string) {
+        final StringBuffer sb = new StringBuffer(string);
+        if (sb.length() > 0) {
+            insertPageProlog(sb, 0, fgStyleSheet);
+            addPageEpilog(sb);
+        }
+        final String result = sb.toString().replace("\u00C2\u00A0", "&nbsp;");
+        return result;
+    }
+
+    private static void initStyleSheet() {
+        final Bundle bundle = Platform.getBundle(ErlideUIPlugin.PLUGIN_ID);
+        fgStyleSheet = bundle.getEntry("/edoc.css"); //$NON-NLS-1$
+        if (fgStyleSheet != null) {
+            try {
+                fgStyleSheet = FileLocator.toFileURL(fgStyleSheet);
+            } catch (final Exception e) {
+            }
+        }
+    }
+
 }

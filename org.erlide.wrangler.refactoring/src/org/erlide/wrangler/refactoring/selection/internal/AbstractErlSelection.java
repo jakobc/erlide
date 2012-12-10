@@ -15,7 +15,7 @@ import java.util.Collection;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
-import org.erlide.core.CoreScope;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.wrangler.refactoring.selection.IErlSelection;
@@ -33,13 +33,15 @@ public abstract class AbstractErlSelection implements IErlSelection {
 
     protected IFile file;
 
+    @Override
     public boolean isEmpty() {
         return false;
     }
 
+    @Override
     public OtpErlangList getSearchPath() {
         final IProject project = file.getProject();
-        final IErlModel model = CoreScope.getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         final IErlProject actualProject = model.getErlangProject(project);
         final IPath projectLocation = actualProject.getWorkspaceProject()
                 .getLocation();
@@ -55,10 +57,12 @@ public abstract class AbstractErlSelection implements IErlSelection {
         return new OtpErlangList(searchPath);
     }
 
+    @Override
     public String getFilePath() {
         return file.getLocation().toOSString();
     }
 
+    @Override
     public IFile getFile() {
         return file;
     }

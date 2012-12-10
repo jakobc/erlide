@@ -1,24 +1,8 @@
-%% Author: vlad
-%% Created: 17 feb 2011
-%% Description: TODO: Add description to new_file
 -module(new_file).
 
-%%
-%% Include files
-%%
+-export([ok/0]).
+-compile(export_all).
 
-%%
-%% Exported Functions
-%%
--export([]).
-
-%%
-%% API Functions
-%%
-
-
-
-%%
-%% Local Functions
-%%
-
+ok() ->   
+	ok.
+    

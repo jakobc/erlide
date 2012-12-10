@@ -243,6 +243,7 @@ public class BrowserInformationControl extends AbstractInformationControl
                 .getSystemColor(SWT.COLOR_INFO_BACKGROUND));
         fBrowser.addKeyListener(new KeyListener() {
 
+            @Override
             public void keyPressed(final KeyEvent e) {
                 if (e.character == 0x1B) {
                     dispose();
@@ -250,6 +251,7 @@ public class BrowserInformationControl extends AbstractInformationControl
                 }
             }
 
+            @Override
             public void keyReleased(final KeyEvent e) {
             }
         });
@@ -297,6 +299,7 @@ public class BrowserInformationControl extends AbstractInformationControl
      * {@inheritDoc} This control can handle {@link String} and
      * {@link BrowserInformationControlInput}.
      */
+    @Override
     public void setInput(final Object input) {
         Assert.isLegal(input == null || input instanceof String
                 || input instanceof BrowserInformationControlInput);
@@ -383,6 +386,7 @@ public class BrowserInformationControl extends AbstractInformationControl
 
         // Make sure the display wakes from sleep after timeout:
         display.timerExec(100, new Runnable() {
+            @Override
             public void run() {
                 fCompleted = true;
             }
@@ -492,6 +496,11 @@ public class BrowserInformationControl extends AbstractInformationControl
             text = reader.getString();
         } catch (final IOException e) {
             text = ""; //$NON-NLS-1$
+        } finally {
+            try {
+                reader.close();
+            } catch (final IOException e) {
+            }
         }
 
         fTextLayout.setText(text);
@@ -598,6 +607,7 @@ public class BrowserInformationControl extends AbstractInformationControl
     /*
      * @see IInformationControlExtension#hasContents()
      */
+    @Override
     public boolean hasContents() {
         return fBrowserHasContent;
     }
@@ -636,6 +646,7 @@ public class BrowserInformationControl extends AbstractInformationControl
      * 
      * @since 3.4
      */
+    @Override
     public void setDelayedInputChangeListener(
             final IInputChangedListener inputChangeListener) {
         fDelayedInputChangeListener = inputChangeListener;
@@ -703,6 +714,10 @@ public class BrowserInformationControl extends AbstractInformationControl
         gc.dispose();
 
         return new Point(widthInChars * width, heightInChars * height);
+    }
+
+    public Browser getBrowser() {
+        return fBrowser;
     }
 
 }

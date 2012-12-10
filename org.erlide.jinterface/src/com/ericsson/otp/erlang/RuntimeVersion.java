@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import org.erlide.jinterface.Assert;
+import org.eclipse.core.runtime.Assert;
 
 public final class RuntimeVersion implements Comparable<RuntimeVersion> {
 
@@ -139,6 +139,7 @@ public final class RuntimeVersion implements Comparable<RuntimeVersion> {
         return compareTo(other) == 0;
     }
 
+    @Override
     public int compareTo(final RuntimeVersion o) {
         if (major == o.major) {
             if (minor == o.minor) {
@@ -188,9 +189,13 @@ public final class RuntimeVersion implements Comparable<RuntimeVersion> {
         final File boot = new File(path + "/bin/start.boot");
         try {
             final FileInputStream is = new FileInputStream(boot);
-            is.skip(14);
-            readstring(is);
-            result = readstring(is);
+            try {
+                is.skip(14);
+                readstring(is);
+                result = readstring(is);
+            } finally {
+                is.close();
+            }
         } catch (final IOException e) {
         }
         return result;
@@ -205,6 +210,7 @@ public final class RuntimeVersion implements Comparable<RuntimeVersion> {
         // now get micro version from kernel's minor version
         final File lib = new File(path + "/lib");
         final File[] kernels = lib.listFiles(new FileFilter() {
+            @Override
             public boolean accept(final File pathname) {
                 try {
                     boolean r = pathname.isDirectory();
@@ -265,6 +271,10 @@ public final class RuntimeVersion implements Comparable<RuntimeVersion> {
         } catch (final IOException e) {
             return null;
         }
+    }
+
+    public boolean isStable() {
+        return minor > 0;
     }
 
 }

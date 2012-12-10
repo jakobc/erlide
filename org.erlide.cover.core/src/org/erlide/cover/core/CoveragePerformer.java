@@ -7,12 +7,12 @@ import java.util.List;
 
 import org.eclipse.core.runtime.IPath;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.cover.api.CoverException;
 import org.erlide.cover.api.IConfiguration;
 import org.erlide.cover.api.ICoveragePerformer;
 import org.erlide.cover.constants.CoverConstants;
 import org.erlide.cover.views.model.StatsTreeModel;
+import org.erlide.jinterface.rpc.RpcException;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -48,6 +48,7 @@ public class CoveragePerformer implements ICoveragePerformer {
     /**
      * Start cover
      */
+    @Override
     public synchronized void startCover(final Collection<String> nodes)
             throws CoverException {
 
@@ -108,6 +109,7 @@ public class CoveragePerformer implements ICoveragePerformer {
     /**
      * Set coverage configuration
      */
+    @Override
     public synchronized void setCoverageConfiguration(final IConfiguration conf)
             throws CoverException {
         config = conf;
@@ -140,7 +142,7 @@ public class CoveragePerformer implements ICoveragePerformer {
         recompileModules();
     }
 
-    // cover compilation of chosem modules
+    // cover compilation of chosen modules
     private void recompileModules() throws CoverException {
         final List<OtpErlangObject> paths = new ArrayList<OtpErlangObject>(
                 config.getModules().size());
@@ -170,6 +172,7 @@ public class CoveragePerformer implements ICoveragePerformer {
     /**
      * Perform coverage analysis
      */
+    @Override
     public synchronized void analyse() throws CoverException {
 
         final List<OtpErlangObject> modules = new ArrayList<OtpErlangObject>(
@@ -195,6 +198,7 @@ public class CoveragePerformer implements ICoveragePerformer {
     /**
      * Allows to check configuration
      */
+    @Override
     public IConfiguration getConfig() {
         return config;
     }

@@ -19,7 +19,7 @@ import org.eclipse.jface.text.rules.Token;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.RGB;
-import org.erlide.core.backend.console.IoRequest;
+import org.erlide.backend.console.IoRequest;
 import org.erlide.ui.editors.erl.ColorManager;
 import org.erlide.ui.util.IColorManager;
 
@@ -34,14 +34,17 @@ public class ConsoleOutputScanner implements ITokenScanner {
         fColorManager = colorManager;
     }
 
+    @Override
     public int getTokenLength() {
         return text.length();
     }
 
+    @Override
     public int getTokenOffset() {
         return offset;
     }
 
+    @Override
     public IToken nextToken() {
         if (gotten) {
             return Token.EOF;
@@ -69,6 +72,7 @@ public class ConsoleOutputScanner implements ITokenScanner {
         return new TextAttribute(fg, bg, style);
     }
 
+    @Override
     public void setRange(final IDocument document, final int offset,
             final int length) {
         this.offset = offset;

@@ -22,7 +22,6 @@ import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.viewers.CheckStateChangedEvent;
 import org.eclipse.jface.viewers.CheckboxTableViewer;
-import org.eclipse.jface.viewers.ComboViewer;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.ICheckStateListener;
 import org.eclipse.jface.viewers.IDoubleClickListener;
@@ -64,9 +63,9 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfo;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfoManager;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.runtimeinfo.RuntimeInfo;
+import org.erlide.backend.runtimeinfo.RuntimeInfoManager;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.SWTUtil;
 
@@ -121,7 +120,6 @@ public class RuntimePreferencePage extends PreferencePage implements
      * Previous selection
      */
     private ISelection fPrevSelection = new StructuredSelection();
-    private ComboViewer erlideCombo;
 
     public RuntimePreferencePage() {
         super();
@@ -133,20 +131,24 @@ public class RuntimePreferencePage extends PreferencePage implements
         performDefaults();
     }
 
+    @Override
     public void addSelectionChangedListener(
             final ISelectionChangedListener listener) {
         fSelectionListeners.add(listener);
     }
 
+    @Override
     public ISelection getSelection() {
         return new StructuredSelection(fRuntimeList.getCheckedElements());
     }
 
+    @Override
     public void removeSelectionChangedListener(
             final ISelectionChangedListener listener) {
         fSelectionListeners.remove(listener);
     }
 
+    @Override
     public void setSelection(final ISelection selection) {
         if (selection instanceof IStructuredSelection) {
             if (!selection.equals(fPrevSelection)) {
@@ -258,6 +260,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         });
         table.addListener(SWT.Paint, new Listener() {
 
+            @Override
             public void handleEvent(final Event event) {
                 table.removeListener(SWT.Paint, this);
                 resizeTable(parent, buttons, table, column1, column2, column3);
@@ -351,13 +354,12 @@ public class RuntimePreferencePage extends PreferencePage implements
             return;
         }
         fRuntimeList.refresh();
-        erlideCombo.refresh();
     }
 
+    @Override
     public void itemAdded(final RuntimeInfo vm) {
         runtimes.add(vm);
         fRuntimeList.refresh();
-        erlideCombo.refresh();
         selectSingle();
     }
 
@@ -365,17 +367,11 @@ public class RuntimePreferencePage extends PreferencePage implements
         if (runtimes.size() == 1) {
             final RuntimeInfo vm = runtimes.iterator().next();
             fRuntimeList.setChecked(vm, true);
-            erlideCombo.setSelection(new StructuredSelection(vm));
         }
         if (runtimes.size() > 1) {
             final RuntimeInfo vm = runtimes.iterator().next();
             if (fRuntimeList.getCheckedElements().length == 0) {
                 fRuntimeList.setChecked(vm, true);
-            }
-            final StructuredSelection sel = (StructuredSelection) erlideCombo
-                    .getSelection();
-            if (sel.isEmpty()) {
-                erlideCombo.setSelection(new StructuredSelection(vm));
             }
         }
     }
@@ -383,6 +379,7 @@ public class RuntimePreferencePage extends PreferencePage implements
     /**
      * @see IAddRuntimeDialogRequestor#hasRuntimeWithName(String)
      */
+    @Override
     public boolean isDuplicateName(final String name) {
         return manager.hasRuntimeWithName(name);
     }
@@ -401,7 +398,6 @@ public class RuntimePreferencePage extends PreferencePage implements
             return;
         }
         fRuntimeList.refresh(vm);
-        erlideCombo.refresh();
     }
 
     protected void duplicateRuntime() {
@@ -419,7 +415,6 @@ public class RuntimePreferencePage extends PreferencePage implements
             return;
         }
         fRuntimeList.refresh();
-        erlideCombo.refresh();
     }
 
     protected void removeSelectedRuntimes() {
@@ -451,7 +446,6 @@ public class RuntimePreferencePage extends PreferencePage implements
             runtimes.remove(element);
         }
         fRuntimeList.refresh();
-        erlideCombo.refresh();
         final IStructuredSelection curr = (IStructuredSelection) getSelection();
         if (!curr.equals(prev)) {
             final List<RuntimeInfo> installs = getRuntimes();
@@ -580,6 +574,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         addSelectionChangedListener(new ISelectionChangedListener() {
 
+            @Override
             public void selectionChanged(final SelectionChangedEvent event) {
                 checkValid();
             }
@@ -591,6 +586,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         return parent;
     }
 
+    @Override
     public void init(final IWorkbench workbench) {
     }
 
@@ -614,42 +610,15 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         final Label erlideLabel = new Label(composite, SWT.NONE);
         erlideLabel
-                .setToolTipText("The erlide runtime is used for IDE purposes, not for running project code.");
+                .setToolTipText("The erlide runtime is used for IDE purposes, not for running project code. "
+                        + "It is the most recent stable version that is installed.");
+        final String erlideName = erlideRuntime == null ? "none"
+                : erlideRuntime.getName();
         erlideLabel
-                .setText("Backend used by Erlide itself (restart is required)");
-
-        erlideCombo = new ComboViewer(composite, SWT.READ_ONLY);
-        erlideCombo.setLabelProvider(new RuntimeLabelProvider());
-        erlideCombo.setContentProvider(new RuntimeContentProvider());
-        erlideCombo.setInput(runtimes);
-        combo = erlideCombo.getCombo();
-        final GridData gd_combo = new GridData(SWT.LEFT, SWT.FILL, true, false);
-        gd_combo.widthHint = 153;
-        combo.setLayoutData(gd_combo);
-        if (erlideRuntime != null) {
-            erlideCombo.setSelection(new StructuredSelection(erlideRuntime),
-                    true);
-        }
-        erlideCombo
-                .addPostSelectionChangedListener(new ISelectionChangedListener() {
-                    public void selectionChanged(
-                            final SelectionChangedEvent event) {
-                        fireSelectionChanged();
-                    }
-                });
-        erlideCombo
-                .addSelectionChangedListener(new ISelectionChangedListener() {
-                    public void selectionChanged(
-                            final SelectionChangedEvent event) {
-                        final ISelection sel = event.getSelection();
-                        if (sel instanceof IStructuredSelection) {
-                            final IStructuredSelection ssel = (IStructuredSelection) sel;
-                            erlideRuntime = (RuntimeInfo) ssel
-                                    .getFirstElement();
-                        }
-
-                    }
-                });
+                .setText(RuntimePreferenceMessages.RuntimePreferencePage_erlideLabel_text
+                        + erlideName);
+        new Label(composite, SWT.NONE);
+        new Label(parent, SWT.NONE);
 
         final Label tableLabel = new Label(parent, SWT.NONE);
         tableLabel.setText("Installed runtimes:");
@@ -723,6 +692,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         fRuntimeList
                 .addSelectionChangedListener(new ISelectionChangedListener() {
 
+                    @Override
                     public void selectionChanged(final SelectionChangedEvent evt) {
                         enableButtons();
                     }
@@ -730,6 +700,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         fRuntimeList.addCheckStateListener(new ICheckStateListener() {
 
+            @Override
             public void checkStateChanged(final CheckStateChangedEvent event) {
                 if (event.getChecked()) {
                     setCheckedRuntime((RuntimeInfo) event.getElement());
@@ -741,6 +712,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         fRuntimeList.addDoubleClickListener(new IDoubleClickListener() {
 
+            @Override
             public void doubleClick(final DoubleClickEvent e) {
                 if (!fRuntimeList.getSelection().isEmpty()) {
                     editRuntime();
@@ -767,6 +739,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         fAddButton = createPushButton(buttons, RuntimePreferenceMessages.add);
         fAddButton.addListener(SWT.Selection, new Listener() {
+            @Override
             public void handleEvent(final Event evt) {
                 addRuntime();
             }
@@ -774,6 +747,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
         fEditButton = createPushButton(buttons, RuntimePreferenceMessages.edit);
         fEditButton.addListener(SWT.Selection, new Listener() {
+            @Override
             public void handleEvent(final Event evt) {
                 editRuntime();
             }
@@ -782,6 +756,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         fDuplicateButton = createPushButton(buttons,
                 RuntimePreferenceMessages.duplicate);
         fDuplicateButton.addListener(SWT.Selection, new Listener() {
+            @Override
             public void handleEvent(final Event evt) {
                 duplicateRuntime();
             }
@@ -791,6 +766,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         fRemoveButton = createPushButton(buttons,
                 RuntimePreferenceMessages.remove);
         fRemoveButton.addListener(SWT.Selection, new Listener() {
+            @Override
             public void handleEvent(final Event evt) {
                 removeSelectedRuntimes();
             }
@@ -806,7 +782,6 @@ public class RuntimePreferencePage extends PreferencePage implements
 
     @Override
     public boolean performOk() {
-        manager.setErlideRuntime(erlideRuntime);
         if (defaultRuntime == null) {
             defaultRuntime = (RuntimeInfo) fRuntimeList.getElementAt(0);
         }
@@ -831,15 +806,10 @@ public class RuntimePreferencePage extends PreferencePage implements
 
     void checkValid() {
         final RuntimeInfo def = getCheckedRuntime();
-        final StructuredSelection sel = (StructuredSelection) erlideCombo
-                .getSelection();
 
         if (def == null && getRuntimes().size() > 0) {
             setValid(false);
             setErrorMessage("Please select a default runtime.");
-        } else if (sel.isEmpty() && getRuntimes().size() > 0) {
-            setValid(false);
-            setErrorMessage("Please select a runtime to be used by erlide.");
         } else {
             setValid(true);
             setErrorMessage(null);
@@ -851,14 +821,17 @@ public class RuntimePreferencePage extends PreferencePage implements
      */
     class RuntimeContentProvider implements IStructuredContentProvider {
 
+        @Override
         public Object[] getElements(final Object input) {
             return runtimes.toArray(new RuntimeInfo[runtimes.size()]);
         }
 
+        @Override
         public void inputChanged(final Viewer viewer, final Object oldInput,
                 final Object newInput) {
         }
 
+        @Override
         public void dispose() {
         }
 
@@ -873,6 +846,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         /**
          * @see ITableLabelProvider#getColumnText(Object, int)
          */
+        @Override
         public String getColumnText(final Object element, final int columnIndex) {
             if (element instanceof RuntimeInfo) {
                 final RuntimeInfo vm = (RuntimeInfo) element;
@@ -891,6 +865,7 @@ public class RuntimePreferencePage extends PreferencePage implements
         /**
          * @see ITableLabelProvider#getColumnImage(Object, int)
          */
+        @Override
         public Image getColumnImage(final Object element, final int columnIndex) {
             return null;
         }

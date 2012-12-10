@@ -34,10 +34,10 @@ public final class ProjectPreferencesConstants {
     public static final String DEFAULT_EXTERNAL_INCLUDES = "";
 
     public static final String RUNTIME_VERSION = "backend_version";
-    public static final String DEFAULT_RUNTIME_VERSION = "R13B";
+    public static final String DEFAULT_RUNTIME_VERSION = "R14B";
 
     public static final String RUNTIME_NAME = "backend_name";
-    public static final String DEFAULT_RUNTIME_NAME = "R13B";
+    public static final String DEFAULT_RUNTIME_NAME = "R14B";
 
     public static final String PROJECT_EXTERNAL_MODULES = "external_modules";
     public static final String DEFAULT_EXTERNAL_MODULES = "";
@@ -59,6 +59,7 @@ public final class ProjectPreferencesConstants {
     // tracing properties
     public static final String TRACING = "tracing";
     public static final String TRACED_MODULES = "modules";
+    public static final String NUKE_OUTPUT_ON_CLEAN = "nukeOutputOnClean";
 
     private ProjectPreferencesConstants() {
     }

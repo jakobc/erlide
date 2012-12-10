@@ -2,9 +2,7 @@ package org.erlide.shade.bterl.ui.launcher;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,32 +12,25 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.core.ILaunchManager;
-import org.eclipse.ui.PlatformUI;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.ErlDebugConstants;
-import org.erlide.core.backend.ErlLaunchAttributes;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.backend.events.ErlangEventHandler;
-import org.erlide.core.common.PreferencesUtils;
-import org.erlide.core.debug.ErlangDebugHelper;
-import org.erlide.core.debug.ErlangLaunchDelegate;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.BackendData;
+import org.erlide.backend.IBackend;
+import org.erlide.backend.events.ErlangEventHandler;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.util.ErlUtils;
-import org.erlide.jinterface.util.TermParser;
-import org.erlide.jinterface.util.TermParserException;
-import org.erlide.shade.bterl.Activator;
-import org.erlide.test_support.ui.suites.RegressionResultsView;
-import org.osgi.framework.Bundle;
+import org.erlide.launch.ErlLaunchAttributes;
+import org.erlide.launch.ErlangLaunchDelegate;
+import org.erlide.launch.debug.ErlDebugConstants;
+import org.erlide.utils.ErlUtils;
+import org.erlide.utils.ListsUtils;
+import org.erlide.utils.TermParser;
+import org.erlide.utils.TermParserException;
 import org.osgi.service.event.Event;
 
 import com.ericsson.otp.erlang.OtpErlang;
@@ -52,8 +43,6 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.RuntimeVersion;
 import com.ericsson.otp.erlang.SignatureException;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -92,13 +81,6 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
         testcase = cfg.getAttribute(TestLaunchAttributes.CASE, "");
 
         workdir = new File(wdir);
-        if ("regression".equals(mode)) {
-            final RegressionResultsView rview = (RegressionResultsView) PlatformUI
-                    .getWorkbench().getActiveWorkbenchWindow().getActivePage()
-                    .showView(RegressionResultsView.VIEW_ID);
-            RegressionLauncher.getInstance().launch(wdir, monitor, rview);
-            return false;
-        }
         return true;
     }
 
@@ -106,7 +88,6 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
     protected IBackend doLaunch(final ILaunchConfiguration config,
             final String amode, final ILaunch launch,
             final IProgressMonitor monitor) throws CoreException {
-
         System.out.println("---@> launch " + workdir.getAbsolutePath() + " -> "
                 + suite + ":" + testcase + " (" + mode + ")");
         if (!workdir.exists()) {
@@ -115,24 +96,29 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
                     workdir.getAbsolutePath());
             return null;
         }
-        if ("regression".equals(mode)) {
-            // regression is handled elsewhere
-            return null;
-        }
         runMakeLinks(monitor);
-
         final ILaunchConfiguration cfg = setupConfiguration(config,
                 projectName, workdir);
-
         final String theMode = ILaunchManager.DEBUG_MODE.equals(amode) ? ILaunchManager.DEBUG_MODE
                 : ILaunchManager.RUN_MODE;
-
         return super.doLaunch(cfg, theMode, launch, monitor);
     }
 
     @Override
+    protected BackendData configureBackend(final BackendData data,
+            final ILaunchConfiguration config, final String aMode,
+            final ILaunch launch) {
+        final BackendData result = super.configureBackend(data, config, aMode,
+                launch);
+        result.setBeamLocator(new TestsBeamLocator(workdir));
+        result.setTransient(true);
+        return result;
+    }
+
+    @Override
     protected void postLaunch(final String amode, final IBackend backend,
-            final IProgressMonitor monitor) {
+            final IProgressMonitor monitor) throws CoreException {
+        super.postLaunch(amode, backend, monitor);
         if (amode.equals("debug")) {
             initDebugger(monitor, backend);
         }
@@ -178,9 +164,11 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
 
         final ErlangEventHandler handler = new ErlangEventHandler(
                 "bterl_debugger", backend) {
+            @Override
             public void handleEvent(final Event event) {
                 System.out.println("BTERL DEBUG INIT");
                 final String[] modules = workdir.list(new FilenameFilter() {
+                    @Override
                     public boolean accept(final File dir, final String filename) {
                         return filename.endsWith(".erl");
                     }
@@ -188,8 +176,7 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
 
                 for (final String pm : modules) {
                     ErlLogger.debug("reinterpret:: " + pm);
-                    getDebugHelper()
-                            .interpret(backend, project, pm, true, true);
+                    backend.interpret(project, pm, true, true);
                 }
                 backend.installDeferredBreakpoints();
 
@@ -208,6 +195,7 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
 
         final ErlangEventHandler handler = new ErlangEventHandler(
                 "bterl_monitor", backend) {
+            @Override
             public void handleEvent(final Event event) {
                 // TODO check events and do something
             }
@@ -235,11 +223,7 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
             final File workdir) throws CoreException {
         final ILaunchConfigurationWorkingCopy wc = config.getWorkingCopy();
 
-        final boolean vobBterl = !Boolean.parseBoolean(System.getProperty(
-                "shade.bterl.local", "true"));
-        System.out.println(".... vobBterl: " + vobBterl);
-
-        final String bterlPath = getBterlPath();
+        final String[] bterlPath = getBterlPath();
         System.out.println("... internal path = " + bterlPath);
 
         final String runtimeName = BackendCore.getRuntimeInfoManager()
@@ -249,7 +233,9 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
         final List<String> paths = Lists.newArrayList();
         final String workdirPath = getOSIndependentPath(workdir);
         paths.add(workdirPath);
-        paths.add(bterlPath);
+        for (final String path : bterlPath) {
+            paths.add(path);
+        }
 
         wc.setAttribute(ErlLaunchAttributes.RUNTIME_NAME, runtimeName);
         wc.setAttribute(ErlLaunchAttributes.NODE_NAME,
@@ -260,12 +246,13 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
         wc.setAttribute(ErlLaunchAttributes.COOKIE, "shade");
         wc.setAttribute(ErlLaunchAttributes.USE_LONG_NAME, false);
         final String args = "-boot start_clean -sasl sasl_error_logger false -pa "
-                + PreferencesUtils.packList(paths, " -pa ");
+                + ListsUtils.packList(paths, " -pa ");
         wc.setAttribute(ErlLaunchAttributes.EXTRA_ARGS, args);
 
         wc.setAttribute(ErlLaunchAttributes.PROJECTS, project);
         final List<String> modules = Lists.newArrayList();
         for (final String m : workdir.list(new FilenameFilter() {
+            @Override
             public boolean accept(final File dir, final String name) {
                 return name.endsWith(".erl");
             }
@@ -311,30 +298,12 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
     }
 
     private static String getOSIndependentPath(final File dir) {
-        final String path = dir.getAbsolutePath();
-        final Iterable<String> spath = Splitter.on('\\').split(path);
-        return Joiner.on('/').join(spath);
+        return new Path(dir.getAbsolutePath()).toPortableString();
     }
 
-    public static String getBterlPath() throws CoreException {
-        String bterlPath;
-        try {
-            bterlPath = getPluginPath().append("ebin").toString();
-            // FIXME use real bterl path
-            bterlPath = "/proj/uz/shade/erlang_bt_tool/ebin";
-        } catch (final IOException e) {
-            e.printStackTrace();
-            throw new CoreException(new Status(IStatus.ERROR,
-                    Activator.PLUGIN_ID, "Could not access internal bterl"));
-        }
-        return bterlPath;
-    }
-
-    private static Path getPluginPath() throws IOException {
-        final Bundle bundle = Activator.getDefault().getBundle();
-        URL url = FileLocator.find(bundle, new Path(""), null);
-        url = FileLocator.resolve(url);
-        return new Path(url.getPath());
+    public static String[] getBterlPath() throws CoreException {
+        return new String[] { "/vobs/gsn/tools/3pp/erlang_bt_tool/bt_tool",
+                "/vobs/gsn/tools/3pp/erlang_bt_tool/bt_tool/error_handler" };
     }
 
     @SuppressWarnings("unused")
@@ -366,11 +335,6 @@ public class TestLaunchDelegate extends ErlangLaunchDelegate {
         final String[] cmdline = cmds.toArray(new String[cmds.size()]);
         System.out.println("---   cmdline (" + theWorkdir.getAbsolutePath()
                 + ")= " + Arrays.toString(cmdline));
-    }
-
-    @Override
-    protected ErlangDebugHelper getDebugHelper() {
-        return new TestDebugHelper(workdir);
     }
 
 }

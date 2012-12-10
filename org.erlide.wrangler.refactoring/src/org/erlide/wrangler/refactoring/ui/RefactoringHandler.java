@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     György Orosz - initial API and implementation
  ******************************************************************************/
@@ -16,7 +16,10 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.jface.dialogs.IInputValidator;
+import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 import org.eclipse.ltk.ui.refactoring.RefactoringWizard;
 import org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation;
@@ -26,15 +29,18 @@ import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.rpc.IRpcResult;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.util.ErlUtils;
+import org.erlide.jinterface.rpc.RpcResult;
+import org.erlide.utils.ErlUtils;
 import org.erlide.wrangler.refactoring.backend.RefactoringState;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage.GenFunReturnParameterName;
 import org.erlide.wrangler.refactoring.backend.internal.WranglerBackendManager;
 import org.erlide.wrangler.refactoring.core.CostumWorkflowRefactoringWithPositionsSelection;
 import org.erlide.wrangler.refactoring.core.WranglerRefactoring;
+import org.erlide.wrangler.refactoring.core.internal.ApplyAdhocElemRefactoring;
+import org.erlide.wrangler.refactoring.core.internal.ApplyUserElementaryRefactoring;
 import org.erlide.wrangler.refactoring.core.internal.EqcFsmStateDataToRecordRefactoring;
 import org.erlide.wrangler.refactoring.core.internal.EqcStatemStateDataToRecordRefactoring;
 import org.erlide.wrangler.refactoring.core.internal.ExtractFunctionRefactoring;
@@ -62,6 +68,8 @@ import org.erlide.wrangler.refactoring.core.internal.UnfoldFunctionApplicationRe
 import org.erlide.wrangler.refactoring.exception.WranglerException;
 import org.erlide.wrangler.refactoring.selection.IErlMemberSelection;
 import org.erlide.wrangler.refactoring.ui.validator.AtomValidator;
+import org.erlide.wrangler.refactoring.ui.validator.IValidator;
+import org.erlide.wrangler.refactoring.ui.validator.ModuleNameValidator;
 import org.erlide.wrangler.refactoring.ui.validator.NonEmptyStringValidator;
 import org.erlide.wrangler.refactoring.ui.validator.NormalDoulbeValidator;
 import org.erlide.wrangler.refactoring.ui.validator.VariableNameValidator;
@@ -72,6 +80,7 @@ import org.erlide.wrangler.refactoring.ui.wizardpages.CostumworkFlowInputPage;
 import org.erlide.wrangler.refactoring.ui.wizardpages.RecordDataInputPage;
 import org.erlide.wrangler.refactoring.ui.wizardpages.SelectionInputPage;
 import org.erlide.wrangler.refactoring.ui.wizardpages.SimpleInputPage;
+import org.erlide.wrangler.refactoring.ui.wizardpages.UserRefacInputPage;
 import org.erlide.wrangler.refactoring.ui.wizardpages.WranglerPage;
 import org.erlide.wrangler.refactoring.util.GlobalParameters;
 import org.erlide.wrangler.refactoring.util.WranglerUtils;
@@ -90,6 +99,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  */
 public class RefactoringHandler extends AbstractHandler {
 
+    @Override
     public Object execute(final ExecutionEvent event) throws ExecutionException {
         try {
             GlobalParameters.setSelection(PlatformUI.getWorkbench()
@@ -112,8 +122,62 @@ public class RefactoringHandler extends AbstractHandler {
 
         final ArrayList<WranglerPage> pages = new ArrayList<WranglerPage>();
 
-        // run rename variable refactoring
-        if (actionId.equals("org.erlide.wrangler.refactoring.renamevariable")) {
+        // apply ad hoc refactoring
+        if (actionId.equals("org.erlide.wrangler.refactoring.adhoc")) {
+            final InputDialog dialog = getModuleInput(
+                    "Apply ad hoc refactoring",
+                    "Please type the gen_refac module name!");
+
+            dialog.open();
+
+            if (dialog.getReturnCode() == Window.CANCEL) {
+                return null;
+            }
+
+            final String callbackModule = dialog.getValue();
+
+            pages.add(new UserRefacInputPage("Apply ad hoc refactoring",
+                    "Please type input arguments for this refactoring",
+                    "Arguments should not be empty!",
+                    new NonEmptyStringValidator()));
+            refactoring = new ApplyAdhocElemRefactoring();
+
+            ((ApplyAdhocElemRefactoring) refactoring)
+                    .setCallbackModuleName(callbackModule);
+
+            if (!((ApplyAdhocElemRefactoring) refactoring).fetchParPrompts()) {
+                MessageDialog.openError(PlatformUI.getWorkbench()
+                        .getActiveWorkbenchWindow().getShell(),
+                        "Elementary refactoring error",
+                        "Can not load callback module");
+                return null;
+            }
+
+            // apply user-defined refactoring
+        } else if (actionId.equals("org.erlide.wrangler.refactoring.gen_refac")) {
+            final String callbackModule = event
+                    .getParameter("org.erlide.wrangler.refactoring.gen_refac.callback");
+            final String name = event
+                    .getParameter("org.erlide.wrangler.refactoring.gen_refac.name");
+
+            pages.add(new UserRefacInputPage(name,
+                    "Please type input arguments for this refactoring",
+                    "Arguments should not be empty!",
+                    new NonEmptyStringValidator()));
+            refactoring = new ApplyUserElementaryRefactoring(name,
+                    callbackModule);
+
+            if (!((ApplyUserElementaryRefactoring) refactoring)
+                    .fetchParPrompts()) {
+                MessageDialog.openError(PlatformUI.getWorkbench()
+                        .getActiveWorkbenchWindow().getShell(),
+                        "Refactoring error", "Can not find callback module");
+                return null;
+            }
+
+            // run rename variable refactoring
+        } else if (actionId
+                .equals("org.erlide.wrangler.refactoring.renamevariable")) {
             refactoring = new RenameVariableRefactoring();
             final SimpleInputPage page = new SimpleInputPage("Rename variable",
                     "Please type the new variable name!", "New variable name:",
@@ -177,8 +241,9 @@ public class RefactoringHandler extends AbstractHandler {
         } else if (actionId
                 .equals("org.erlide.wrangler.refactoring.movefunction")) {
 
-            final IProject project = GlobalParameters.getWranglerSelection()
-                    .getErlElement().getProject().getWorkspaceProject();
+            final IProject project = ModelUtils.getProject(
+                    GlobalParameters.getWranglerSelection().getErlElement())
+                    .getWorkspaceProject();
             final ArrayList<String> moduleList = WranglerUtils
                     .getModuleNames(project);
             final String moduleName = GlobalParameters.getWranglerSelection()
@@ -395,6 +460,24 @@ public class RefactoringHandler extends AbstractHandler {
 
     }
 
+    private InputDialog getModuleInput(final String name, final String mesg) {
+        return new InputDialog(PlatformUI.getWorkbench()
+                .getActiveWorkbenchWindow().getShell(), name, mesg, "",
+                new IInputValidator() {
+
+                    public IValidator internalV = new ModuleNameValidator();
+
+                    @Override
+                    public String isValid(final String newText) {
+                        if (internalV.isValid(newText)) {
+                            return null;
+                        } else {
+                            return "Please type a correct module name!";
+                        }
+                    }
+                });
+    }
+
     private boolean checkForDirtyEditors() {
         final IEditorPart[] dirtyEditors = PlatformUI.getWorkbench()
                 .getActiveWorkbenchWindow().getActivePage().getDirtyEditors();
@@ -430,7 +513,7 @@ public class RefactoringHandler extends AbstractHandler {
      */
     protected void checkWarningMessages() {
         try {
-            final IRpcResult res = WranglerBackendManager
+            final RpcResult res = WranglerBackendManager
                     .getRefactoringBackend().getLoggedInfo();
 
             if (res.isOk()) {

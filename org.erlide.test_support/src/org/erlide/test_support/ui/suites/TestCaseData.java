@@ -5,9 +5,9 @@ import java.util.Collection;
 
 import org.erlide.jinterface.Bindings;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.util.ErlUtils;
-import org.erlide.jinterface.util.TermParser;
-import org.erlide.jinterface.util.TermParserException;
+import org.erlide.utils.ErlUtils;
+import org.erlide.utils.TermParser;
+import org.erlide.utils.TermParserException;
 
 import com.ericsson.otp.erlang.OtpErlangException;
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -18,7 +18,13 @@ public class TestCaseData {
 
     enum TestState {
         // order is important!
-        NOT_RUN, SUCCESS, SKIPPED, RUNNING, FAILED
+        //@formatter:off
+        NOT_RUN,
+        SUCCESS,
+        SKIPPED,
+        RUNNING,
+        FAILED
+        //@formatter:on
     }
 
     public class FailLocations {
@@ -112,13 +118,17 @@ public class TestCaseData {
                 f = b.getQuotedAtom("F");
                 a = b.get("A");
                 final String aa = a.toString();
-                final String args = a instanceof OtpErlangLong ? " / "
-                        + a.toString() : " ( "
-                        + aa.substring(1, aa.length() - 2) + " )";
+                final String args;
+                if (a instanceof OtpErlangLong) {
+                    args = " / " + aa;
+                } else {
+                    final String aas = aa.length() > 2 ? aa.substring(1,
+                            aa.length() - 2) : "";
+                    args = " ( " + aas + " )";
+                }
                 return m + " : " + f + args;
-            } catch (final TermParserException e) {
-                ErlLogger.warn(e);
-            } catch (final OtpErlangException e) {
+            } catch (final Exception e) {
+                System.out.println(">>> " + item);
                 ErlLogger.warn(e);
             }
             return item.toString();

@@ -23,7 +23,7 @@ import org.erlide.ui.internal.ErlideUIPlugin;
 
 public enum ErlideImage {
 
-    // @formatter:on
+    // @formatter:off
     ALPHAB_SORT(ErlideImagePrefix.T_ELCL, "alphab_sort_co.gif"),
     TEST_RUNNING(ErlideImagePrefix.T_OBJ, "searchm_obj.gif"),
     TEST_SUCCEEDED(ErlideImagePrefix.T_OBJ, "methpub_obj.gif"),
@@ -53,7 +53,8 @@ public enum ErlideImage {
     MODULE(ErlideImagePrefix.T_OBJ, "erlang_srcFile.png"),
     MODULE_RESOURCE(ErlideImagePrefix.T_OBJ, "erlang_srcFileExt.gif"),
     UNKNOWN(ErlideImagePrefix.T_OBJ, "unknown_obj.gif"),
-    OBJS_EDOCTAG(ErlideImagePrefix.T_OBJ, "jdoc_tag_obj.gif");
+    OBJS_EDOCTAG(ErlideImagePrefix.T_OBJ, "jdoc_tag_obj.gif"),
+    OBJS_EXTERNALBROWSER(ErlideImagePrefix.T_ELCL, "open_browser.gif");
     // @formatter:on
 
     private String prefix;

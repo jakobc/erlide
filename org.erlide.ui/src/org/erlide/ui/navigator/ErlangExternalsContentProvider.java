@@ -6,9 +6,9 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
 import org.erlide.core.model.root.IErlProject;
@@ -26,26 +26,31 @@ public class ErlangExternalsContentProvider implements ITreeContentProvider {
 
     private static final Object[] NO_CHILDREN = new Object[0];
 
+    @Override
     public Object[] getElements(final Object inputElement) {
         return getChildren(inputElement);
     }
 
+    @Override
     public void dispose() {
         erlangFileContentProvider.dispose();
     }
 
+    @Override
     public void inputChanged(final Viewer viewer, final Object oldInput,
             final Object newInput) {
         // TODO Auto-generated method stub
 
     }
 
+    @Override
     public Object[] getChildren(Object parentElement) {
         try {
             if (parentElement instanceof IProject) {
                 final IProject project = (IProject) parentElement;
                 if (project.isOpen()) {
-                    parentElement = CoreScope.getModel().findProject(project);
+                    parentElement = ErlModelManager.getErlangModel()
+                            .findProject(project);
                 }
             }
             if (parentElement instanceof IErlModule) {
@@ -66,16 +71,16 @@ public class ErlangExternalsContentProvider implements ITreeContentProvider {
         return NO_CHILDREN;
     }
 
+    @Override
     public Object getParent(final Object element) {
         if (element instanceof IErlProject) {
-            final IErlProject project = (IErlProject) element;
-            return project.getProject();
+            return element;
         }
         if (element instanceof IErlElement) {
             final IErlElement elt = (IErlElement) element;
             IParent parent = elt.getParent();
             final String filePath = elt.getFilePath();
-            if (parent == CoreScope.getModel() && filePath != null) {
+            if (parent == ErlModelManager.getErlangModel() && filePath != null) {
                 // try {
                 // FIXME shouldn't this call be assigned to something!?
                 // ModelUtils.findModule(null, null, filePath,
@@ -97,11 +102,12 @@ public class ErlangExternalsContentProvider implements ITreeContentProvider {
         return null;
     }
 
+    @Override
     public boolean hasChildren(Object element) {
         if (element instanceof IProject) {
             final IProject project = (IProject) element;
             if (project.isOpen()) {
-                element = CoreScope.getModel().findProject(project);
+                element = ErlModelManager.getErlangModel().findProject(project);
             }
         }
         if (element instanceof IErlModule) {

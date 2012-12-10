@@ -15,8 +15,8 @@ import org.eclipse.jface.text.reconciler.DirtyRegion;
 import org.eclipse.jface.text.reconciler.IReconciler;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategyExtension;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.jinterface.ErlLogger;
 
 public class ErlReconciler implements IReconciler {
@@ -24,6 +24,27 @@ public class ErlReconciler implements IReconciler {
     /** The reconciling strategy. */
     private final IErlReconcilingStrategy fStrategy;
     private final String path;
+    /** Queue to manage the changes applied to the text viewer. */
+    ErlDirtyRegionQueue fDirtyRegionQueue;
+    /** The background thread. */
+    BackgroundThread fThread;
+    /** Internal document and text input listener. */
+    private Listener fListener;
+    /** The background thread delay. */
+    int fDelay = 500;
+    /** Are there incremental reconciling strategies? */
+    boolean fIsIncrementalReconciler = true;
+    /** The progress monitor used by this reconciler. */
+    IProgressMonitor fProgressMonitor;
+    /** Tells whether this reconciler is allowed to modify the document. */
+    boolean fIsAllowedToModifyDocument = true;
+
+    /** The text viewer's document. */
+    IDocument fDocument;
+    /** The text viewer */
+    private ITextViewer fViewer;
+    /** True if it should reconcile all regions without delay between them */
+    final boolean fChunkReconciler;
 
     public ErlReconciler(final IErlReconcilingStrategy strategy,
             final boolean isIncremental, final boolean chunkReconciler,
@@ -37,7 +58,7 @@ public class ErlReconciler implements IReconciler {
         fStrategy = strategy;
         this.path = path;
         if (path != null) {
-            CoreScope.getModel().putEdited(path, module);
+            ErlModelManager.getErlangModel().putEdited(path, module);
         }
     }
 
@@ -240,12 +261,14 @@ public class ErlReconciler implements IReconciler {
         /*
          * @see IDocumentListener#documentAboutToBeChanged(DocumentEvent)
          */
+        @Override
         public void documentAboutToBeChanged(final DocumentEvent e) {
         }
 
         /*
          * @see IDocumentListener#documentChanged(DocumentEvent)
          */
+        @Override
         public void documentChanged(final DocumentEvent e) {
             if (!fThread.isDirty() && fThread.isAlive()) {
                 if (!fIsAllowedToModifyDocument
@@ -278,6 +301,7 @@ public class ErlReconciler implements IReconciler {
          * @see ITextInputListener#inputDocumentAboutToBeChanged(IDocument,
          * IDocument)
          */
+        @Override
         public void inputDocumentAboutToBeChanged(final IDocument oldInput,
                 final IDocument newInput) {
 
@@ -308,6 +332,7 @@ public class ErlReconciler implements IReconciler {
         /*
          * @see ITextInputListener#inputDocumentChanged(IDocument, IDocument)
          */
+        @Override
         public void inputDocumentChanged(final IDocument oldInput,
                 final IDocument newInput) {
 
@@ -333,32 +358,6 @@ public class ErlReconciler implements IReconciler {
             startReconciling();
         }
     }
-
-    /** Queue to manage the changes applied to the text viewer. */
-    ErlDirtyRegionQueue fDirtyRegionQueue;
-    /** The background thread. */
-    BackgroundThread fThread;
-    /** Internal document and text input listener. */
-    private Listener fListener;
-    /** The background thread delay. */
-    int fDelay = 500;
-    /** Are there incremental reconciling strategies? */
-    boolean fIsIncrementalReconciler = true;
-    /** The progress monitor used by this reconciler. */
-    IProgressMonitor fProgressMonitor;
-    /**
-     * Tells whether this reconciler is allowed to modify the document.
-     * 
-     * @since 3.2
-     */
-    boolean fIsAllowedToModifyDocument = true;
-
-    /** The text viewer's document. */
-    IDocument fDocument;
-    /** The text viewer */
-    private ITextViewer fViewer;
-    /** True if it should reconcile all regions without delay between them */
-    final boolean fChunkReconciler;
 
     /**
      * Tells the reconciler how long it should wait for further text changes
@@ -449,6 +448,7 @@ public class ErlReconciler implements IReconciler {
     /*
      * @see IReconciler#install(ITextViewer)
      */
+    @Override
     public void install(final ITextViewer textViewer) {
 
         Assert.isNotNull(textViewer);
@@ -483,6 +483,7 @@ public class ErlReconciler implements IReconciler {
     /*
      * @see IReconciler#uninstall()
      */
+    @Override
     public void uninstall() {
         if (fListener != null) {
 
@@ -504,7 +505,7 @@ public class ErlReconciler implements IReconciler {
         final ErlReconcilerStrategy s = (ErlReconcilerStrategy) getReconcilingStrategy(IDocument.DEFAULT_CONTENT_TYPE);
         s.uninstall();
         if (path != null) {
-            CoreScope.getModel().putEdited(path, null);
+            ErlModelManager.getErlangModel().putEdited(path, null);
         }
     }
 
@@ -596,6 +597,7 @@ public class ErlReconciler implements IReconciler {
     /*
      * @see IReconciler#getReconcilingStrategy(String)
      */
+    @Override
     public IReconcilingStrategy getReconcilingStrategy(final String contentType) {
         Assert.isNotNull(contentType);
         return fStrategy;

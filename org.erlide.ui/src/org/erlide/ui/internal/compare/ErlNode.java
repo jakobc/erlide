@@ -18,10 +18,10 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Position;
 import org.eclipse.swt.graphics.Image;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.erlang.ISourceRange;
+import org.erlide.core.model.erlang.ISourceReference;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
-import org.erlide.core.model.root.ISourceRange;
-import org.erlide.core.model.root.ISourceReference;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.editors.erl.outline.ErlangElementImageProvider;
 import org.erlide.ui.internal.ErlideUIPlugin;
@@ -115,6 +115,7 @@ class ErlNode extends DocumentRangeNode implements ITypedElement {
     /**
      * @see ITypedInput#getName
      */
+    @Override
     public String getName() {
         return name;
     }
@@ -122,6 +123,7 @@ class ErlNode extends DocumentRangeNode implements ITypedElement {
     /**
      * @see ITypedInput#getType
      */
+    @Override
     public String getType() {
         return "erl2";
     }
@@ -129,6 +131,7 @@ class ErlNode extends DocumentRangeNode implements ITypedElement {
     /**
      * @see ITypedInput#getImage
      */
+    @Override
     public Image getImage() {
         // final ImageDescriptor descriptor = ErlideUIPlugin.getDefault()
         // .getImageDescriptor("erl");

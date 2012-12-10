@@ -27,7 +27,7 @@ import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IExportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.ide.IDE;
-import org.erlide.core.CoreScope;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.jinterface.ErlLogger;
 
@@ -62,12 +62,13 @@ public class EdocExportWizard extends Wizard implements IExportWizard {
                 options.put("dir", new OtpErlangString(dest.getLocation()
                         .toString()));
                 final List<String> files = new ArrayList<String>();
-                final IErlProject erlProject = CoreScope.getModel()
+                final IErlProject erlProject = ErlModelManager.getErlangModel()
                         .findProject(project);
                 for (final IPath dir : erlProject.getSourceDirs()) {
                     final IFolder folder = project.getFolder(dir);
                     if (folder.isAccessible()) {
                         folder.accept(new IResourceVisitor() {
+                            @Override
                             public boolean visit(final IResource resource)
                                     throws CoreException {
                                 if ("erl".equals(resource.getFileExtension())) {
@@ -94,6 +95,7 @@ public class EdocExportWizard extends Wizard implements IExportWizard {
         return true;
     }
 
+    @Override
     public void init(final IWorkbench workbench,
             final IStructuredSelection aSelection) {
         selection = aSelection;

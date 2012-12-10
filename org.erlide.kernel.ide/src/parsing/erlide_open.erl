@@ -10,7 +10,6 @@
 -export([open/3,
          find_first_var/2,
          get_source_from_module/2,
-         get_include_lib/1,
          get_external_modules/2,
          get_external_module/2,
          get_external_module_tree/1,
@@ -82,6 +81,7 @@ open_info(S, #open_context{}=Context) when is_list(S); is_binary(S) ->
 
 get_external_include(FilePath, #open_context{externalIncludes=ExternalIncludes, 
                                              pathVars=PathVars}) ->
+    ?D(FilePath),
     ExtIncPaths = get_external_modules_files(ExternalIncludes, PathVars),
     get_ext_inc(ExtIncPaths, FilePath).
 
@@ -278,8 +278,9 @@ o_include(_) ->
     no.
 
 o_include_lib([#token{kind='('}, #token{kind=string, value=Path} | _]) ->
-    {include, File} = get_include_lib(Path),
-    throw({open, {include, File}});
+    ?D(Path),
+    IncludeLib = get_otp_include_lib(Path),
+    throw({open, IncludeLib});
 o_include_lib(_) ->
     no.
 
@@ -355,12 +356,14 @@ get_imported([{Mod, Funcs} | Rest], Func) ->
             get_imported(Rest, Func)
     end.
 
-get_include_lib(Path) ->
+get_otp_include_lib(Path) ->
     {Lib, Rest} = find_lib_dir(Path),
-    {include, filename:join([Lib | Rest])}.
+    FileName = filename:basename(Rest),
+    {include_lib, FileName, filename:join([Lib | Rest])}.
 
 find_lib_dir(Dir) ->
     [Lib | Rest] = filename:split(Dir),
+    ?D(Lib),
     {code:lib_dir(list_to_atom(Lib)), Rest}.
 
 get_source_from_module(Mod, Context) ->

@@ -1,12 +1,12 @@
 package org.erlide.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.io.File;
 
 import org.eclipse.core.runtime.CoreException;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.test.support.ErlideTestUtils;
@@ -57,12 +57,12 @@ public class ErlModelCacheTest {
                             "-module(f).\n-include(\"a.hrl\").\n-export([f/0]).\n-record(rec2, {a, b}).\n"
                                     + "f() ->\n    lists:reverse([1, 0]),\n    lists:reverse([1, 0], [2]).\n");
             module.open(null);
-            final IErlElementLocator model = project.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             final IErlModule module2 = model.findModuleFromProject(project,
                     moduleName, null, IErlElementLocator.Scope.PROJECT_ONLY);
             // final ErlModelCache cache = ErlModelCache.getDefault();
             // final Set<IErlModule> modulesByName2 = cache
-            // .getModulesByName(CommonUtils.withoutExtension(moduleName));
+            // .getModulesByName(ListsUtils.withoutExtension(moduleName));
             // when
             // deleting the project
             ErlideTestUtils.deleteProject(project);
@@ -70,7 +70,7 @@ public class ErlModelCacheTest {
             // the model cache shouldn't know about the module anymore
             assertEquals(module2, module);
             // final Set<IErlModule> modulesByName = cache
-            // .getModulesByName(CommonUtils.withoutExtension(moduleName));
+            // .getModulesByName(ListsUtils.withoutExtension(moduleName));
             // assertTrue(!modulesByName2.isEmpty());
             // assertTrue(modulesByName.isEmpty());
         } finally {
@@ -101,12 +101,12 @@ public class ErlModelCacheTest {
                     "x.erlidex", absolutePath);
             project.setExternalModulesFile(externalsFile.getAbsolutePath());
             project.open(null);
-            final IErlElementLocator model = project.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             final IErlModule findModule = model.findModuleFromProject(project,
                     externalName, null, IErlElementLocator.Scope.PROJECT_ONLY);
             // final ErlModelCache cache = ErlModelCache.getDefault();
             // final Set<IErlModule> modulesByName = cache
-            // .getModulesByName(CommonUtils
+            // .getModulesByName(ListsUtils
             // .withoutExtension(externalName));
             // when
             // creating a new project with a module with the same name and
@@ -120,7 +120,7 @@ public class ErlModelCacheTest {
             final IErlModule findModule2 = model.findModuleFromProject(project,
                     externalName, null, IErlElementLocator.Scope.ALL_PROJECTS);
             // final Set<IErlModule> modulesByName2 = cache
-            // .getModulesByName(CommonUtils
+            // .getModulesByName(ListsUtils
             // .withoutExtension(externalName));
             // then
             // the new module should be found

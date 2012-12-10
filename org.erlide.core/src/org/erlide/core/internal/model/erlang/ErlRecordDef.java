@@ -26,10 +26,12 @@ public class ErlRecordDef extends ErlMember implements IErlRecordDef {
         this.extra = extra;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.RECORD_DEF;
     }
 
+    @Override
     public String getDefinedName() {
         return record;
     }
@@ -64,13 +66,15 @@ public class ErlRecordDef extends ErlMember implements IErlRecordDef {
         return false;
     }
 
+    @Override
     public String getExtra() {
         return extra;
     }
 
+    @Override
     public IErlRecordField getFieldNamed(final String name) {
         try {
-            for (final IErlElement e : getChildren()) {
+            for (final IErlElement e : getChildrenOfKind(Kind.RECORD_FIELD)) {
                 if (e instanceof IErlRecordField) {
                     final IErlRecordField field = (IErlRecordField) e;
                     if (field.getFieldName().equals(name)) {

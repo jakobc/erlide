@@ -18,6 +18,7 @@
 -export([dialyze/5, format_warning/1, check_plt/1, get_plt_files/1, update_plt_with_additional_paths/2,
          start_dialyze/6, start_update_plt_with_additional_paths/3]).
 
+-compile({no_auto_import, [error/1, error/2]}).
 
 %%
 %% API Functions
@@ -619,9 +620,10 @@ do_analysis(Files, FileName, Plt, PltInfo, AnalysisType, IncludeDirs, _NoCheckPL
     case JPid of
         false -> ok;
         _ ->
-            JPid ! {start, self()}
+            %% TODO value below initializes progress monitor. How big should it be? 
+            JPid ! {start, 10}
     end,
-    Return = cl_loop(State3),
+    Return = (catch cl_loop(State3)),
     %%     {T2, _} = statistics(wall_clock),
     %%     report_elapsed_time(T1, T2, Options),
     case JPid of

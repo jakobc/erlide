@@ -10,8 +10,8 @@
  ******************************************************************************/
 package org.erlide.wrangler.refactoring.backend.internal;
 
-import org.erlide.core.rpc.IRpcResult;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcResult;
 import org.erlide.wrangler.refactoring.backend.IRpcMessage;
 import org.erlide.wrangler.refactoring.backend.RefactoringState;
 import org.erlide.wrangler.refactoring.exception.WranglerException;
@@ -35,7 +35,8 @@ public abstract class AbstractRpcMessage implements IRpcMessage {
      * @param result
      *            input object to be parsed
      */
-    public void parse(final IRpcResult result) {
+    @Override
+    public void parse(final RpcResult result) {
         try {
             if (!result.isOk()) {
                 org.erlide.jinterface.ErlLogger.error(
@@ -57,14 +58,17 @@ public abstract class AbstractRpcMessage implements IRpcMessage {
     protected abstract void parseRefactoringMessage(OtpErlangTuple resultTuple)
             throws WranglerException;
 
+    @Override
     public String getMessageString() {
         return messageString;
     }
 
+    @Override
     public boolean isSuccessful() {
         return refactoringState == RefactoringState.OK;
     }
 
+    @Override
     public RefactoringState getRefactoringState() {
         return refactoringState;
     }

@@ -12,10 +12,11 @@ package org.erlide.ui.internal;
 
 import org.eclipse.core.runtime.Assert;
 import org.erlide.core.model.root.IErlElement;
+import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.util.eclipse.text.BrowserInformationControlInput;
 
 /**
- * Browser input for Javadoc hover.
+ * Browser input for Edoc hover.
  * 
  * @since 3.4
  */
@@ -25,6 +26,9 @@ public class ErlBrowserInformationControlInput extends
     private final Object fElement;
     private final String fHtml;
     private final int fLeadingImageWidth;
+    private final String docPath;
+    private final String anchor;
+    private final ErlangEditor editor;
 
     /**
      * Creates a new browser information control input.
@@ -37,15 +41,22 @@ public class ErlBrowserInformationControlInput extends
      *            HTML contents, must not be null
      * @param leadingImageWidth
      *            the indent required for the element image
+     * @param docPath
+     * @param anchor
      */
     public ErlBrowserInformationControlInput(
             final ErlBrowserInformationControlInput previous,
-            final Object element, final String html, final int leadingImageWidth) {
+            final ErlangEditor editor, final Object element, final String html,
+            final int leadingImageWidth, final String docPath,
+            final String anchor) {
         super(previous);
+        this.editor = editor;
         Assert.isNotNull(html);
         fElement = element;
         fHtml = html;
         fLeadingImageWidth = leadingImageWidth;
+        this.docPath = docPath;
+        this.anchor = anchor;
     }
 
     /*
@@ -60,7 +71,7 @@ public class ErlBrowserInformationControlInput extends
     }
 
     // /**
-    // * Returns the Java element.
+    // * Returns the Erlang element.
     // *
     // * @return the element or <code>null</code> if none available
     // */
@@ -95,4 +106,17 @@ public class ErlBrowserInformationControlInput extends
         }
         return ""; //$NON-NLS-1$
     }
+
+    public String getDocPath() {
+        return docPath;
+    }
+
+    public String getAnchor() {
+        return anchor;
+    }
+
+    public ErlangEditor getEditor() {
+        return editor;
+    }
+
 }

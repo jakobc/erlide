@@ -20,10 +20,11 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextUtilities;
 import org.eclipse.ui.editors.text.EditorsUI;
 import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
-import org.erlide.core.backend.BackendCore;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlMember;
+import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.rpc.IRpcCallSite;
 import org.erlide.core.services.text.ErlideIndent;
 import org.erlide.core.services.text.IndentResult;
 import org.erlide.jinterface.ErlLogger;
@@ -60,23 +61,25 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
             throws BadLocationException {
         final int offset = c.offset;
         String txt = null;
-        fEditor.reconcileNow();
-        final IErlElement element = fEditor.getElementAt(offset, false);
-        final IErlMember member = (IErlMember) element;
+        if (fEditor != null) {
+            fEditor.reconcileNow();
+        }
+        final IErlMember member = getMemberNearOffset(offset);
         if (member != null) {
             final int start = member.getSourceRange().getOffset();
-            txt = d.get(start, offset - start);
+            if (offset >= start) {
+                txt = d.get(start, offset - start);
+            }
         }
         if (txt == null) {
-            txt = d.get(0, offset);
+            txt = "";
         }
         final int lineN = d.getLineOfOffset(offset);
         final int lineOffset = d.getLineOffset(lineN);
         final int lineLength = d.getLineLength(lineN);
         final String oldLine = d.get(offset, lineLength + lineOffset - offset);
         try {
-            final IRpcCallSite b = BackendCore.getBackendManager()
-                    .getIdeBackend();
+            final IBackend b = BackendCore.getBackendManager().getIdeBackend();
             final int tabw = getTabWidthFromPreferences();
 
             final Map<String, String> prefs = new TreeMap<String, String>();
@@ -94,6 +97,24 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
         } catch (final Exception e) {
             ErlLogger.warn(e);
         }
+    }
+
+    private IErlMember getMemberNearOffset(final int offset) {
+        if (fEditor == null) {
+            return null;
+        }
+        final IErlElement element = fEditor.getElementAt(offset, false);
+        IErlMember member = (IErlMember) element;
+        final IErlModule module = fEditor.getModule();
+        try {
+            if (member == null) {
+                member = (IErlMember) module.getChildren().get(
+                        module.getChildCount() - 1);
+            }
+        } catch (final Exception e1) {
+            // ignore
+        }
+        return member;
     }
 
     /**
@@ -128,9 +149,7 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
      * @param c
      *            the command
      */
-
-    // FIXME flytta en del av denna logik till erlang!! (t.ex. vill man
-    // inte vara "elektrisk" i kommentarer)
+    @Override
     public void customizeDocumentCommand(final IDocument d,
             final DocumentCommand c) {
         if (c.length == 0 && c.text != null) {

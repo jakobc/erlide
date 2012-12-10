@@ -15,21 +15,21 @@ import org.eclipse.swt.custom.BusyIndicator;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.TextEditorAction;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangCore;
 import org.erlide.core.ErlangStatus;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.common.Util;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.erlang.ISourceRange;
+import org.erlide.core.model.erlang.ISourceReference;
 import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.ISourceRange;
-import org.erlide.core.model.root.ISourceReference;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.core.services.text.ErlideIndent;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.ui.actions.ActionMessages;
 import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -102,24 +102,31 @@ public class ErlangTextEditorAction extends TextEditorAction {
                     if (e1 instanceof ISourceReference) {
                         final ISourceReference ref1 = (ISourceReference) e1;
                         final ISourceRange r1 = ref1.getSourceRange();
+                        final int offset = r1.getOffset();
+                        int length = r1.getLength();
                         if (e1 == e2) {
+                            final int docLength = document.getLength();
+                            if (offset + length > docLength) {
+                                length = docLength - offset;
+                            }
                             return extendSelectionToWholeLines(document,
-                                    new TextSelection(document, r1.getOffset(),
-                                            r1.getLength()));
+                                    new TextSelection(document, offset, length));
                         } else if (e2 == null) {
                             return extendSelectionToWholeLines(
                                     document,
-                                    new TextSelection(document, r1.getOffset(),
+                                    new TextSelection(document, offset,
                                             selection.getLength()
                                                     + selection.getOffset()
-                                                    - r1.getOffset()));
+                                                    - offset));
                         } else if (e2 instanceof ISourceReference) {
                             final ISourceReference ref2 = (ISourceReference) e2;
                             final ISourceRange r2 = ref2.getSourceRange();
-                            return extendSelectionToWholeLines(document,
-                                    new TextSelection(document, r1.getOffset(),
-                                            r2.getOffset() - r1.getOffset()
-                                                    + r2.getLength()));
+                            return extendSelectionToWholeLines(
+                                    document,
+                                    new TextSelection(document, offset, r2
+                                            .getOffset()
+                                            - offset
+                                            + r2.getLength()));
                         }
                     }
                 } catch (final ErlModelException e) {
@@ -175,6 +182,7 @@ public class ErlangTextEditorAction extends TextEditorAction {
         final int endLine = selection.getEndLine();
         final int nLines = endLine - startLine + 1;
         final Runnable runnable = new Runnable() {
+            @Override
             public void run() {
                 final IRewriteTarget target = (IRewriteTarget) textEditor
                         .getAdapter(IRewriteTarget.class);
@@ -221,7 +229,7 @@ public class ErlangTextEditorAction extends TextEditorAction {
      */
     protected OtpErlangObject callErlang(final int offset, final int length,
             final String aText) throws RpcException {
-        final IRpcCallSite b = BackendCore.getBackendManager().getIdeBackend();
+        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
         final OtpErlangObject r1 = ErlideIndent.call(b, fErlModule,
                 fErlFunction, offset, length, aText);
         return r1;

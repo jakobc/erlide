@@ -3,25 +3,23 @@ package org.erlide.ui.prefs;
 import java.util.Map;
 
 import org.eclipse.jface.text.TextAttribute;
-import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.swt.graphics.Color;
-import org.erlide.ui.editors.erl.ErlHighlightScanner;
+import org.erlide.ui.editors.erl.scanner.ErlCodeScanner;
 import org.erlide.ui.util.IColorManager;
 
-public class SyntaxColorPreviewHighlightScanner extends ErlHighlightScanner {
+public class SyntaxColorPreviewHighlightScanner extends ErlCodeScanner {
     // implements IPropertyChangeListener {
 
     final Map<TokenHighlight, HighlightStyle> styles;
 
     public class PreviewTextAttribute extends TextAttribute {
-        TokenHighlight th;
+        final TokenHighlight th;
 
         public PreviewTextAttribute(final TokenHighlight th) {
             super(null);
             this.th = th;
         }
 
-        @SuppressWarnings("synthetic-access")
         @Override
         public Color getForeground() {
             return fColorManager.getColor(styles.get(th).getColor());
@@ -35,11 +33,9 @@ public class SyntaxColorPreviewHighlightScanner extends ErlHighlightScanner {
     }
 
     public SyntaxColorPreviewHighlightScanner(final IColorManager lmanager,
-            final ISourceViewer editorConfiguration,
             final Map<TokenHighlight, HighlightStyle> styles) {
-        super(lmanager, editorConfiguration, 0, true, null);
+        super(lmanager);
         this.styles = styles;
-        setTokens();
     }
 
     @Override

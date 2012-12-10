@@ -1,11 +1,8 @@
 package org.erlide.core.model.erlang;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.ISourceRange;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -46,7 +46,7 @@ public class ErlangAnnotationIterator implements Iterator<Annotation> {
      * @param skipIrrelevants
      *            whether to skip irrelevant annotations
      * @param returnAllAnnotations
-     *            Whether to return non IJavaAnnotations as well
+     *            Whether to return non {@link IErlangAnnotation}s as well
      */
     public ErlangAnnotationIterator(final IAnnotationModel model,
             final boolean skipIrrelevants, final boolean returnAllAnnotations) {
@@ -84,6 +84,7 @@ public class ErlangAnnotationIterator implements Iterator<Annotation> {
     /*
      * @see Iterator#hasNext()
      */
+    @Override
     public boolean hasNext() {
         return fNext != null;
     }
@@ -91,6 +92,7 @@ public class ErlangAnnotationIterator implements Iterator<Annotation> {
     /*
      * @see Iterator#next()
      */
+    @Override
     public Annotation next() {
         try {
             return fNext;
@@ -102,6 +104,7 @@ public class ErlangAnnotationIterator implements Iterator<Annotation> {
     /*
      * @see Iterator#remove()
      */
+    @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }

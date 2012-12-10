@@ -13,6 +13,7 @@ import org.erlide.core.services.builder.MarkerUtils;
 
 public class RemoveDialyzerWarningsHandler extends AbstractHandler {
 
+    @Override
     public Object execute(final ExecutionEvent event) throws ExecutionException {
         final ISelection selection = HandlerUtil.getCurrentSelection(event);
         if (selection instanceof IStructuredSelection && !selection.isEmpty()) {
@@ -20,11 +21,11 @@ public class RemoveDialyzerWarningsHandler extends AbstractHandler {
             for (final Object o : structuredSelection.toArray()) {
                 if (o instanceof IResource) {
                     final IResource resource = (IResource) o;
-                    MarkerUtils.removeDialyzerMarkers(resource);
+                    MarkerUtils.removeDialyzerMarkersFor(resource);
                 }
             }
         } else {
-            MarkerUtils.removeDialyzerMarkers(ResourcesPlugin.getWorkspace()
+            MarkerUtils.removeDialyzerMarkersFor(ResourcesPlugin.getWorkspace()
                     .getRoot());
         }
         return null;

@@ -23,22 +23,21 @@ import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
 import org.eclipse.jface.text.rules.ITokenScanner;
 import org.eclipse.jface.text.source.ICharacterPairMatcher;
 import org.eclipse.jface.text.source.ISourceViewer;
-import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
-import org.erlide.core.backend.console.IoRequest.IoRequestKind;
+import org.erlide.backend.console.IoRequest.IoRequestKind;
 import org.erlide.ui.editors.erl.ColorManager;
 import org.erlide.ui.editors.erl.DoubleClickStrategy;
-import org.erlide.ui.editors.erl.ErlDamagerRepairer;
-import org.erlide.ui.editors.erl.ErlHighlightScanner;
 import org.erlide.ui.editors.erl.ErlangPairMatcher;
 import org.erlide.ui.editors.erl.completion.ErlContentAssistProcessor;
+import org.erlide.ui.editors.erl.scanner.ErlCodeScanner;
+import org.erlide.ui.editors.erl.scanner.ErlDamagerRepairer;
 import org.erlide.ui.internal.information.ErlInformationPresenter;
 
-final class ErlangConsoleSourceViewerConfiguration extends
+final public class ErlangConsoleSourceViewerConfiguration extends
         TextSourceViewerConfiguration {
 
-    ErlangConsoleSourceViewerConfiguration() {
+    public ErlangConsoleSourceViewerConfiguration() {
         super();
     }
 
@@ -84,6 +83,7 @@ final class ErlangConsoleSourceViewerConfiguration extends
             final ISourceViewer sourceViewer) {
         return new IInformationControlCreator() {
 
+            @Override
             public IInformationControl createInformationControl(
                     final Shell parent) {
                 return new DefaultInformationControl(parent,
@@ -129,8 +129,7 @@ final class ErlangConsoleSourceViewerConfiguration extends
         DefaultDamagerRepairer dr;
 
         final ColorManager colorManager = new ColorManager();
-        final ITokenScanner scan = new ErlHighlightScanner(colorManager,
-                sourceViewer, false, new RGB(245, 245, 245));
+        final ITokenScanner scan = new ErlCodeScanner(colorManager);
         dr = new ErlDamagerRepairer(scan);
         reconciler.setDamager(dr, IoRequestKind.INPUT.name());
         reconciler.setRepairer(dr, IoRequestKind.INPUT.name());
@@ -153,8 +152,7 @@ final class ErlangConsoleSourceViewerConfiguration extends
         reconciler.setRepairer(dr, IoRequestKind.HEADER.name());
 
         // this is for the input field
-        final ITokenScanner scan2 = new ErlHighlightScanner(colorManager,
-                sourceViewer, false);
+        final ITokenScanner scan2 = new ErlCodeScanner(colorManager);
         dr = new ErlDamagerRepairer(scan2);
         reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
         reconciler.setRepairer(dr, IDocument.DEFAULT_CONTENT_TYPE);

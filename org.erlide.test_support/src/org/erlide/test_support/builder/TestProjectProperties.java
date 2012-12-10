@@ -14,12 +14,14 @@ import org.erlide.jinterface.ErlLogger;
 import com.google.common.collect.Lists;
 
 public class TestProjectProperties {
-    List<String> sources;
+    List<String> sources = Lists.newArrayList();
 
+    @SuppressWarnings("unused")
     private List<String> findTestDirs(final IProject prj) {
         final List<String> result = Lists.newArrayList();
         try {
             prj.accept(new IResourceVisitor() {
+                @Override
                 public boolean visit(final IResource resource)
                         throws CoreException {
                     if (resource.getName().matches(".*_SUITE.erl")) {

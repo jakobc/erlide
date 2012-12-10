@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.erlide.core.common.Util;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.RpcException;
+import org.erlide.backend.IBackend;
+import org.erlide.jinterface.rpc.RpcException;
+import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -19,7 +19,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 
 public class ErlideContextAssist {
 
-    public static Collection<String> getVariables(final IRpcCallSite b,
+    public static Collection<String> getVariables(final IBackend b,
             final String src, final String prefix) {
         final SortedSet<String> result = new TreeSet<String>();
         try {
@@ -60,9 +60,9 @@ public class ErlideContextAssist {
             kind = kindL.intValue();
             name = nameA.atomValue();
             prefix = prefixA.atomValue();
-            if ("><".equals(prefix)) {
-                prefix = "'";
-            } else if ("<>".equals(prefix)) {
+            if (prefix.endsWith("><")) {
+                prefix = "'" + prefix.substring(0, prefix.length() - 2);
+            } else if (prefix.equals("<>")) {
                 prefix = "";
             }
             fields = new ArrayList<String>(fieldL.arity());
@@ -94,7 +94,7 @@ public class ErlideContextAssist {
 
     }
 
-    public static RecordCompletion checkRecordCompletion(final IRpcCallSite b,
+    public static RecordCompletion checkRecordCompletion(final IBackend b,
             final String substring) {
         try {
             final OtpErlangObject res = b.call("erlide_content_assist",
@@ -113,7 +113,7 @@ public class ErlideContextAssist {
     }
 
     @SuppressWarnings("boxing")
-    public static OtpErlangList getFunctionHead(final IRpcCallSite b,
+    public static OtpErlangList getFunctionHead(final IBackend b,
             final String name, final int arity) {
         try {
             final OtpErlangObject res = b.call("erlide_content_assist",

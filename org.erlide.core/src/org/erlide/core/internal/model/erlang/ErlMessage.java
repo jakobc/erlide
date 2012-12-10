@@ -12,8 +12,8 @@ package org.erlide.core.internal.model.erlang;
 
 import org.erlide.core.internal.model.root.ErlMember;
 import org.erlide.core.model.erlang.IErlMessage;
+import org.erlide.core.model.erlang.ISourceRange;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.root.ISourceRange;
 
 public class ErlMessage extends ErlMember implements IErlMessage {
 
@@ -27,14 +27,17 @@ public class ErlMessage extends ErlMember implements IErlMessage {
         message = name;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.ERROR;
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
 
+    @Override
     public String getData() {
         return null;
     }
@@ -54,6 +57,7 @@ public class ErlMessage extends ErlMember implements IErlMessage {
         return "ERR: " + getMessage();
     }
 
+    @Override
     public MessageKind getMessageKind() {
         return fKind;
     }

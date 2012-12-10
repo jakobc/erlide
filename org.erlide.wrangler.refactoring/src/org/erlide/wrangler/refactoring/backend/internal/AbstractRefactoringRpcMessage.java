@@ -12,7 +12,7 @@ package org.erlide.wrangler.refactoring.backend.internal;
 
 import java.util.ArrayList;
 
-import org.erlide.jinterface.util.ErlUtils;
+import org.erlide.utils.ErlUtils;
 import org.erlide.wrangler.refactoring.backend.ChangedFile;
 import org.erlide.wrangler.refactoring.backend.IRefactoringRpcMessage;
 
@@ -34,6 +34,7 @@ public abstract class AbstractRefactoringRpcMessage extends AbstractRpcMessage
     /**
      * Returns with those files, which are changed during the refactoring.
      */
+    @Override
     public ArrayList<ChangedFile> getRefactoringChangeset() {
         return changedFiles;
     }

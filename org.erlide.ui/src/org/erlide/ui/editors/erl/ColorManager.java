@@ -39,7 +39,7 @@ public class ColorManager implements IColorManager {
     private final boolean fAutoDisposeOnDisplayDispose;
 
     /**
-     * Creates a new Java color manager which automatically disposes the
+     * Creates a new Erlang color manager which automatically disposes the
      * allocated colors when the current display gets disposed.
      */
     public ColorManager() {
@@ -47,7 +47,7 @@ public class ColorManager implements IColorManager {
     }
 
     /**
-     * Creates a new Java color manager.
+     * Creates a new Erlang color manager.
      * 
      * @param autoDisposeOnDisplayDispose
      *            if <code>true</code> the color manager automatically disposes
@@ -77,6 +77,7 @@ public class ColorManager implements IColorManager {
     /*
      * @see IColorManager#getColor(RGB)
      */
+    @Override
     public Color getColor(final RGB rgb) {
 
         if (rgb == null) {
@@ -91,6 +92,7 @@ public class ColorManager implements IColorManager {
             if (fAutoDisposeOnDisplayDispose) {
                 display.disposeExec(new Runnable() {
 
+                    @Override
                     public void run() {
                         dispose(display);
                     }
@@ -110,6 +112,7 @@ public class ColorManager implements IColorManager {
     /*
      * @see IColorManager#dispose
      */
+    @Override
     public void dispose() {
         if (!fAutoDisposeOnDisplayDispose) {
             dispose(Display.getCurrent());
@@ -119,6 +122,7 @@ public class ColorManager implements IColorManager {
     /*
      * @see IColorManager#getColor(String)
      */
+    @Override
     public Color getColor(final String key) {
 
         if (key == null) {

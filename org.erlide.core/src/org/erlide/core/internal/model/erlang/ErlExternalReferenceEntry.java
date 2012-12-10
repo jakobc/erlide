@@ -6,13 +6,14 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.internal.model.root.Openable;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IErlExternal;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.util.CoreUtil;
-import org.erlide.core.rpc.IRpcCallSite;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlideOpen;
 
 import com.google.common.collect.Lists;
@@ -32,6 +33,7 @@ public class ErlExternalReferenceEntry extends Openable implements IErlExternal 
         this.hasHeaders = hasHeaders;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.EXTERNAL;
     }
@@ -43,8 +45,8 @@ public class ErlExternalReferenceEntry extends Openable implements IErlExternal 
             // already done
             return true;
         }
-        final IRpcCallSite backend = CoreUtil.getBuildOrIdeBackend(getProject()
-                .getWorkspaceProject());
+        final IBackend backend = BackendCore.getBuildOrIdeBackend(ModelUtils
+                .getProject(this).getWorkspaceProject());
         if (backend != null) {
             final List<String> files = ErlideOpen.getLibFiles(backend, entry);
             final List<IErlModule> children = Lists
@@ -78,6 +80,7 @@ public class ErlExternalReferenceEntry extends Openable implements IErlExternal 
         return entry;
     }
 
+    @Override
     public boolean isOTP() {
         final IParent parent = getParent();
         if (parent instanceof IErlExternal) {
@@ -92,6 +95,7 @@ public class ErlExternalReferenceEntry extends Openable implements IErlExternal 
         return null;
     }
 
+    @Override
     public boolean hasIncludes() {
         return hasHeaders;
     }

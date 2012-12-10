@@ -3,12 +3,11 @@
 
 -module(erlide_otp_doc).
 
--export([check_all/0,
-         get_doc/3,
+-export([get_doc/3,
          get_doc_from_fun_arity_list/3,
          get_all_links_to_other/0,
          get_exported/2,
-         get_modules/2,
+         get_modules/3,
          get_proposals/3,
          get_all_doc_dirs/0]).
 
@@ -38,9 +37,14 @@ get_exported(M, Prefix) when is_atom(M), is_list(Prefix) ->
             error
     end.
 
+get_modules(Prefix, Modules, includes) when is_list(Prefix), is_list(Modules) ->
+    get_modules(Prefix, Modules);
+get_modules(Prefix, Modules, modules) ->
+    LoadedModules = [atom_to_list(I) || {I, _} <- code:all_loaded()],
+    get_modules(Prefix, Modules ++ LoadedModules).
+
 get_modules(Prefix, Modules) when is_list(Prefix), is_list(Modules) ->
-    M = Modules++[atom_to_list(I) || {I, _} <- code:all_loaded()],
-	L = [I || I <- M, lists:prefix(Prefix, I)],
+    L = [I || I <- Modules, lists:prefix(Prefix, I)],
     lists:usort(L).
 
 find_tags(L, Fun) ->
@@ -328,43 +332,43 @@ get_all_doc_dirs() ->
                      end, OtpPaths),
     lists:filter(fun({D,_}) -> filelib:is_dir(D) end, Dirs0).
 
-remove_ext(F) ->
-    remove_ext_x(lists:reverse(F)).
+%% remove_ext(F) ->
+%%     remove_ext_x(lists:reverse(F)).
 
-remove_ext_x("." ++ Rest) ->
-    lists:reverse(Rest);
-remove_ext_x("") ->
-    "";
-remove_ext_x([_ | Rest]) ->
-    remove_ext_x(Rest).
+%% remove_ext_x("." ++ Rest) ->
+%%     lists:reverse(Rest);
+%% remove_ext_x("") ->
+%%     "";
+%% remove_ext_x([_ | Rest]) ->
+%%     remove_ext_x(Rest).
 
-get_mod_doc_files(DocDir, EbinDir) ->
-    Dl = filelib:wildcard("*.html", DocDir),
-    El = filelib:wildcard("*.beam", EbinDir),
-    D0 = [remove_ext(D) || D <- Dl],
-    E0 = [remove_ext(E) || E <- El],
-    D1 = sets:from_list(D0),
-    E1 = sets:from_list(E0),
-    Intersection = sets:intersection(D1, E1),
-    sets:to_list(Intersection).
+%% get_mod_doc_files(DocDir, EbinDir) ->
+%%     Dl = filelib:wildcard("*.html", DocDir),
+%%     El = filelib:wildcard("*.beam", EbinDir),
+%%     D0 = [remove_ext(D) || D <- Dl],
+%%     E0 = [remove_ext(E) || E <- El],
+%%     D1 = sets:from_list(D0),
+%%     E1 = sets:from_list(E0),
+%%     Intersection = sets:intersection(D1, E1),
+%%     sets:to_list(Intersection).
 
-get_all_docs_for_mod(Mod) ->
-    E0 = Mod:module_info(exports),
-    Exports = lists:filter(fun({module_info, _}) -> false;
-                              (_) -> true
-                           end, E0),
-    Docs = [case get_doc_for_external(".", Mod, [{Func, Arity}]) of
-                [] -> {Mod, Func, Arity};
-                _ -> []
-            end || {Func, Arity} <- Exports],
-    Docs.
+%% get_all_docs_for_mod(Mod) ->
+%%     E0 = Mod:module_info(exports),
+%%     Exports = lists:filter(fun({module_info, _}) -> false;
+%%                               (_) -> true
+%%                            end, E0),
+%%     Docs = [case get_doc_for_external(".", Mod, [{Func, Arity}]) of
+%%                 [] -> {Mod, Func, Arity};
+%%                 _ -> []
+%%             end || {Func, Arity} <- Exports],
+%%     Docs.
 
-check_all() ->
-    DocDirs = get_all_doc_dirs(),
-    Mods = [list_to_atom(M) || {D, E} <- DocDirs,
-                               M <- get_mod_doc_files(D, E)],
-    NotFound = [get_all_docs_for_mod(Mod) || Mod <- Mods],
-    lists:flatten(NotFound).
+%% check_all() ->
+%%     DocDirs = get_all_doc_dirs(),
+%%     Mods = [list_to_atom(M) || {D, E} <- DocDirs,
+%%                                M <- get_mod_doc_files(D, E)],
+%%     NotFound = [get_all_docs_for_mod(Mod) || Mod <- Mods],
+%%     lists:flatten(NotFound).
 
 %% report_on_file(FileName) ->
 %%     Missing = check_all(),
@@ -390,15 +394,16 @@ get_doc(Module, Input, StateDir) ->
             {external, M, F, A, _Path} = External ->
                 ?D({open, External}),
                 case get_doc_for_external(StateDir, M, [{F, A}]) of
-                    D when is_list(D) ->
-                        {ok, lists:flatten(D), External};
+                    {D, Path, Anchor} when is_list(D) ->
+                        {ok, lists:flatten(D), External, Path, Anchor};
                     _Error ->
                         External
                 end;
             {local, F, A} = Local ->
+                ?D({open, Local}),
                 case get_doc_for_external(StateDir, Module, [{F, A}]) of
-                    D when is_list(D) ->
-                        {ok, lists:flatten(D), Local};
+                    {D, Path, Anchor} when is_list(D) ->
+                        {ok, lists:flatten(D), Local, Path, Anchor};
                     _Error ->
                         Local
                 end;
@@ -437,7 +442,13 @@ get_doc_for_external(StateDir, Mod, FuncList) ->
         {_Cached, Doc} = erlide_util:check_and_renew_cached(DocFileName, IndexFileName, ?CACHE_VERSION, Renew, true),
         ?D({doc, _Cached, Doc, FuncList}),
         PosLens = extract_doc_for_funcs(Doc, FuncList),
-        get_doc(DocFileName, PosLens)
+        Anchor = case FuncList of
+                     [{F, A}] ->
+                         atom_to_list(F) ++ "-" ++ integer_to_list(A);
+                     _ ->
+                         ""
+                 end,
+        {get_doc(DocFileName, PosLens), DocFileName, Anchor}
     catch
 	exit:E ->
 	    ?D(E),
@@ -450,7 +461,8 @@ get_doc_for_external(StateDir, Mod, FuncList) ->
     end.
 
 get_doc_from_fun_arity_list(Mod, List, StateDir) ->
-    get_doc_for_external(StateDir, Mod, List).
+    {D, _, _} = get_doc_for_external(StateDir, Mod, List),
+    D.
 
 unappend(Flat, L) ->
     unappend(L, Flat, []).

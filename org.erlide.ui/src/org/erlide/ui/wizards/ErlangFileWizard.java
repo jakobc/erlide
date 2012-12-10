@@ -38,7 +38,7 @@ import org.eclipse.ui.IWorkbenchWizard;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
-import org.erlide.core.common.CommonUtils;
+import org.erlide.utils.CommonUtils;
 
 /**
  * This is a sample new wizard. Its role is to create a new file resource in the
@@ -85,6 +85,7 @@ public class ErlangFileWizard extends Wizard implements INewWizard {
         final String skeleton = fPage.getSkeleton();
         final IRunnableWithProgress op = new IRunnableWithProgress() {
 
+            @Override
             public void run(final IProgressMonitor monitor)
                     throws InvocationTargetException {
                 try {
@@ -151,6 +152,7 @@ public class ErlangFileWizard extends Wizard implements INewWizard {
         monitor.setTaskName("Opening file for editing...");
         getShell().getDisplay().asyncExec(new Runnable() {
 
+            @Override
             public void run() {
                 final IWorkbenchPage page = PlatformUI.getWorkbench()
                         .getActiveWorkbenchWindow().getActivePage();
@@ -183,6 +185,7 @@ public class ErlangFileWizard extends Wizard implements INewWizard {
      * 
      * @see IWorkbenchWizard#init(IWorkbench, IStructuredSelection)
      */
+    @Override
     public void init(final IWorkbench workbench,
             final IStructuredSelection selection) {
         fSelection = selection;

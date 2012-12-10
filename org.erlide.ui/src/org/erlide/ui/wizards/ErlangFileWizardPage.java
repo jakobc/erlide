@@ -43,9 +43,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.ContainerSelectionDialog;
-import org.erlide.core.CoreScope;
-import org.erlide.core.common.CommonUtils;
 import org.erlide.core.model.erlang.ModuleKind;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.internal.ErlideUIPlugin;
@@ -53,6 +52,7 @@ import org.erlide.ui.templates.ErlangSourceContextTypeModule;
 import org.erlide.ui.templates.ModuleVariableResolver;
 import org.erlide.ui.wizards.templates.ExportedFunctionsVariableResolver;
 import org.erlide.ui.wizards.templates.LocalFunctionsVariableResolver;
+import org.erlide.utils.SystemConfiguration;
 
 /**
  * The "New" wizard page allows setting the container for the new file as well
@@ -90,6 +90,7 @@ public class ErlangFileWizardPage extends WizardPage {
                 .getTemplates(
                         ErlangSourceContextTypeModule.ERLANG_SOURCE_CONTEXT_TYPE_MODULE_ID);
         fModifyListener = new ModifyListener() {
+            @Override
             public void modifyText(final ModifyEvent e) {
                 dialogChanged();
             }
@@ -99,6 +100,7 @@ public class ErlangFileWizardPage extends WizardPage {
     /**
      * @see IDialogPage#createControl(Composite)
      */
+    @Override
     public void createControl(final Composite parent) {
 
         final Composite container = new Composite(parent, SWT.NULL);
@@ -162,11 +164,16 @@ public class ErlangFileWizardPage extends WizardPage {
         skeleton = new Combo(filePanel, SWT.BORDER | SWT.DROP_DOWN
                 | SWT.READ_ONLY);
         // skeleton.add("None");
-
+        int i = 0, defaultSkeleton = 0;
         for (final Template element : moduleTemplates) {
-            skeleton.add(element.getName());
+            final String name = element.getName();
+            skeleton.add(name);
+            if (name == "module") {
+                defaultSkeleton = i;
+            }
+            ++i;
         }
-        skeleton.select(0);
+        skeleton.select(defaultSkeleton);
 
         functionGroup = new FunctionGroup(container, this);
 
@@ -196,22 +203,16 @@ public class ErlangFileWizardPage extends WizardPage {
                     container = resource.getParent();
                 }
                 final IProject project = resource.getProject();
-                final IErlProject erlProject = CoreScope.getModel()
+                final IErlProject erlProject = ErlModelManager.getErlangModel()
                         .getErlangProject(project);
-                String txt;
+                String txt = container.getFullPath().toString();
                 final Collection<IPath> sourceDirs = erlProject.getSourceDirs();
                 if (sourceDirs.size() > 0) {
                     final IPath sourceDirWithinContainer = sourceDirWithinContainer(
                             sourceDirs, container);
                     if (sourceDirWithinContainer != null) {
                         txt = sourceDirWithinContainer.toString();
-                    } else {
-                        final IPath path = project.getFullPath().append(
-                                sourceDirs.iterator().next());
-                        txt = path.toString();
                     }
-                } else {
-                    txt = container.getFullPath().toString();
                 }
                 containerText.setText(txt);
 
@@ -223,11 +224,12 @@ public class ErlangFileWizardPage extends WizardPage {
 
     private IPath sourceDirWithinContainer(final Collection<IPath> sourceDirs,
             final IContainer container) {
-        final IPath containerPath = container.getFullPath();
+        final IPath containerPath = container.getProjectRelativePath();
         for (final IPath sourceDir : sourceDirs) {
-            if (containerPath.equals(sourceDir)
-                    || containerPath.isPrefixOf(sourceDir)) {
-                return sourceDir;
+            if (containerPath.equals(sourceDir)) {
+                return container.getFullPath();
+            } else if (containerPath.isPrefixOf(sourceDir)) {
+                return container.findMember(sourceDir).getFullPath();
             }
         }
         return null;
@@ -330,7 +332,7 @@ public class ErlangFileWizardPage extends WizardPage {
             final TemplateContextType contextType) {
         String s = getFileName();
         if (ModuleKind.hasModuleExtension(s)) {
-            s = CommonUtils.withoutExtension(s);
+            s = SystemConfiguration.withoutExtension(s);
         }
         ModuleVariableResolver.getDefault().setModule(s);
 

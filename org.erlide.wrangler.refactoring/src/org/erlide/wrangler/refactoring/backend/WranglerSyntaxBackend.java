@@ -11,9 +11,9 @@
 package org.erlide.wrangler.refactoring.backend;
 
 import org.eclipse.core.resources.IFile;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.IRpcResult;
+import org.erlide.backend.IBackend;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcResult;
 import org.erlide.wrangler.refactoring.backend.SyntaxInfo.Type;
 import org.erlide.wrangler.refactoring.util.GlobalParameters;
 
@@ -31,8 +31,9 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  * @version %I%, %G%
  */
 public class WranglerSyntaxBackend implements IWranglerBackend {
-    protected IRpcCallSite backend;
-    protected static final String MODULE = "refac_util";
+    protected IBackend backend;
+    protected static final String MODULE = "wrangler_ast_server";
+    protected static final String INTERFACE_MODULE = "api_interface";
     protected static final String PARSE_FUNCTION = "parse_annotate_file";
     protected static final String VAR_FUNCTION = "pos_to_var_name";
 
@@ -40,13 +41,13 @@ public class WranglerSyntaxBackend implements IWranglerBackend {
      * @param backend
      *            Backend object
      */
-    public WranglerSyntaxBackend(final IRpcCallSite backend) {
+    public WranglerSyntaxBackend(final IBackend backend) {
         this.backend = backend;
     }
 
     protected OtpErlangTuple parseFile(final IFile f) {
         final String filePath = f.getLocation().toOSString();
-        final IRpcResult res = backend.call_noexception(MODULE, PARSE_FUNCTION,
+        final RpcResult res = backend.call_noexception(MODULE, PARSE_FUNCTION,
                 "sax", filePath, "true", GlobalParameters
                         .getWranglerSelection().getSearchPath());
         return parseParserResult(res.getValue());
@@ -70,8 +71,8 @@ public class WranglerSyntaxBackend implements IWranglerBackend {
         final OtpErlangInt[] position = new OtpErlangInt[2];
         position[0] = new OtpErlangInt(line);
         position[1] = new OtpErlangInt(col);
-        final IRpcResult res = backend.call_noexception(MODULE, VAR_FUNCTION,
-                "xx", syntaxTree, new OtpErlangTuple(position));
+        final RpcResult res = backend.call_noexception(INTERFACE_MODULE,
+                VAR_FUNCTION, "xx", syntaxTree, new OtpErlangTuple(position));
         return parseVarInfo(res.getValue());
     }
 

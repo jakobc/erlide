@@ -22,11 +22,11 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.Position;
 import org.eclipse.ui.texteditor.IMarkerUpdater;
 import org.eclipse.ui.texteditor.MarkerUtilities;
-import org.erlide.core.backend.ErlDebugConstants;
-import org.erlide.core.debug.ErlangDebugTarget;
-import org.erlide.core.debug.ErlangLineBreakpoint;
-import org.erlide.core.debug.IErlangBreakpoint;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.launch.debug.ErlDebugConstants;
+import org.erlide.launch.debug.ErlangLineBreakpoint;
+import org.erlide.launch.debug.IErlangBreakpoint;
+import org.erlide.launch.debug.model.ErlangDebugTarget;
 
 /**
  * This class provides a mechanism to correct the placement of a breakpoint
@@ -66,14 +66,17 @@ public class BreakpointMarkerUpdater implements IMarkerUpdater {
     public BreakpointMarkerUpdater() {
     }
 
+    @Override
     public String[] getAttribute() {
         return new String[] { IMarker.LINE_NUMBER };
     }
 
+    @Override
     public String getMarkerType() {
         return "org.eclipse.debug.core.breakpointMarker"; //$NON-NLS-1$
     }
 
+    @Override
     public boolean updateMarker(final IMarker marker, final IDocument document,
             final Position position) {
         if (position.isDeleted()) {

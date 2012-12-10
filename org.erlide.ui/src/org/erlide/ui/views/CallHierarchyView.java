@@ -34,11 +34,13 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.ViewPart;
-import org.erlide.core.backend.BackendCore;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.FunctionRef;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.root.ErlModelException;
-import org.erlide.core.rpc.IRpcCallSite;
+import org.erlide.core.model.root.ErlModelManager;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlangXref;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.editors.util.EditorUtility;
@@ -69,6 +71,7 @@ public class CallHierarchyView extends ViewPart {
 
         private Object input;
 
+        @Override
         public void inputChanged(final Viewer viewer, final Object oldInput,
                 final Object newInput) {
             input = newInput;
@@ -81,21 +84,23 @@ public class CallHierarchyView extends ViewPart {
             }
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public Object[] getElements(final Object inputElement) {
             return getChildren(inputElement);
         }
 
+        @Override
         public Object[] getChildren(final Object parentElement) {
             if (parentElement instanceof String) {
                 return new Object[0];
             }
             final IErlFunction parent = (IErlFunction) parentElement;
             final FunctionRef ref = new FunctionRef(parent);
-            final IRpcCallSite b = BackendCore.getBackendManager()
-                    .getIdeBackend();
+            final IBackend b = BackendCore.getBackendManager().getIdeBackend();
             final FunctionRef[] children = ErlangXref.functionUse(b, ref);
             if (children == null) {
                 return new Object[0];
@@ -103,12 +108,14 @@ public class CallHierarchyView extends ViewPart {
             if (parentElement == input && children.length == 0) {
                 // TODO ErlangXref should cache _all_ projects added to it
                 return new Object[] { "<no callers from project "
-                        + parent.getModule().getProject().getName() + ">" };
+                        + ModelUtils.getProject(ModelUtils.getModule(parent))
+                                .getName() + ">" };
             }
             final List<IErlFunction> result = new ArrayList<IErlFunction>();
             for (final FunctionRef r : children) {
                 try {
-                    final IErlFunction fun = parent.getModel().findFunction(r);
+                    final IErlFunction fun = ErlModelManager.getErlangModel()
+                            .findFunction(r);
                     if (fun != null) {
                         result.add(fun);
                     }
@@ -119,17 +126,19 @@ public class CallHierarchyView extends ViewPart {
             return result.toArray(new IErlFunction[result.size()]);
         }
 
+        @Override
         public Object getParent(final Object element) {
             return null;
         }
 
+        @Override
         public boolean hasChildren(final Object element) {
             return getChildren(element).length > 0;
         }
     }
 
     public CallHierarchyView() {
-        final IRpcCallSite b = BackendCore.getBackendManager().getIdeBackend();
+        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
         ErlangXref.start(b);
     }
 
@@ -153,8 +162,8 @@ public class CallHierarchyView extends ViewPart {
                     tltmRefresh.addSelectionListener(new SelectionAdapter() {
                         @Override
                         public void widgetSelected(final SelectionEvent e) {
-                            final IRpcCallSite b = BackendCore
-                                    .getBackendManager().getIdeBackend();
+                            final IBackend b = BackendCore.getBackendManager()
+                                    .getIdeBackend();
                             ErlangXref.update(b);
                             treeViewer.refresh();
                         }
@@ -191,7 +200,7 @@ public class CallHierarchyView extends ViewPart {
 
     @Override
     public void dispose() {
-        final IRpcCallSite b = BackendCore.getBackendManager().getIdeBackend();
+        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
         ErlangXref.stop(b);
         super.dispose();
     }

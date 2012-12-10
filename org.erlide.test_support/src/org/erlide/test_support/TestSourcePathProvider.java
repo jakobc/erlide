@@ -16,9 +16,9 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.erlide.core.ErlangCore;
-import org.erlide.core.common.SourcePathProvider;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.SourcePathProvider;
+import org.erlide.utils.SystemConfiguration;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -42,18 +42,22 @@ public class TestSourcePathProvider implements SourcePathProvider,
                 IResourceChangeEvent.POST_CHANGE);
     }
 
+    @Override
     public Collection<IPath> getSourcePathsForModel(final IProject project) {
         return getProjectPaths(project);
     }
 
+    @Override
     public Collection<IPath> getSourcePathsForBuild(final IProject project) {
         return getProjectPaths(project);
     }
 
+    @Override
     public Collection<IPath> getSourcePathsForExecution(final IProject project) {
         return getProjectPaths(project);
     }
 
+    @Override
     public Collection<IPath> getIncludePaths(final IProject project) {
         return getProjectPaths(project);
     }
@@ -61,6 +65,7 @@ public class TestSourcePathProvider implements SourcePathProvider,
     private void computeSourcePaths() throws CoreException {
         ResourcesPlugin.getWorkspace().getRoot().accept(new IResourceVisitor() {
 
+            @Override
             public boolean visit(final IResource resource) throws CoreException {
                 final IProject project = resource.getProject();
                 if (project != null && isTestDir(resource)) {
@@ -81,6 +86,7 @@ public class TestSourcePathProvider implements SourcePathProvider,
         return ps;
     }
 
+    @Override
     public void resourceChanged(final IResourceChangeEvent event) {
         // TODO keep 'paths' updated
         final IResourceDelta delta = event.getDelta();
@@ -91,6 +97,7 @@ public class TestSourcePathProvider implements SourcePathProvider,
         try {
             final long time = System.currentTimeMillis();
             delta.accept(new IResourceDeltaVisitor() {
+                @Override
                 public boolean visit(final IResourceDelta theDelta)
                         throws CoreException {
                     final IResource resource = theDelta.getResource();
@@ -114,7 +121,7 @@ public class TestSourcePathProvider implements SourcePathProvider,
                     return true;
                 }
             });
-            if (ErlangCore.hasFeatureEnabled("erlide.debug.tspp")) {
+            if (SystemConfiguration.hasFeatureEnabled("erlide.debug.tspp")) {
                 System.out.println("TSPP took "
                         + (System.currentTimeMillis() - time));
             }

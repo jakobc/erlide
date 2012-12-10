@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Wrangler Refactor plug-in
 Bundle-SymbolicName: org.erlide.wrangler.refactoring;singleton:=true
-Bundle-Version: 0.10.14.qualifier
+Bundle-Version: 0.10.23.qualifier
 Bundle-ClassPath: wrangler.jar
 Bundle-Activator: org.erlide.wrangler.refactoring.Activator
 Require-Bundle: org.eclipse.core.runtime;bundle-version="3.3.0",
@@ -44,9 +44,18 @@ Export-Package:
  org.erlide.wrangler.refactoring.ui.validator,
  org.erlide.wrangler.refactoring.ui.wizard,
  org.erlide.wrangler.refactoring.ui.wizardpages;x-internal:=true,
- org.erlide.wrangler.refactoring.util,
- org.incava.util.diff;x-internal:=true
+ org.erlide.wrangler.refactoring.util
 Bundle-Localization: plugin
 Bundle-Vendor: UKC
-Bundle-RequiredExecutionEnvironment: J2SE-1.5
-Import-Package: org.erlide.wrangler.refactoring.util
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.erlide.wrangler.refactoring.util,
+ com.google.common.annotations,
+ com.google.common.base,
+ com.google.common.base.internal,
+ com.google.common.cache,
+ com.google.common.collect,
+ com.google.common.eventbus,
+ com.google.common.io,
+ com.google.common.net,
+ com.google.common.primitives,
+ com.google.common.util.concurrent

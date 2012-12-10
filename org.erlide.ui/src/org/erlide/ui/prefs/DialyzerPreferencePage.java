@@ -41,6 +41,7 @@ import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -48,31 +49,29 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.eclipse.ui.dialogs.PropertyPage;
-import org.erlide.core.CoreScope;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangCore;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.util.CoreUtil;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.core.services.builder.DialyzerPreferences;
 import org.erlide.core.services.builder.DialyzerUtils;
 import org.erlide.core.services.builder.DialyzerUtils.DialyzerErrorException;
 import org.erlide.core.services.builder.ErlideDialyze;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcException;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -84,13 +83,16 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
     public class ContentProvider implements IStructuredContentProvider {
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public void inputChanged(final Viewer viewer, final Object oldInput,
                 final Object newInput) {
         }
 
+        @Override
         public Object[] getElements(final Object inputElement) {
             return shownPLTFiles.toArray();
         }
@@ -99,24 +101,30 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
     private static class LabelProvider implements ILabelProvider {
 
+        @Override
         public void addListener(final ILabelProviderListener listener) {
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public boolean isLabelProperty(final Object element,
                 final String property) {
             return true;
         }
 
+        @Override
         public void removeListener(final ILabelProviderListener listener) {
         }
 
+        @Override
         public Image getImage(final Object element) {
             return null;
         }
 
+        @Override
         public String getText(final Object element) {
             if (element instanceof String) {
                 final String s = (String) element;
@@ -144,6 +152,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
     private Button fRemoveButton;
     private Button fUpdatePLTButton;
     private Button noCheckPLTCheckbox;
+    private Button removeWarningsOnCleanCheckbox;
     private final List<String> shownPLTFiles;
 
     public DialyzerPreferencePage() {
@@ -163,12 +172,13 @@ public class DialyzerPreferencePage extends PropertyPage implements
         final Composite group = prefsComposite;// new Composite(prefsComposite,
                                                // SWT.NONE);
         group.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
-        group.setLayout(new GridLayout(1, false));
+        // group.setLayout(new GridLayout(1, false));
         createDialyzeCheckbox(group);
         createPltSelection(group);
         createPltCheck(group);
         createFromSelection(group);
         createPltNoCheckbox(group);
+        createRemoveWarningsOnCleanCheckbox(group);
         enableButtons();
 
         if (isProjectPreferencePage()) {
@@ -179,6 +189,14 @@ public class DialyzerPreferencePage extends PropertyPage implements
         performDefaults();
 
         return prefsComposite;
+    }
+
+    private void createRemoveWarningsOnCleanCheckbox(final Composite group) {
+        final Composite comp = new Composite(group, SWT.NONE);
+        comp.setLayout(new GridLayout(2, false));
+        removeWarningsOnCleanCheckbox = new Button(comp, SWT.CHECK);
+        removeWarningsOnCleanCheckbox
+                .setText("Remove dialyzer warning on clean project");
     }
 
     private void createPltNoCheckbox(final Composite group) {
@@ -251,7 +269,6 @@ public class DialyzerPreferencePage extends PropertyPage implements
                 enableButtons();
             }
         });
-        // gd = new GridData(SWT.DEFAULT, SWT.DEFAULT, false, false, 3, 1);
         gd = new GridData(GridData.VERTICAL_ALIGN_BEGINNING
                 | GridData.FILL_HORIZONTAL | GridData.FILL_VERTICAL);
         gd.horizontalSpan = 2;
@@ -263,34 +280,23 @@ public class DialyzerPreferencePage extends PropertyPage implements
         layout.marginHeight = 0;
         layout.marginWidth = 0;
         buttons.setLayout(layout);
-        gd = new GridData();
-        gd.horizontalAlignment = GridData.HORIZONTAL_ALIGN_FILL;
-        fAddButton = new Button(buttons, SWT.PUSH);
-        fAddButton.setText("Add...");
-        fAddButton.setLayoutData(gd);
-        fAddButton.addSelectionListener(new SelectionAdapter() {
+        fAddButton = createButton(buttons, "Add...", new SelectionAdapter() {
             @Override
             public void widgetSelected(final SelectionEvent e) {
                 addPLTFile();
             }
         });
-
-        fEditButton = new Button(buttons, SWT.PUSH);
-        fEditButton.setText("Change...");
-        fEditButton.setLayoutData(gd);
-        fEditButton.addListener(SWT.Selection, new Listener() {
-            public void handleEvent(final Event evt) {
-                changeSelectedPLTFiles();
-            }
-        });
-
-        fRemoveButton = new Button(buttons, SWT.PUSH);
-        fRemoveButton.setText("Remove");
-        fRemoveButton.setLayoutData(gd);
-        fRemoveButton.addListener(SWT.Selection, new Listener() {
-            public void handleEvent(final Event evt) {
+        fEditButton = createButton(buttons, "Change...",
+                new SelectionAdapter() {
+                    @Override
+                    public void widgetSelected(final SelectionEvent e) {
+                        changeSelectedPLTFiles();
+                    }
+                });
+        fRemoveButton = createButton(buttons, "Remove", new SelectionAdapter() {
+            @Override
+            public void widgetSelected(final SelectionEvent e) {
                 removeSelectedPLTFiles();
-
             }
         });
 
@@ -299,6 +305,18 @@ public class DialyzerPreferencePage extends PropertyPage implements
             fEditButton.setVisible(false);
             fRemoveButton.setVisible(false);
         }
+    }
+
+    private Button createButton(final Composite buttons, final String text,
+            final SelectionListener selectionListener) {
+        GridData gd;
+        final Button button = new Button(buttons, SWT.PUSH);
+        button.setText(text);
+        gd = new GridData();
+        gd.horizontalAlignment = GridData.HORIZONTAL_ALIGN_FILL;
+        button.setLayoutData(gd);
+        button.addSelectionListener(selectionListener);
+        return button;
     }
 
     protected boolean hasProjectSpecificOptions(final IProject project) {
@@ -404,7 +422,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
         } else {
             final List<IProject> erlProjects = new ArrayList<IProject>();
             final Set<IProject> projectsWithSpecifics = new HashSet<IProject>();
-            final IErlModel model = CoreScope.getModel();
+            final IErlModel model = ErlModelManager.getErlangModel();
             try {
                 for (final IErlProject ep : model.getErlangProjects()) {
                     final IProject p = ep.getWorkspaceProject();
@@ -481,6 +499,8 @@ public class DialyzerPreferencePage extends PropertyPage implements
                 prefs.setFromSource(fromCombo.getSelectionIndex() == 0);
                 prefs.setDialyzeOnCompile(dialyzeCheckbox.getSelection());
                 prefs.setNoCheckPLT(noCheckPLTCheckbox.getSelection());
+                prefs.setRemoveWarningsOnClean(removeWarningsOnCleanCheckbox
+                        .getSelection());
                 prefs.store();
             }
         } catch (final BackingStoreException e) {
@@ -510,6 +530,10 @@ public class DialyzerPreferencePage extends PropertyPage implements
         if (noCheckPLTCheckbox != null) {
             noCheckPLTCheckbox.setSelection(prefs.getNoCheckPLT());
         }
+        if (removeWarningsOnCleanCheckbox != null) {
+            removeWarningsOnCleanCheckbox.setSelection(prefs
+                    .getRemoveWarningsOnClean());
+        }
         super.performDefaults();
     }
 
@@ -518,8 +542,10 @@ public class DialyzerPreferencePage extends PropertyPage implements
             prefs = DialyzerPreferences.get(fProject);
         } catch (final CoreException e) {
             // FIXME apply to status line or setErrorMessage
+            ErlLogger.error(e);
         } catch (final RpcException e) {
             // FIXME apply to status line or setErrorMessage
+            ErlLogger.error(e);
         }
     }
 
@@ -529,6 +555,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
         super.setElement(element);
     }
 
+    @Override
     public void init(final IWorkbench workbench) {
     }
 
@@ -634,7 +661,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
                 final String alternatePltFileDirectory = DialyzerPreferences
                         .getAlternatePLTFileDirectoryFromPreferences();
                 checkIfPltFilesShouldBeCopied(alternatePltFileDirectory);
-                final IRpcCallSite backend = CoreUtil
+                final IBackend backend = BackendCore
                         .getBuildOrIdeBackend(fProject);
                 for (final String pltPath : selectedPLTPaths) {
                     checkPlt(pltPath, alternatePltFileDirectory, monitor,
@@ -675,6 +702,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
             }
             if (changed) {
                 getControl().getDisplay().asyncExec(new Runnable() {
+                    @Override
                     public void run() {
                         if (!fPLTTableViewer.getControl().isDisposed()) {
                             fPLTTableViewer.refresh();
@@ -700,7 +728,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
 
         private void checkPlt(final String pltPath,
                 final String alternatePltFileDirectory,
-                final IProgressMonitor monitor, final IRpcCallSite backend)
+                final IProgressMonitor monitor, final IBackend backend)
                 throws DialyzerErrorException, BackingStoreException,
                 ErlModelException, RpcException {
             try {
@@ -708,7 +736,7 @@ public class DialyzerPreferencePage extends PropertyPage implements
                 List<String> ebinDirs = null;
                 if (alternatePltFileDirectory != null) {
                     ebinDirs = Lists.newArrayList();
-                    for (final IErlElement i : CoreScope.getModel()
+                    for (final IErlElement i : ErlModelManager.getErlangModel()
                             .getChildrenOfKind(Kind.PROJECT)) {
                         final IErlProject project = (IErlProject) i;
                         final String ebinDir = project.getWorkspaceProject()

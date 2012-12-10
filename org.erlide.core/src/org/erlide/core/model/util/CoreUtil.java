@@ -13,6 +13,7 @@ package org.erlide.core.model.util;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,14 +24,9 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.debug.core.ILaunchConfiguration;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.BackendException;
-import org.erlide.core.backend.ErlLaunchAttributes;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.backend.IBackendManager;
-import org.erlide.core.common.CharOperation;
-import org.erlide.core.common.Util;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.launch.ErlLaunchAttributes;
+import org.erlide.utils.Util;
 
 public final class CoreUtil {
     /**
@@ -65,9 +61,9 @@ public final class CoreUtil {
     public static char[] getResourceContentsAsCharArray(final IFile file)
             throws IOException, CoreException {
         // Get encoding from file
-        String encoding = null;
+        Charset encoding = null;
         try {
-            encoding = file.getCharset();
+            encoding = Charset.forName(file.getCharset());
         } catch (final CoreException ce) {
             // do not use any encoding
         }
@@ -75,7 +71,7 @@ public final class CoreUtil {
     }
 
     public static char[] getResourceContentsAsCharArray(final IFile file,
-            final String encoding) throws IOException, CoreException {
+            final Charset encoding) throws IOException, CoreException {
         // Get resource contents
         InputStream stream = null;
         stream = new BufferedInputStream(file.getContents(true));
@@ -146,76 +142,7 @@ public final class CoreUtil {
         return -1;
     }
 
-    public static final boolean isExcluded(final IPath resourcePath,
-            final char[][] exclusionPatterns) {
-        return isExcluded(resourcePath, null, exclusionPatterns, false);
-    }
-
-    /**
-     * Returns whether the given resource path matches one of the
-     * inclusion/exclusion patterns. NOTE: should not be asked directly using
-     * pkg root paths
-     * 
-     * @see IClasspathEntry#getInclusionPatterns
-     * @see IClasspathEntry#getExclusionPatterns
-     */
-    private static final boolean isExcluded(final IPath resourcePath,
-            final char[][] inclusionPatterns, final char[][] exclusionPatterns,
-            final boolean isFolderPath) {
-        if (inclusionPatterns == null && exclusionPatterns == null) {
-            return false;
-        }
-        char[] path = resourcePath.toString().toCharArray();
-
-        inclusionCheck: if (inclusionPatterns != null) {
-            for (final char[] pattern : inclusionPatterns) {
-                char[] folderPattern = pattern;
-                if (isFolderPath) {
-                    final int lastSlash = CharOperation.lastIndexOf('/',
-                            pattern);
-                    if (lastSlash != -1 && lastSlash != pattern.length - 1) { // trailing
-                        // slash
-                        // ->
-                        // adds
-                        // '**'
-                        // for
-                        // free
-                        // (see
-                        // http://ant.apache.org/manual/dirtasks.html)
-                        final int star = CharOperation.indexOf('*', pattern,
-                                lastSlash);
-                        if (star == -1 || star >= pattern.length - 1
-                                || pattern[star + 1] != '*') {
-                            folderPattern = CharOperation.subarray(pattern, 0,
-                                    lastSlash);
-                        }
-                    }
-                }
-                if (CharOperation.pathMatch(folderPattern, path, true, '/')) {
-                    break inclusionCheck;
-                }
-            }
-            return true; // never included
-        }
-        if (isFolderPath) {
-            path = CharOperation.concat(path, new char[] { '*' }, '/');
-        }
-
-        return false;
-    }
-
     private CoreUtil() {
-    }
-
-    public static IBackend getBuildOrIdeBackend(final IProject project) {
-        final IBackendManager backendManager = BackendCore.getBackendManager();
-        if (project != null) {
-            try {
-                return backendManager.getBuildBackend(project);
-            } catch (final BackendException e) {
-            }
-        }
-        return backendManager.getIdeBackend();
     }
 
     public static IProject[] getErlangLaunchConfigurationProjects(

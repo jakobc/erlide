@@ -8,8 +8,8 @@ import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.Region;
 import org.eclipse.jface.text.hyperlink.AbstractHyperlinkDetector;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
+import org.erlide.core.model.erlang.ErlToken;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlToken;
 import org.erlide.ui.actions.OpenAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.erl.IErlangEditorActionDefinitionIds;
@@ -19,6 +19,7 @@ public class ErlangHyperlinkDetector extends AbstractHyperlinkDetector {
     public ErlangHyperlinkDetector() {
     }
 
+    @Override
     public IHyperlink[] detectHyperlinks(final ITextViewer textViewer,
             final IRegion region, final boolean canShowMultipleHyperlinks) {
         if (region == null) {
@@ -33,6 +34,9 @@ public class ErlangHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private IHyperlink[] detectHyperlinks(final IDocument doc, final int offset) {
         final ErlangEditor editor = (ErlangEditor) getAdapter(ErlangEditor.class);
+        if (editor == null) {
+            return null;
+        }
         final IErlModule module = editor.getModule();
         if (module == null) {
             return null;
@@ -89,14 +93,17 @@ public class ErlangHyperlinkDetector extends AbstractHyperlinkDetector {
             region = partion;
         }
 
+        @Override
         public String getTypeLabel() {
             return null;
         }
 
+        @Override
         public String getHyperlinkText() {
             return null;
         }
 
+        @Override
         public void open() {
             final OpenAction action = (OpenAction) editor
                     .getAction(IErlangEditorActionDefinitionIds.OPEN);
@@ -105,6 +112,7 @@ public class ErlangHyperlinkDetector extends AbstractHyperlinkDetector {
             }
         }
 
+        @Override
         public IRegion getHyperlinkRegion() {
             return region;
         }

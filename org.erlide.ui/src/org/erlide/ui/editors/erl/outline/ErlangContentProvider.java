@@ -12,9 +12,9 @@ package org.erlide.ui.editors.erl.outline;
 
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IParent;
 import org.erlide.jinterface.ErlLogger;
@@ -25,6 +25,7 @@ public class ErlangContentProvider implements ITreeContentProvider {
 
     private ElementChangedListener fListener;
 
+    @Override
     public Object[] getChildren(final Object parent) {
         if (parent instanceof IParent) {
             final IParent p = (IParent) parent;
@@ -39,10 +40,12 @@ public class ErlangContentProvider implements ITreeContentProvider {
         return NO_CHILDREN;
     }
 
+    @Override
     public Object[] getElements(final Object parent) {
         return getChildren(parent);
     }
 
+    @Override
     public Object getParent(final Object child) {
         if (child instanceof IErlElement) {
             final IErlElement e = (IErlElement) child;
@@ -51,6 +54,7 @@ public class ErlangContentProvider implements ITreeContentProvider {
         return null;
     }
 
+    @Override
     public boolean hasChildren(final Object parent) {
         if (parent instanceof IParent) {
             final IParent p = (IParent) parent;
@@ -63,9 +67,11 @@ public class ErlangContentProvider implements ITreeContentProvider {
         return false;
     }
 
+    @Override
     public void dispose() {
         if (fListener != null) {
-            CoreScope.getModel().removeElementChangedListener(fListener);
+            ErlModelManager.getErlangModel().removeElementChangedListener(
+                    fListener);
             fListener = null;
         }
     }
@@ -73,6 +79,7 @@ public class ErlangContentProvider implements ITreeContentProvider {
     /*
      * @see IContentProvider#inputChanged(Viewer, Object, Object)
      */
+    @Override
     public void inputChanged(final Viewer viewer, final Object oldInput,
             final Object newInput) {
         final boolean isModule = newInput instanceof IErlModule;
@@ -82,9 +89,11 @@ public class ErlangContentProvider implements ITreeContentProvider {
             // TODO fixme
             fListener = new ElementChangedListener(null);
 
-            CoreScope.getModel().addElementChangedListener(fListener);
+            ErlModelManager.getErlangModel().addElementChangedListener(
+                    fListener);
         } else if (!isModule && fListener != null) {
-            CoreScope.getModel().removeElementChangedListener(fListener);
+            ErlModelManager.getErlangModel().removeElementChangedListener(
+                    fListener);
             fListener = null;
         }
     }

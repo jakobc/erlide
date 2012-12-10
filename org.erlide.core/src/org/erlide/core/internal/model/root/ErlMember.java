@@ -1,11 +1,13 @@
 package org.erlide.core.internal.model.root;
 
 import org.eclipse.core.runtime.Path;
+import org.erlide.core.internal.model.erlang.SourceRange;
+import org.erlide.core.internal.model.erlang.SourceRefElement;
 import org.erlide.core.model.erlang.IErlMember;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.core.model.erlang.ISourceRange;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.root.ISourceRange;
+import org.erlide.core.model.util.ModelUtils;
 
 /**
  * 
@@ -41,11 +43,13 @@ public abstract class ErlMember extends SourceRefElement implements IErlMember {
         super(parent, name);
     }
 
+    @Override
     public void setNameRange(final int offset, final int length) {
         fNameRangeOffset = offset;
         fNameRangeLength = length;
     }
 
+    @Override
     public ISourceRange getNameRange() {
         if (fNameRangeOffset == 0 && fNameRangeLength == 0) {
             return getSourceRange();
@@ -53,8 +57,9 @@ public abstract class ErlMember extends SourceRefElement implements IErlMember {
         return new SourceRange(fNameRangeOffset, fNameRangeLength);
     }
 
+    @Override
     public String getModuleName() {
-        final IErlModule module = getModule();
+        final IErlModule module = ModelUtils.getModule(this);
         if (module != null) {
             return module.getName();
         }
@@ -64,13 +69,4 @@ public abstract class ErlMember extends SourceRefElement implements IErlMember {
         }
         return null;
     }
-
-    public IErlModule getModule() {
-        final IErlElement ancestor = getAncestorOfKind(Kind.MODULE);
-        if (ancestor instanceof IErlModule) {
-            return (IErlModule) ancestor;
-        }
-        return null;
-    }
-
 }

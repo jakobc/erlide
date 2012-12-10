@@ -17,9 +17,9 @@ import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.jface.text.rules.IPartitionTokenScanner;
 import org.eclipse.swt.widgets.Display;
-import org.erlide.core.backend.console.BackendShellListener;
-import org.erlide.core.backend.console.IBackendShell;
-import org.erlide.core.backend.console.IoRequest.IoRequestKind;
+import org.erlide.backend.console.BackendShellListener;
+import org.erlide.backend.console.IBackendShell;
+import org.erlide.backend.console.IoRequest.IoRequestKind;
 
 public final class ErlConsoleDocument extends Document implements
         BackendShellListener {
@@ -55,6 +55,7 @@ public final class ErlConsoleDocument extends Document implements
         return new IoRequestScanner(shell);
     }
 
+    @Override
     public void changed(final IBackendShell aShell) {
         if (aShell != shell) {
             return;
@@ -62,6 +63,7 @@ public final class ErlConsoleDocument extends Document implements
         final String text = shell.getText();
         Display.getDefault().asyncExec(new Runnable() {
 
+            @Override
             public void run() {
                 try {
                     replace(0, getLength(), text);

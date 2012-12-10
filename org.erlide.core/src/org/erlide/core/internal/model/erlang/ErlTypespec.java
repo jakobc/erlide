@@ -11,6 +11,7 @@ package org.erlide.core.internal.model.erlang;
 
 import org.erlide.core.internal.model.root.ErlMember;
 import org.erlide.core.model.erlang.IErlTypespec;
+import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IParent;
 
 /**
@@ -20,30 +21,45 @@ import org.erlide.core.model.root.IParent;
  */
 public class ErlTypespec extends ErlMember implements IErlTypespec {
 
-    private final String fExtra;
+    private final String fSource;
+    private final int arity;
 
     /**
      * @param parent
      * @param name
      */
     public ErlTypespec(final IParent parent, final String name,
-            final String extra) {
+            final int arity, final String source) {
         super(parent, name);
-        fExtra = extra;
+        this.arity = arity;
+        fSource = source;
     }
 
     /**
      * @see org.erlide.core.model.root.IErlElement#getKind()
      */
+    @Override
     public Kind getKind() {
         return Kind.TYPESPEC;
     }
 
     @Override
     public String toString() {
-        if (fExtra != null) {
-            return fExtra;
+        if (fSource != null) {
+            return fSource;
         }
-        return getName();
+        return getName() + "/" + getArity();
+    }
+
+    public int getArity() {
+        return arity;
+    }
+
+    @Override
+    public String getSource() throws ErlModelException {
+        if (fSource != null) {
+            return fSource;
+        }
+        return super.getSource();
     }
 }

@@ -21,6 +21,7 @@ import org.erlide.core.model.root.ErlModelStatusConstants;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IOpenable;
 import org.erlide.core.model.root.IParent;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.jinterface.ErlLogger;
 
 /**
@@ -125,9 +126,10 @@ public abstract class Openable extends ErlElement implements IOpenable {
         return true;
     }
 
+    @Override
     public synchronized void open(final IProgressMonitor monitor)
             throws ErlModelException {
-        if (ErlModel.verbose) {
+        if (ModelConfig.verbose) {
             ErlLogger.debug("open " + isStructureKnown() + " > " + this);
         }
         // open the parent if necessary
@@ -159,6 +161,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
             aname = name;
         }
 
+        @Override
         public boolean visit(final IResource resource) {
             if (resource.getType() == IResource.FILE
                     && resource.getName().equals(aname)) {
@@ -181,6 +184,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
     /**
      * @see IOpenable
      */
+    @Override
     public boolean hasUnsavedChanges() throws ErlModelException {
 
         if (isReadOnly() || !isOpen()) {
@@ -215,6 +219,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
      * 
      * @see IOpenable
      */
+    @Override
     public boolean isConsistent() {
         return true;
     }
@@ -223,6 +228,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
      * 
      * @see IOpenable
      */
+    @Override
     public boolean isOpen() {
         return true;
     }
@@ -238,6 +244,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
     /**
      * @see IOpenable
      */
+    @Override
     public void makeConsistent(final IProgressMonitor monitor)
             throws ErlModelException {
         ErlLogger.debug("make consistent? ");
@@ -292,13 +299,14 @@ public abstract class Openable extends ErlElement implements IOpenable {
         if (workspace == null) {
             return false;
         }
-        return ErlModel.getTarget(workspace.getRoot(), getResource()
+        return ModelUtils.getTarget(workspace.getRoot(), getResource()
                 .getFullPath().makeRelative(), true) != null;
     }
 
     /**
      * @see IOpenable
      */
+    @Override
     public void save(final IProgressMonitor pm, final boolean force)
             throws ErlModelException {
         if (isReadOnly()) {

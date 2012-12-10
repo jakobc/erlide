@@ -13,13 +13,14 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.ComboFieldEditor;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbench;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfoManager;
+import org.erlide.backend.BackendCore;
 import org.erlide.core.internal.model.root.ProjectPreferencesConstants;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.jinterface.ErlLogger;
 
@@ -81,10 +82,16 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
         // tst.setEnabled(false, fieldEditorParent);
         // addField(tst);
 
-        final String[][] runtimes = RuntimeInfoManager.getAllRuntimesVersions();
+        final String[][] runtimes = BackendCore.getRuntimeInfoManager()
+                .getAllRuntimesVersions();
         addField(new ComboFieldEditor(
                 ProjectPreferencesConstants.RUNTIME_VERSION,
                 "Runtime version:", runtimes, fieldEditorParent));
+
+        addField(new BooleanFieldEditor(
+                ProjectPreferencesConstants.NUKE_OUTPUT_ON_CLEAN,
+                "When cleaning, delete the whole output directories (is faster)",
+                fieldEditorParent));
     }
 
     @Override
@@ -92,6 +99,7 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
         return "org.erlide.core";
     }
 
+    @Override
     public void init(final IWorkbench workbench) {
     }
 
@@ -99,8 +107,8 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
     public boolean performOk() {
         final IProject project = (IProject) getElement().getAdapter(
                 IProject.class);
-        final IErlProject erlProject = CoreScope.getModel().getErlangProject(
-                project);
+        final IErlProject erlProject = ErlModelManager.getErlangModel()
+                .getErlangProject(project);
         erlProject.clearCaches();
         return super.performOk();
     }

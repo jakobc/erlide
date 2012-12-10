@@ -14,8 +14,12 @@ package org.erlide.ui.internal;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -38,24 +42,29 @@ import org.eclipse.jface.text.templates.persistence.TemplateStore;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
+import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.templates.ContributionContextTypeRegistry;
 import org.eclipse.ui.editors.text.templates.ContributionTemplateStore;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
+import org.eclipse.wb.swt.SWTResourceManager;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.BackendHelper;
+import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangStatus;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.common.CommonUtils;
-import org.erlide.core.internal.backend.BackendHelper;
-import org.erlide.core.rpc.IRpcCallSite;
 import org.erlide.debug.ui.model.ErlangDebuggerBackendListener;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.ErlideImage;
 import org.erlide.ui.ErlideUIConstants;
 import org.erlide.ui.console.ErlConsoleManager;
 import org.erlide.ui.console.ErlangConsolePage;
+import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.ui.editors.erl.actions.ClearCacheAction;
 import org.erlide.ui.editors.erl.completion.ErlangContextType;
 import org.erlide.ui.internal.folding.ErlangFoldingStructureProviderRegistry;
 import org.erlide.ui.templates.ErlangSourceContextTypeModule;
@@ -65,9 +74,10 @@ import org.erlide.ui.util.BackendManagerPopup;
 import org.erlide.ui.util.IContextMenuConstants;
 import org.erlide.ui.util.ImageDescriptorRegistry;
 import org.erlide.ui.util.ProblemMarkerManager;
+import org.erlide.utils.SystemConfiguration;
 import org.osgi.framework.BundleContext;
 
-import com.swtdesigner.SWTResourceManager;
+import com.google.common.collect.Lists;
 
 /**
  * The main plugin class to be used in the desktop.
@@ -85,7 +95,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
     /**
      * The shared instance.
      */
-    private static ErlideUIPlugin plugin;
+    private static volatile ErlideUIPlugin plugin;
 
     /**
      * Resource bundle.
@@ -138,14 +148,14 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
         ErlLogger.debug("Starting UI " + Thread.currentThread());
         super.start(context);
 
-        if (CommonUtils.isDeveloper()) {
+        if (SystemConfiguration.getInstance().isDeveloper()) {
             BackendManagerPopup.init();
         }
 
         ErlLogger.debug("Started UI");
 
         erlConMan = new ErlConsoleManager();
-        if (CommonUtils.isDeveloper()) {
+        if (SystemConfiguration.getInstance().isDeveloper()) {
             try {
                 final IBackend ideBackend = BackendCore.getBackendManager()
                         .getIdeBackend();
@@ -161,6 +171,67 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
         erlangDebuggerBackendListener = new ErlangDebuggerBackendListener();
         BackendCore.getBackendManager().addBackendListener(
                 erlangDebuggerBackendListener);
+
+        startPeriodicCacheCleaner();
+    }
+
+    private void startPeriodicCacheCleaner() {
+        final Job job = new Job("erlide periodic cache cleaner") {
+
+            @Override
+            protected IStatus run(final IProgressMonitor monitor) {
+                ErlLogger.info("*** Automatically cleaning caches ***");
+                try {
+                    try {
+                        final List<IEditorReference> editorRefs = getWorkbenchEditorReferences();
+                        for (final IEditorReference editorRef : editorRefs) {
+                            final IEditorPart editor = editorRef
+                                    .getEditor(false);
+                            if (editor instanceof ErlangEditor) {
+                                final ErlangEditor erlangEditor = (ErlangEditor) editor;
+                                ClearCacheAction
+                                        .resetCacheForEditor(erlangEditor);
+                            }
+                        }
+                    } catch (final Exception e) {
+                        // ignore
+                    }
+                } finally {
+                    schedule(TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS));
+                }
+                return Status.OK_STATUS;
+            }
+
+            public List<IEditorReference> getWorkbenchEditorReferences() {
+                final IWorkbench workbench = PlatformUI.getWorkbench();
+                final IWorkbenchPage[] pages = workbench
+                        .getActiveWorkbenchWindow().getPages();
+                final List<IEditorReference> editorRefs = Lists.newArrayList();
+                for (final IWorkbenchPage page : pages) {
+                    for (final IEditorReference ref : page
+                            .getEditorReferences()) {
+                        editorRefs.add(ref);
+                    }
+                }
+                return editorRefs;
+            }
+
+        };
+        job.setPriority(Job.SHORT);
+        job.setSystem(true);
+        job.schedule(getTimeToMidnight());
+    }
+
+    private long getTimeToMidnight() {
+        final Calendar date = new GregorianCalendar();
+        date.set(Calendar.HOUR_OF_DAY, 0);
+        date.set(Calendar.MINUTE, 0);
+        date.set(Calendar.SECOND, 0);
+        date.set(Calendar.MILLISECOND, 0);
+        date.add(Calendar.DAY_OF_MONTH, 1);
+        final long restOfDayInMilliseconds = date.getTimeInMillis()
+                - System.currentTimeMillis();
+        return restOfDayInMilliseconds;
     }
 
     /**
@@ -423,7 +494,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
     }
 
     /**
-     * Returns a section in the Java plugin's dialog settings. If the section
+     * Returns a section in the Erlang plugin's dialog settings. If the section
      * doesn't exist yet, it is created.
      * 
      * @param name
@@ -473,7 +544,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
                 @Override
                 protected IStatus run(final IProgressMonitor monitor) {
                     try {
-                        final IRpcCallSite ideBackend = BackendCore
+                        final IBackend ideBackend = BackendCore
                                 .getBackendManager().getIdeBackend();
                         final String info = BackendHelper
                                 .getSystemInfo(ideBackend);

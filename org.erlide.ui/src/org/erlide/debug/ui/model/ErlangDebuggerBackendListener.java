@@ -13,29 +13,30 @@ import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.IDebugTarget;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendListener;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.backend.ErlDebugConstants;
-import org.erlide.core.backend.ErlLaunchAttributes;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.backend.IBackendListener;
-import org.erlide.core.debug.ErlangDebugHelper;
-import org.erlide.core.debug.ErlangDebugTarget;
-import org.erlide.core.debug.ErlideDebug;
-import org.erlide.core.rpc.IRpcCallSite;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.launch.ErlLaunchAttributes;
+import org.erlide.launch.debug.ErlDebugConstants;
+import org.erlide.launch.debug.ErlideDebug;
+import org.erlide.launch.debug.model.ErlangDebugTarget;
 import org.erlide.ui.internal.ErlideUIPlugin;
 
 import com.ericsson.otp.erlang.OtpErlangPid;
 
 public class ErlangDebuggerBackendListener implements IBackendListener {
+    @Override
     public void runtimeRemoved(final IBackend backend) {
     }
 
+    @Override
     public void runtimeAdded(final IBackend backend) {
     }
 
-    public void moduleLoaded(final IRpcCallSite backend,
-            final IProject project, final String moduleName) {
+    @Override
+    public void moduleLoaded(final IBackend backend, final IProject project,
+            final String moduleName) {
         try {
             final ErlangDebugTarget erlangDebugTarget = debugTargetOfBackend(backend);
             if (erlangDebugTarget != null
@@ -51,8 +52,7 @@ public class ErlangDebuggerBackendListener implements IBackendListener {
                             ErlLaunchAttributes.DEBUG_FLAGS,
                             ErlDebugConstants.DEFAULT_DEBUG_FLAGS);
                     final boolean distributed = (debugFlags & ErlDebugConstants.DISTRIBUTED_DEBUG) != 0;
-                    new ErlangDebugHelper().interpret(backend, project,
-                            moduleName, distributed, true);
+                    backend.interpret(project, moduleName, distributed, true);
                 }
             }
         } catch (final CoreException e) {
@@ -60,7 +60,7 @@ public class ErlangDebuggerBackendListener implements IBackendListener {
         }
     }
 
-    private ErlangDebugTarget debugTargetOfBackend(final IRpcCallSite backend) {
+    private ErlangDebugTarget debugTargetOfBackend(final IBackend backend) {
         final IDebugTarget[] debugTargets = DebugPlugin.getDefault()
                 .getLaunchManager().getDebugTargets();
         for (final IDebugTarget debugTarget : debugTargets) {
@@ -108,6 +108,7 @@ public class ErlangDebuggerBackendListener implements IBackendListener {
                 "Some code changes cannot be replaced when being debugged.",
                 new Object[] { vmName, launchName });
         display.asyncExec(new Runnable() {
+            @Override
             public void run() {
                 if (display.isDisposed()) {
                     return;
@@ -122,8 +123,8 @@ public class ErlangDebuggerBackendListener implements IBackendListener {
     }
 
     private boolean isModuleRunningInInterpreter(
-            final ErlangDebugTarget erlangDebugTarget,
-            final IRpcCallSite backend, final String moduleName) {
+            final ErlangDebugTarget erlangDebugTarget, final IBackend backend,
+            final String moduleName) {
         for (final OtpErlangPid metaPid : erlangDebugTarget.getAllMetaPids()) {
             final List<String> allModulesOnStack = ErlideDebug
                     .getAllModulesOnStack(backend, metaPid);

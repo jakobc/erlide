@@ -15,9 +15,9 @@ import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.StructuredViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.ui.navigator.SaveablesProvider;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlModelChangeListener;
@@ -44,17 +44,18 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
     public ErlangFileContentProvider() {
         ResourcesPlugin.getWorkspace().addResourceChangeListener(this,
                 IResourceChangeEvent.POST_CHANGE);
-        final IErlModel mdl = CoreScope.getModel();
+        final IErlModel mdl = ErlModelManager.getErlangModel();
         mdl.addModelChangeListener(this);
     }
 
     /**
      * Return the model elements for a *.erl IFile or NO_CHILDREN for otherwise.
      */
+    @Override
     public Object[] getChildren(Object parentElement) {
         try {
             if (parentElement instanceof IFile) {
-                parentElement = CoreScope.getModel().findModule(
+                parentElement = ErlModelManager.getErlangModel().findModule(
                         (IFile) parentElement);
             }
             if (parentElement instanceof IOpenable) {
@@ -79,6 +80,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
      *            The IFile which contains the persisted model
      */
 
+    @Override
     public Object getParent(final Object element) {
         if (element instanceof IErlElement) {
             final IErlElement elt = (IErlElement) element;
@@ -91,6 +93,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         return null;
     }
 
+    @Override
     public boolean hasChildren(final Object element) {
         if (element instanceof IFile || element instanceof IErlModule) {
             // it was too slow to open all modules to find out;
@@ -103,15 +106,18 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         return false;
     }
 
+    @Override
     public Object[] getElements(final Object inputElement) {
         return getChildren(inputElement);
     }
 
+    @Override
     public void dispose() {
         ResourcesPlugin.getWorkspace().removeResourceChangeListener(this);
-        CoreScope.getModel().removeModelChangeListener(this);
+        ErlModelManager.getErlangModel().removeModelChangeListener(this);
     }
 
+    @Override
     public void inputChanged(final Viewer theViewer, final Object oldInput,
             final Object newInput) {
         if (theViewer instanceof StructuredViewer) {
@@ -119,6 +125,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         }
     }
 
+    @Override
     public void resourceChanged(final IResourceChangeEvent event) {
         final IResourceDelta delta = event.getDelta();
         try {
@@ -131,6 +138,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         }
     }
 
+    @Override
     public boolean visit(final IResourceDelta delta) {
 
         final IResource source = delta.getResource();
@@ -166,6 +174,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         // }.schedule();
     }
 
+    @Override
     public void elementChanged(final IErlElement element) {
         if (element instanceof IErlModule) {
             final IErlModule m = (IErlModule) element;
@@ -176,6 +185,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         }
     }
 
+    @Override
     public Object getAdapter(@SuppressWarnings("rawtypes") final Class required) {
         if (SaveablesProvider.class.equals(required)) {
             // TODO return something useful

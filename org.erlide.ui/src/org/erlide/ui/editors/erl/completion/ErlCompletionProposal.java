@@ -24,11 +24,9 @@ public class ErlCompletionProposal implements ICompletionProposal {
     protected static final class ExitPolicy implements LinkedModeUI.IExitPolicy {
 
         final char fExitCharacter;
-        private final IDocument fDocument;
 
         public ExitPolicy(final char exitCharacter, final IDocument document) {
             fExitCharacter = exitCharacter;
-            fDocument = document;
         }
 
         /*
@@ -37,6 +35,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
          * #doExit(org.eclipse.jdt.internal.ui.text.link.LinkedPositionManager,
          * org.eclipse.swt.events.VerifyEvent, int, int)
          */
+        @Override
         public LinkedModeUI.ExitFlags doExit(final LinkedModeModel environment,
                 final VerifyEvent event, final int offset, final int length) {
 
@@ -54,18 +53,19 @@ public class ErlCompletionProposal implements ICompletionProposal {
                 return new LinkedModeUI.ExitFlags(ILinkedModeListener.NONE,
                         true);
             case SWT.CR:
-                // when entering an anonymous class as a parameter, we don't
-                // want
-                // to jump after the parenthesis when return is pressed
-                if (offset > 0) {
-                    try {
-                        if (fDocument.getChar(offset - 1) == '{') {
-                            return new LinkedModeUI.ExitFlags(
-                                    ILinkedModeListener.EXIT_ALL, true);
-                        }
-                    } catch (final BadLocationException e) {
-                    }
-                }
+                // FIXME this is Java specific!!!
+                // // when entering an anonymous class as a parameter, we don't
+                // // want
+                // // to jump after the parenthesis when return is pressed
+                // if (offset > 0) {
+                // try {
+                // if (fDocument.getChar(offset - 1) == '{') {
+                // return new LinkedModeUI.ExitFlags(
+                // ILinkedModeListener.EXIT_ALL, true);
+                // }
+                // } catch (final BadLocationException e) {
+                // }
+                // }
                 return null;
             default:
                 return null;
@@ -129,6 +129,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#apply(IDocument)
      */
+    @Override
     public void apply(final IDocument document) {
         try {
             document.replace(replacementOffset, replacementLength,
@@ -142,6 +143,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#getAdditionalProposalInfo()
      */
+    @Override
     public String getAdditionalProposalInfo() {
         return additionalProposalInfo;
     }
@@ -149,6 +151,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#getContextInformation()
      */
+    @Override
     public IContextInformation getContextInformation() {
         return contextInformation;
     }
@@ -156,6 +159,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#getDisplayString()
      */
+    @Override
     public String getDisplayString() {
         if (displayString != null) {
             return displayString;
@@ -166,6 +170,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#getImage()
      */
+    @Override
     public Image getImage() {
         return image;
     }
@@ -173,6 +178,7 @@ public class ErlCompletionProposal implements ICompletionProposal {
     /*
      * @see ICompletionProposal#getSelection(IDocument)
      */
+    @Override
     public Point getSelection(final IDocument document) {
         if (offsetsAndLengths.isEmpty()) {
             return new Point(replacementOffset + cursorPosition, 0);

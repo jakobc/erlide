@@ -7,16 +7,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.eclipse.core.runtime.IPath;
-import org.erlide.core.CoreScope;
-import org.erlide.core.common.IDisposable;
-import org.erlide.core.common.Tuple;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlModelChangeListener;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.model.util.ErlideUtil;
 import org.erlide.core.services.search.ErlideOpen.ExternalTreeEntry;
-import org.erlide.jinterface.util.LRUCache;
+import org.erlide.utils.IDisposable;
+import org.erlide.utils.LRUCache;
+import org.eclipse.xtext.xbase.lib.Pair;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -29,18 +29,18 @@ public class ErlModelCache implements IDisposable {
     // private static final int NAME_CACHE_SIZE = 300;
     private static ErlModelCache fgInstance = null;
 
-    private final LRUCache<IErlModule, List<IErlModule>> moduleIncludeCache;
-    private final LRUCache<String, IErlModule> pathToModuleCache;
-    private final LRUCache<String, Tuple<IErlProject, List<ExternalTreeEntry>>> externalTreeCache;
+    private final Map<IErlModule, List<IErlModule>> moduleIncludeCache;
+    private final Map<String, IErlModule> pathToModuleCache;
+    private final Map<String, Pair<IErlProject, List<ExternalTreeEntry>>> externalTreeCache;
     private final Map<String, IErlModule> editedModulesMap;
     // private final LRUCache<String, Set<IErlModule>> nameToModuleCache;
     private final ModelChangeListener modelChangeListener;
-    private final LRUCache<IErlProject, List<IErlModule>> projectModuleCache;
-    private final LRUCache<IErlProject, List<IErlModule>> projectIncludeCache;
-    private final LRUCache<IErlProject, String> projectExternalModulesStringCache;
-    private final LRUCache<IErlProject, String> projectExternalIncludesStringCache;
-    private final LRUCache<IErlProject, Collection<IPath>> projectSourceDirsCache;
-    private final LRUCache<IErlProject, Collection<IPath>> projectIncludeDirsCache;
+    private final Map<IErlProject, List<IErlModule>> projectModuleCache;
+    private final Map<IErlProject, List<IErlModule>> projectIncludeCache;
+    private final Map<IErlProject, String> projectExternalModulesStringCache;
+    private final Map<IErlProject, String> projectExternalIncludesStringCache;
+    private final Map<IErlProject, Collection<IPath>> projectSourceDirsCache;
+    private final Map<IErlProject, Collection<IPath>> projectIncludeDirsCache;
     private final boolean disabled;
 
     public static ErlModelCache getDefault() {
@@ -54,6 +54,7 @@ public class ErlModelCache implements IDisposable {
         // TODO should we handle changes of projects and includes too?
         // Which is hard, since the IOldErlangProjectProperties doesn't have
         // listeners
+        @Override
         public void elementChanged(final IErlElement element) {
             if (element instanceof IErlModule) {
                 final IErlModule module = (IErlModule) element;
@@ -62,29 +63,25 @@ public class ErlModelCache implements IDisposable {
         }
     }
 
+    private static <K, V> Map<K, V> newCache() {
+        return new LRUCache<K, V>(CACHE_SIZE).asSynchronized();
+    }
+
     private ErlModelCache() {
-        pathToModuleCache = new LRUCache<String, IErlModule>(CACHE_SIZE);
+        pathToModuleCache = newCache();
         editedModulesMap = Maps.newHashMap();
-        // nameToModuleCache = new LRUCache<String, Set<IErlModule>>(
-        // NAME_CACHE_SIZE);
-        moduleIncludeCache = new LRUCache<IErlModule, List<IErlModule>>(
-                CACHE_SIZE);
-        externalTreeCache = new LRUCache<String, Tuple<IErlProject, List<ExternalTreeEntry>>>(
-                CACHE_SIZE);
-        projectModuleCache = new LRUCache<IErlProject, List<IErlModule>>(
-                CACHE_SIZE);
-        projectIncludeCache = new LRUCache<IErlProject, List<IErlModule>>(
-                CACHE_SIZE);
-        projectExternalModulesStringCache = new LRUCache<IErlProject, String>(
-                CACHE_SIZE);
-        projectExternalIncludesStringCache = new LRUCache<IErlProject, String>(
-                CACHE_SIZE);
-        projectSourceDirsCache = new LRUCache<IErlProject, Collection<IPath>>(
-                CACHE_SIZE);
-        projectIncludeDirsCache = new LRUCache<IErlProject, Collection<IPath>>(
-                CACHE_SIZE);
+        // nameToModuleCache = newCache();
+        moduleIncludeCache = newCache();
+        externalTreeCache = newCache();
+        projectModuleCache = newCache();
+        projectIncludeCache = newCache();
+        projectExternalModulesStringCache = newCache();
+        projectExternalIncludesStringCache = newCache();
+        projectSourceDirsCache = newCache();
+        projectIncludeDirsCache = newCache();
         modelChangeListener = new ModelChangeListener();
-        CoreScope.getModel().addModelChangeListener(modelChangeListener);
+        ErlModelManager.getErlangModel().addModelChangeListener(
+                modelChangeListener);
         disabled = ErlideUtil.isCacheDisabled();
     }
 
@@ -147,7 +144,7 @@ public class ErlModelCache implements IDisposable {
     }
 
     public void putIncludedFilesForModule(final IErlModule module,
-            final List<IErlModule> result) {
+            final Collection<IErlModule> result) {
         if (disabled) {
             return;
         }
@@ -166,8 +163,10 @@ public class ErlModelCache implements IDisposable {
         return Lists.newArrayList(modules);
     }
 
+    @Override
     public void dispose() {
-        CoreScope.getModel().removeModelChangeListener(modelChangeListener);
+        ErlModelManager.getErlangModel().removeModelChangeListener(
+                modelChangeListener);
     }
 
     public void putExternalTree(final String externalPath,
@@ -180,18 +179,18 @@ public class ErlModelCache implements IDisposable {
             externalTreeCache.remove(externalPath);
         } else {
             externalTreeCache.put(externalPath,
-                    new Tuple<IErlProject, List<ExternalTreeEntry>>(project,
+                    new Pair<IErlProject, List<ExternalTreeEntry>>(project,
                             Lists.newArrayList(externalTree)));
         }
     }
 
     public List<ExternalTreeEntry> getExternalTree(final String externalPath) {
-        final Tuple<IErlProject, List<ExternalTreeEntry>> tuple = externalTreeCache
+        final Pair<IErlProject, List<ExternalTreeEntry>> tuple = externalTreeCache
                 .get(externalPath);
         if (tuple == null) {
             return null;
         }
-        final List<ExternalTreeEntry> entries = tuple.o2;
+        final List<ExternalTreeEntry> entries = tuple.getValue();
         if (entries == null) {
             return null;
         }
@@ -259,10 +258,10 @@ public class ErlModelCache implements IDisposable {
         projectIncludeCache.remove(project);
         projectModuleCache.remove(project);
         final Set<String> keysToRemove = Sets.newHashSet();
-        final Set<Entry<String, Tuple<IErlProject, List<ExternalTreeEntry>>>> entrySet = externalTreeCache
+        final Set<Entry<String, Pair<IErlProject, List<ExternalTreeEntry>>>> entrySet = externalTreeCache
                 .entrySet();
-        for (final Entry<String, Tuple<IErlProject, List<ExternalTreeEntry>>> entry : entrySet) {
-            if (entry.getValue().o1 == project) {
+        for (final Entry<String, Pair<IErlProject, List<ExternalTreeEntry>>> entry : entrySet) {
+            if (entry.getValue().getKey() == project) {
                 keysToRemove.add(entry.getKey());
             }
         }

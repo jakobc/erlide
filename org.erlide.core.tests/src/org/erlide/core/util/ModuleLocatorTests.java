@@ -1,9 +1,6 @@
 package org.erlide.core.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Collection;
 
@@ -71,6 +68,7 @@ public class ModuleLocatorTests {
         checkModuleNamesInList(extmods, project.getExternalModules());
     }
 
+    @SuppressWarnings("unused")
     private void checkExternalIncludes(final IErlProject project,
             final String[] extincs) throws ErlModelException {
         checkModuleNamesInList(extincs, project.getExternalIncludes());

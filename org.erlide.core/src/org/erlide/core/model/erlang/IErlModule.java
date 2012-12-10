@@ -13,14 +13,12 @@
 package org.erlide.core.model.erlang;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.erlide.core.model.root.ErlModelException;
-import org.erlide.core.model.root.ErlToken;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IOpenable;
 import org.erlide.core.model.root.IParent;
@@ -133,14 +131,18 @@ public interface IErlModule extends IErlElement, IParent, IOpenable,
 
     void setResource(IFile file);
 
-    void addComment(IErlComment c);
+    void setComments(Collection<? extends IErlComment> comments);
 
-    List<IErlModule> findAllIncludedFiles() throws CoreException;
+    Collection<IErlModule> findAllIncludedFiles() throws CoreException;
 
     boolean isOnSourcePath();
 
     boolean isOnIncludePath();
 
     boolean exportsAllFunctions();
+
+    boolean isRealFile();
+
+    String getScannerName();
 
 }

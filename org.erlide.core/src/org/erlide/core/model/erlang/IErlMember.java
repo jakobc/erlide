@@ -11,8 +11,6 @@
 package org.erlide.core.model.erlang;
 
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.ISourceRange;
-import org.erlide.core.model.root.ISourceReference;
 
 public interface IErlMember extends IErlElement, ISourceReference {
 
@@ -28,13 +26,6 @@ public interface IErlMember extends IErlElement, ISourceReference {
     void setNameRange(int offset, int length);
 
     ISourceRange getNameRange();
-
-    /**
-     * Get module if this element is contained in one (or is one)
-     * 
-     * @return module or null
-     */
-    IErlModule getModule();
 
     String getModuleName();
 

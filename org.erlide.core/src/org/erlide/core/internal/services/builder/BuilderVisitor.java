@@ -17,8 +17,8 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.services.builder.BuildResource;
 import org.erlide.core.services.builder.BuilderHelper;
@@ -40,11 +40,13 @@ public class BuilderVisitor implements IResourceDeltaVisitor, IResourceVisitor {
         this.helper = helper;
     }
 
+    @Override
     public boolean visit(final IResourceDelta delta) throws CoreException {
         final IResource resource = delta.getResource();
         return visit(resource, delta.getKind(), false);
     }
 
+    @Override
     public boolean visit(final IResource resource) throws CoreException {
         return visit(resource, IResourceDelta.ADDED, true);
     }
@@ -55,7 +57,7 @@ public class BuilderVisitor implements IResourceDeltaVisitor, IResourceVisitor {
             return false;
         }
         if (resource.getType() == IResource.PROJECT) {
-            erlProject = CoreScope.getModel().getErlangProject(
+            erlProject = ErlModelManager.getErlangModel().getErlangProject(
                     (IProject) resource);
             return true;
         }
@@ -101,17 +103,23 @@ public class BuilderVisitor implements IResourceDeltaVisitor, IResourceVisitor {
         case IResourceDelta.CHANGED:
             break;
         case IResourceDelta.REMOVED:
-            final String[] p = resource.getName().split("\\.");
-            final SearchVisitor searcher = helper.new SearchVisitor(p[0], null);
-            resource.getProject().accept(searcher);
-            if (searcher.getResult() != null) {
-                final BuildResource bres = new BuildResource(
-                        searcher.getResult());
+            final IResource source = findCorrespondingSource(resource);
+            if (source != null) {
+                final BuildResource bres = new BuildResource(source);
                 result.add(bres);
                 monitor.worked(1);
             }
             break;
         }
+    }
+
+    public IResource findCorrespondingSource(final IResource beam)
+            throws CoreException {
+        final String[] p = beam.getName().split("\\.");
+        final SearchVisitor searcher = helper.new SearchVisitor(p[0], null);
+        beam.getProject().accept(searcher);
+        final IResource source = searcher.getResult();
+        return source;
     }
 
     private void handleYrlFile(final int kind, final IResource resource) {

@@ -10,20 +10,17 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
-import org.erlide.core.CoreScope;
-import org.erlide.core.ErlangCore;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.core.services.builder.BuilderMessages;
 import org.erlide.core.services.builder.DialyzerPreferences;
 import org.erlide.core.services.builder.DialyzerUtils;
 import org.erlide.core.services.builder.MarkerUtils;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcException;
 
 public class DialyzerBuilder extends IncrementalProjectBuilder {
 
@@ -40,13 +37,13 @@ public class DialyzerBuilder extends IncrementalProjectBuilder {
         try {
             prefs = DialyzerPreferences.get(project);
         } catch (final RpcException e1) {
-            throw new CoreException(new Status(IStatus.ERROR,
-                    ErlangCore.PLUGIN_ID, e1.toString()));
-        }
-        if (!prefs.getDialyzeOnCompile()) {
+            ErlLogger.warn(e1);
             return null;
         }
-        final IErlElementLocator model = CoreScope.getModel();
+        if (prefs == null || !prefs.getDialyzeOnCompile()) {
+            return null;
+        }
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         final Map<IErlProject, Set<IErlModule>> modules = new HashMap<IErlProject, Set<IErlModule>>();
         DialyzerUtils.addModulesFromResource(model, project, modules);
         if (modules.size() != 0) {
@@ -70,7 +67,7 @@ public class DialyzerBuilder extends IncrementalProjectBuilder {
         if (project == null || !project.isAccessible()) {
             return;
         }
-        MarkerUtils.removeDialyzerMarkers(project);
+        MarkerUtils.removeDialyzerMarkersFor(project);
     }
 
 }

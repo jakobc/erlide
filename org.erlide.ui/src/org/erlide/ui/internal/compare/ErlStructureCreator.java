@@ -25,6 +25,7 @@ import org.eclipse.compare.IEditableContent;
 import org.eclipse.compare.IEditableContentExtension;
 import org.eclipse.compare.ISharedDocumentAdapter;
 import org.eclipse.compare.IStreamContentAccessor;
+import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.ResourceNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.compare.structuremergeviewer.DocumentRangeNode;
@@ -40,16 +41,19 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.services.IDisposable;
-import org.erlide.core.CoreScope;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IOpenable;
 import org.erlide.core.model.root.IParent;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.ui.editors.erl.ErlangDocumentSetupParticipant;
+import org.erlide.ui.editors.erl.scanner.IErlangPartitions;
 import org.erlide.ui.internal.ErlideUIPlugin;
 
 public class ErlStructureCreator extends StructureCreator {
@@ -58,33 +62,22 @@ public class ErlStructureCreator extends StructureCreator {
 
     // private final IErlProject fProject;
 
-    private final String fName;
+    private IDocumentPartitioner documentPartitioner = null;
 
     public ErlStructureCreator() {
-        // this(ErlangCore.getModelManager().createEmptyProject(),
-        // "comptemp.erl");
-        this("comptemp.erl");
-    }
-
-    /**
-     * @param name
-     */
-    public ErlStructureCreator(final String name) {
-        super();
-        // fProject = project;
-        fName = name;
     }
 
     /**
      * @see IStructureCreator#getTitle
      */
+    @Override
     public String getName() {
         return ErlideUIPlugin.getResourceString(NAME);
     }
 
     /**
      * A root node for the structure. It is similar to {@link StructureRootNode}
-     * but needed to be a subclass of {@link JavaNode} because of the code used
+     * but needed to be a subclass of {@link ErlNode} because of the code used
      * to build the structure.
      */
     private final class RootErlNode extends ErlNode implements IDisposable {
@@ -118,6 +111,7 @@ public class ErlStructureCreator extends StructureCreator {
             return super.validateEdit(shell);
         }
 
+        @Override
         public void dispose() {
             fInput = null;
         }
@@ -214,6 +208,7 @@ public class ErlStructureCreator extends StructureCreator {
     /**
      * @see IStructureCreator#getContents
      */
+    @Override
     public String getContents(final Object node, final boolean ignoreWhitespace) {
         if (node instanceof IStreamContentAccessor) {
             final IStreamContentAccessor sca = (IStreamContentAccessor) node;
@@ -264,7 +259,7 @@ public class ErlStructureCreator extends StructureCreator {
             final IProgressMonitor monitor) throws CoreException {
         IErlModule module = null;
         String s = "";
-        final IErlModel model = CoreScope.getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         if (element instanceof ResourceNode) {
             final ResourceNode rn = (ResourceNode) element;
             final IResource r = rn.getResource();
@@ -291,19 +286,27 @@ public class ErlStructureCreator extends StructureCreator {
                 document = new Document(s);
             } catch (final CoreException ex) {
             }
+        } else if (document != null) {
+            s = document.get();
         }
         if (module == null) {
-            module = model.getModuleFromText(model, fName, s, s);
+            String name = "comptemp";
+            if (element instanceof ITypedElement) {
+                final ITypedElement typedElement = (ITypedElement) element;
+                name = typedElement.getName();
+            }
+            module = model.getModuleFromText(model, name, s, s);
         }
         ErlNode root = null;
-        try {
-            module.open(null);
-            root = new RootErlNode(document, element);
-            recursiveMakeErlNodes(module, root, document);
-        } catch (final ErlModelException e) {
-            ErlLogger.warn(e);
+        if (element != null && document != null) {
+            try {
+                module.open(null);
+                root = new RootErlNode(document, element);
+                recursiveMakeErlNodes(module, root, document);
+            } catch (final ErlModelException e) {
+                ErlLogger.warn(e);
+            }
         }
-
         return root;
     }
 
@@ -316,7 +319,7 @@ public class ErlStructureCreator extends StructureCreator {
             final List<String> args = new ArrayList<String>();
             while (e != null) {
                 // each path component has a name that uses the same
-                // conventions as a JavaNode name
+                // conventions as a ErlNode name
                 final String name = ErlangCompareUtilities.getErlElementID(e);
                 if (name == null) {
                     return null;
@@ -331,5 +334,19 @@ public class ErlStructureCreator extends StructureCreator {
             return args.toArray(new String[args.size()]);
         }
         return null;
+    }
+
+    @Override
+    protected String getDocumentPartitioning() {
+        return IErlangPartitions.ERLANG_PARTITIONING;
+    }
+
+    @Override
+    protected IDocumentPartitioner getDocumentPartitioner() {
+        if (documentPartitioner == null) {
+            documentPartitioner = ErlangDocumentSetupParticipant
+                    .createDocumentPartitioner();
+        }
+        return documentPartitioner;
     }
 }

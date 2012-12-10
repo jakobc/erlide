@@ -5,14 +5,12 @@ import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.IBackend;
-import org.erlide.core.backend.IBackendManager;
-import org.erlide.core.internal.backend.Backend;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.IRpcFuture;
-import org.erlide.core.rpc.RpcException;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendManager;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.IRpcFuture;
+import org.erlide.jinterface.rpc.RpcException;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -20,9 +18,8 @@ import com.google.common.collect.Lists;
 
 public class InternalErlideBuilder {
 
-    public static IRpcFuture compileErl(final IRpcCallSite backend,
-            final IPath fn, final String outputdir,
-            final Collection<IPath> includedirs,
+    public static IRpcFuture compileErl(final IBackend backend, final IPath fn,
+            final String outputdir, final Collection<IPath> includedirs,
             final OtpErlangList compilerOptions) {
         final List<String> incs = Lists.newArrayList();
         for (final IPath p : includedirs) {
@@ -37,7 +34,7 @@ public class InternalErlideBuilder {
         }
     }
 
-    public static OtpErlangList getSourceClashes(final IRpcCallSite backend,
+    public static OtpErlangList getSourceClashes(final IBackend backend,
             final String[] dirList) throws RpcException {
         final OtpErlangObject res = backend.call("erlide_builder",
                 "source_clash", "ls", (Object) dirList);
@@ -48,7 +45,7 @@ public class InternalErlideBuilder {
                 + res);
     }
 
-    public static OtpErlangList getCodeClashes(final IRpcCallSite b)
+    public static OtpErlangList getCodeClashes(final IBackend b)
             throws RpcException {
         final OtpErlangList res = (OtpErlangList) b.call("erlide_builder",
                 "code_clash", null);
@@ -66,8 +63,6 @@ public class InternalErlideBuilder {
                 if (b.isDistributed()) {
                     b.call("erlide_builder", "load", "ao", module,
                             b.doLoadOnAllNodes());
-                } else {
-                    Backend.loadModuleViaInput(b, project, module);
                 }
                 backendManager.moduleLoaded(b, project, module);
             }
@@ -76,7 +71,7 @@ public class InternalErlideBuilder {
         }
     }
 
-    public static IRpcFuture compileYrl(final IRpcCallSite backend,
+    public static IRpcFuture compileYrl(final IBackend backend,
             final String fn, final String output) {
         try {
             return backend.async_call("erlide_builder", "compile_yrl", "ss",

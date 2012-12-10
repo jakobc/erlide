@@ -58,6 +58,7 @@ public class SaveAction extends Action {
                 "Enter the name for saving coverage results",
                 statName.toString(), new IInputValidator() {
 
+                    @Override
                     public String isValid(final String newText) {
 
                         final String[] names = dir.list();
@@ -95,8 +96,11 @@ public class SaveAction extends Action {
         try {
             objOutStream = new ObjectOutputStream(new FileOutputStream(location
                     .append(name).toString()));
-
-            objOutStream.writeObject(StatsTreeModel.getInstance());
+            try {
+                objOutStream.writeObject(StatsTreeModel.getInstance());
+            } finally {
+                objOutStream.close();
+            }
 
         } catch (final FileNotFoundException e) {
             log.error("Error while openning stream");

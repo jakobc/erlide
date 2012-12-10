@@ -5,8 +5,9 @@ package org.erlide.core.internal.model.erlang;
 
 import org.erlide.core.internal.model.root.ErlMember;
 import org.erlide.core.model.erlang.IErlComment;
+import org.erlide.core.model.erlang.ISourceRange;
+import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.root.ISourceRange;
 
 /**
  * @author jakob
@@ -22,6 +23,7 @@ public class ErlComment extends ErlMember implements IErlComment {
         fIsHeader = isHeader;
     }
 
+    @Override
     public boolean isHeader() {
         return fIsHeader;
     }
@@ -29,6 +31,7 @@ public class ErlComment extends ErlMember implements IErlComment {
     /**
      * @see org.erlide.core.model.root.IErlElement#getKind()
      */
+    @Override
     public Kind getKind() {
         return Kind.COMMENT;
     }
@@ -49,5 +52,10 @@ public class ErlComment extends ErlMember implements IErlComment {
 
     @Override
     public void setNameRange(final int offset, final int length) {
+    }
+
+    @Override
+    public String getSource() throws ErlModelException {
+        return getName();
     }
 }

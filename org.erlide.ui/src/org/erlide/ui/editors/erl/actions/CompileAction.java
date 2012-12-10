@@ -14,15 +14,15 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.action.Action;
 import org.eclipse.ui.IWorkbenchSite;
-import org.erlide.core.CoreScope;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.MessageReporter;
-import org.erlide.core.backend.BackendCore;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.rpc.IRpcCallSite;
 import org.erlide.core.services.builder.BuildResource;
 import org.erlide.core.services.builder.BuilderHelper;
-import org.erlide.core.services.builder.CompilerPreferences;
+import org.erlide.core.services.builder.CompilerOptions;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.osgi.service.prefs.BackingStoreException;
 
@@ -46,20 +46,20 @@ public class CompileAction extends Action {
         if (module == null) {
             return;
         }
-        final IRpcCallSite b = BackendCore.getBackendManager().getIdeBackend();
+        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
 
         final IResource resource = module.getResource();
         final IProject project = resource.getProject();
         final BuildResource bres = new BuildResource(resource);
-        final CompilerPreferences prefs = new CompilerPreferences(project);
+        final CompilerOptions prefs = new CompilerOptions(project);
         try {
             prefs.load();
         } catch (final BackingStoreException e1) {
             e1.printStackTrace();
         }
         final OtpErlangList compilerOptions = prefs.export();
-        final IErlProject erlProject = CoreScope.getModel().getErlangProject(
-                project);
+        final IErlProject erlProject = ErlModelManager.getErlangModel()
+                .getErlangProject(project);
 
         if ("erl".equals(resource.getFileExtension())) {
             helper.compileErl(project, bres, erlProject.getOutputLocation()

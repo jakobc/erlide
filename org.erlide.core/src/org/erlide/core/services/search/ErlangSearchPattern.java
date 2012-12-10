@@ -2,15 +2,6 @@ package org.erlide.core.services.search;
 
 import java.util.EnumSet;
 
-import org.erlide.core.common.CommonUtils;
-import org.erlide.core.common.StringUtils;
-import org.erlide.core.common.Util;
-import org.erlide.core.model.erlang.IErlAttribute;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlMacroDef;
-import org.erlide.core.model.erlang.IErlRecordDef;
-import org.erlide.core.model.root.IErlElement;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -54,43 +45,11 @@ public abstract class ErlangSearchPattern {
     protected static final OtpErlangAtom RECORD_FIELD_REF_ATOM = new OtpErlangAtom(
             "record_field_ref");
 
-    // search for
-    public enum SearchFor {
-        FUNCTION, MACRO, RECORD, INCLUDE, TYPE, VARIABLE, RECORD_FIELD;
-    }
-
     public EnumSet<SearchFor> allSearchFor = EnumSet.allOf(SearchFor.class);
-
-    // limit to
-    public enum LimitTo {
-        REFERENCES, DEFINITIONS, ALL_OCCURRENCES
-    }
 
     public EnumSet<LimitTo> allLimitTo = EnumSet.allOf(LimitTo.class);
 
     protected final LimitTo limitTo;
-
-    public static ErlangSearchPattern getSearchPattern(
-            final SearchFor searchFor, final String module, final String name,
-            final int arity, final LimitTo limitTo) {
-        switch (searchFor) {
-        case FUNCTION:
-            return new FunctionPattern(module, name, arity, limitTo, true);
-        case INCLUDE:
-            return new IncludePattern(name, limitTo);
-        case MACRO:
-            return new MacroPattern(name, limitTo);
-        case RECORD:
-            return new RecordPattern(name, limitTo);
-        case TYPE:
-            return new TypeRefPattern(module, name, limitTo);
-        case RECORD_FIELD:
-            return new RecordFieldPattern(module, name, limitTo);
-        case VARIABLE:
-            return null; // FIXME
-        }
-        return null;
-    }
 
     protected ErlangSearchPattern(final LimitTo limitTo) {
         this.limitTo = limitTo;
@@ -178,10 +137,18 @@ public abstract class ErlangSearchPattern {
                 new OtpErlangAtom(s) });
     }
 
+    private static final OtpErlangAtom UNDEFINED = new OtpErlangAtom(
+            "undefined");
+
     private static OtpErlangObject make3Tuple(final OtpErlangAtom atom,
             final String s, final int a) {
+        if (a >= 0) {
+            return new OtpErlangTuple(new OtpErlangObject[] { atom,
+                    new OtpErlangAtom(s), new OtpErlangLong(a) });
+        }
         return new OtpErlangTuple(new OtpErlangObject[] { atom,
-                new OtpErlangAtom(s), new OtpErlangLong(a) });
+                new OtpErlangAtom(s), UNDEFINED });
+
     }
 
     private static OtpErlangObject make3Tuple(final OtpErlangAtom atom,
@@ -192,9 +159,13 @@ public abstract class ErlangSearchPattern {
 
     private static OtpErlangObject make4Tuple(final OtpErlangAtom atom,
             final String s1, final String s2, final int a) {
+        if (a >= 0) {
+            return new OtpErlangTuple(new OtpErlangObject[] { atom,
+                    new OtpErlangAtom(s1), new OtpErlangAtom(s2),
+                    new OtpErlangLong(a) });
+        }
         return new OtpErlangTuple(new OtpErlangObject[] { atom,
-                new OtpErlangAtom(s1), new OtpErlangAtom(s2),
-                new OtpErlangLong(a) });
+                new OtpErlangAtom(s1), new OtpErlangAtom(s2), UNDEFINED });
     }
 
     public LimitTo getLimitTo() {
@@ -206,36 +177,5 @@ public abstract class ErlangSearchPattern {
     public abstract SearchFor getSearchFor();
 
     public abstract String labelString();
-
-    public static ErlangSearchPattern getSearchPatternFromErlElementAndLimitTo(
-            final IErlElement element, final LimitTo limitTo) {
-        if (element instanceof IErlFunction) {
-            final IErlFunction function = (IErlFunction) element;
-            final String withoutExtension = CommonUtils
-                    .withoutExtension(function.getModuleName());
-            return new FunctionPattern(withoutExtension,
-                    function.getFunctionName(), function.getArity(), limitTo,
-                    true);
-        } else if (element instanceof IErlMacroDef) {
-            final IErlMacroDef m = (IErlMacroDef) element;
-            final String unquoted = StringUtils.unquote(m.getDefinedName());
-            return new MacroPattern(unquoted, limitTo);
-        } else if (element instanceof IErlRecordDef) {
-            final IErlRecordDef r = (IErlRecordDef) element;
-            final String unquoted = StringUtils.unquote(r.getDefinedName());
-            return new RecordPattern(unquoted, limitTo);
-        } else if (element instanceof IErlFunctionClause) {
-            final IErlFunctionClause clause = (IErlFunctionClause) element;
-            return getSearchPatternFromErlElementAndLimitTo(
-                    (IErlElement) clause.getParent(), limitTo);
-        } else if (element instanceof IErlAttribute) {
-            final IErlAttribute a = (IErlAttribute) element;
-            if (a.getName().startsWith("include")) {
-                final String s = Util.stringValue(a.getValue());
-                return new IncludePattern(s, limitTo);
-            }
-        }
-        return null;
-    }
 
 }

@@ -1,16 +1,13 @@
 package org.erlide.core.model.erlang;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.erlide.core.internal.model.erlang.ErlAttribute;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
 import org.erlide.core.model.root.IErlFolder;
@@ -114,7 +111,7 @@ public class IParentTests extends ErlModelTestBase {
     @Test
     public void getChildWithResource() throws Exception {
         final IProject workspaceProject = project.getWorkspaceProject();
-        final IErlModel model = project.getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         final IErlElement childWithResource = model
                 .getChildWithResource(workspaceProject);
         final IResource resource = module.getResource();

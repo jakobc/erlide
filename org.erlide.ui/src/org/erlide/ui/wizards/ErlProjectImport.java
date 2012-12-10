@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.erlide.core.common.Util;
+import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.Util;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -30,7 +32,14 @@ public class ErlProjectImport {
         l = (OtpErlangList) t.elementAt(2);
         includeDirs = (List<String>) erlangStringList2Collection(l,
                 new ArrayList<String>());
-        beamDir = Util.stringValue(t.elementAt(3));
+        ErlLogger.debug(">>> %s", t);
+        final OtpErlangObject beamDirElement = t.elementAt(3);
+        if (beamDirElement instanceof OtpErlangAtom) {
+            beamDir = "ebin";
+        } else {
+            beamDir = Util.stringValue(beamDirElement);
+        }
+        ErlLogger.debug(">>> %s", beamDir);
         l = (OtpErlangList) t.elementAt(4);
         directories = (List<String>) erlangStringList2Collection(l,
                 new ArrayList<String>());

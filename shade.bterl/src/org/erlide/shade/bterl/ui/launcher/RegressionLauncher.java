@@ -22,7 +22,7 @@ import org.erlide.test_support.popup.actions.OpenResultsJob;
 import org.erlide.test_support.ui.suites.RegressionResultsView;
 
 public class RegressionLauncher {
-    private static RegressionLauncher instance;
+    private static volatile RegressionLauncher instance;
 
     final String watcherThreadName = "bterl regression watcher";
 
@@ -65,18 +65,26 @@ public class RegressionLauncher {
             final BufferedReader is = new BufferedReader(new InputStreamReader(
                     in));
 
-            final Thread thread = new Thread(new ListenerRunnable(is, monitor,
-                    rview));
-            thread.setDaemon(true);
-            thread.setName("bterl regression listener");
-            thread.start();
+            try {
+                final Thread thread = new Thread(new ListenerRunnable(is,
+                        monitor, rview));
+                thread.setDaemon(true);
+                thread.setName("bterl regression listener");
+                thread.start();
 
-            synchronized (watcherLock) {
-                watcherThread = new Thread(
-                        new WatcherRunnable(container, cmake));
-                watcherThread.setDaemon(true);
-                watcherThread.setName(watcherThreadName);
-                watcherThread.start();
+                synchronized (watcherLock) {
+                    watcherThread = new Thread(new WatcherRunnable(container,
+                            cmake));
+                    watcherThread.setDaemon(true);
+                    watcherThread.setName(watcherThreadName);
+                    watcherThread.start();
+                }
+            } finally {
+                try {
+                    is.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
             }
         } catch (final CoreException e) {
             // there is no make_links
@@ -110,6 +118,7 @@ public class RegressionLauncher {
             this.cmake = cmake;
         }
 
+        @Override
         public void run() {
             while (true) {
                 try {
@@ -151,6 +160,7 @@ public class RegressionLauncher {
             this.rview = rview;
         }
 
+        @Override
         public void run() {
             String line;
             try {

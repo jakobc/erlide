@@ -10,15 +10,16 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.dialogs.PropertyPage;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.BackendCore;
+import org.eclipse.wb.swt.SWTResourceManager;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.rpc.IRpcCallSite;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.jinterface.TypeConverter;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.swtdesigner.SWTResourceManager;
 
 public class ErlModulePropertyPage extends PropertyPage implements
         IWorkbenchPropertyPage {
@@ -39,16 +40,17 @@ public class ErlModulePropertyPage extends PropertyPage implements
 
         final IAdaptable element = getElement();
         final IFile file = (IFile) element.getAdapter(IFile.class);
-        final IErlModule module = CoreScope.getModel().findModule(file);
+        final IErlModule module = ErlModelManager.getErlangModel().findModule(
+                file);
         String value = "There is no module information about this file.";
         if (module != null) {
-            final IErlProject project = module.getProject();
+            final IErlProject project = ModelUtils.getProject(module);
             final IPath beamPath = project.getOutputLocation()
                     .append(module.getModuleName()).addFileExtension("beam");
             final IFile beam = project.getWorkspaceProject().getFile(beamPath);
 
             // TODO should it be the build backend?
-            final IRpcCallSite backend = BackendCore.getBackendManager()
+            final IBackend backend = BackendCore.getBackendManager()
                     .getIdeBackend();
             try {
                 final OtpErlangObject info = backend.call("erlide_backend",

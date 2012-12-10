@@ -17,7 +17,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
-import org.erlide.core.common.IDisposable;
+import org.erlide.utils.IDisposable;
 
 /**
  * Common protocol for all elements provided by the Erlang model. Erlang model
@@ -41,6 +41,7 @@ import org.erlide.core.common.IDisposable;
 public interface IErlElement extends IAdaptable, IDisposable {
 
     enum Kind {
+        //@formatter:off
         ERROR,
         MODEL,
         PROJECT,
@@ -59,6 +60,7 @@ public interface IErlElement extends IAdaptable, IDisposable {
         TYPESPEC,
         EXTERNAL,
         RECORD_FIELD
+        //@formatter:on
     }
 
     /**
@@ -89,11 +91,6 @@ public interface IErlElement extends IAdaptable, IDisposable {
      *         kind, null if no such an ancestor can be found
      */
     IErlElement getAncestorOfKind(Kind kind);
-
-    /**
-     * Returns the enclosing IErlProject if there is one
-     */
-    IErlProject getProject();
 
     /**
      * Returns the resource that corresponds directly to this element, or
@@ -127,13 +124,6 @@ public interface IErlElement extends IAdaptable, IDisposable {
      * @see IErlElement
      */
     Kind getKind();
-
-    /**
-     * Returns the Erlang model. This is a handle-only method.
-     * 
-     * @return the Erlang model
-     */
-    IErlModel getModel();
 
     /**
      * Returns the element directly containing this element, or

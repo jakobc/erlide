@@ -9,10 +9,10 @@
 %%
 
 %% called from Java
--export([initial_parse/5, reparse/1, remove_cache_files/2]).
+-export([initial_parse/5, reparse/2, remove_cache_files/2]).
 
 %% called from Erlang
--export([read_module_refs/3]).
+-export([get_module_refs/4]).
 
 %%
 %% Include files
@@ -21,7 +21,7 @@
 %% -define(DEBUG, 1).
 %% -define(IO_FORMAT_DEBUG, 1).
 
--define(CACHE_VERSION, 25).
+-define(CACHE_VERSION, 27).
 -define(SERVER, erlide_noparse).
 
 -include("erlide.hrl").
@@ -42,41 +42,41 @@
 %%
 
 initial_parse(ScannerName, ModuleFileName, StateDir, UseCache,
-              UpdateSearchServer) ->
+	      UpdateSearchServer) ->
     try
-%%         ?D({StateDir, ModuleFileName}),
         BaseName = filename:join(StateDir, atom_to_list(ScannerName)),
         RefsFileName = BaseName ++ ".refs",
         RenewFun = fun(_F) ->
-                           do_parse(ScannerName, RefsFileName, StateDir, UpdateSearchServer)
+			   {Model, _Refs} = 
+			       do_parse(ScannerName, RefsFileName, StateDir,
+					UpdateSearchServer),
+			   Model
                    end,
         CacheFileName = BaseName ++ ".noparse",
-        ?D(CacheFileName),
-        {Cached, Res} = erlide_util:check_and_renew_cached(
-                          ModuleFileName, CacheFileName, ?CACHE_VERSION, 
-                          RenewFun, UseCache),
-        %%erlide_noparse_server:update_state(ScannerName, Res),
-        ?D(updated),
-        {ok, Res, Cached}
+	{Cached, Res} = erlide_util:check_and_renew_cached(
+			  ModuleFileName, CacheFileName, ?CACHE_VERSION, 
+			  RenewFun, UseCache),
+	{ok, Res, Cached}
     catch
         error:Reason ->
             {error, Reason}
     end.
 
-reparse(ScannerName) ->
+reparse(ScannerName, UpdateSearchServer) ->
     try
-        Res = do_parse(ScannerName, "", "", true),
-        %%erlide_noparse_server:update_state(ScannerName, Res),
-        {ok, Res, unused}
+        {Model, _Refs} = do_parse(ScannerName, "", "", UpdateSearchServer),
+        {ok, Model}
     catch
         error:Reason ->
             {error, Reason}
     end.
 
-read_module_refs(ScannerName, ModulePath, StateDir) ->
+get_module_refs(ScannerName, ModulePath, StateDir, UpdateSearchServer) ->
     ?D(ScannerName),
     BaseName = filename:join(StateDir, atom_to_list(ScannerName)),
     RefsFileName = BaseName ++ ".refs",
+    %% TODO: shouldn't we check that .refs is up-to-date? using renew
+    %% function etc. would probably be more straight-forward...
     ?D(RefsFileName),
     case file:read_file(RefsFileName) of
         {ok, Binary} ->
@@ -90,11 +90,9 @@ read_module_refs(ScannerName, ModulePath, StateDir) ->
             _D = erlide_scanner_server:initialScan(
                    ScannerName, ModulePath, InitialText, StateDir, true),
             ?D(_D),
-            initial_parse(ScannerName, ModulePath, StateDir, true, false),
-            ?D(RefsFileName),
-            {ok, Binary} = file:read_file(RefsFileName),
-            ?D(byte_size(Binary)),
-            binary_to_term(Binary)
+	    {_Model, Refs} = initial_parse(ScannerName, ModulePath, StateDir, 
+					  true, UpdateSearchServer),
+	    Refs
     end.
 
 remove_cache_files(ScannerName, StateDir) ->
@@ -122,17 +120,10 @@ do_parse2(ScannerName, RefsFileName, Toks, StateDir, UpdateSearchServer) ->
     Functions = erlide_np_util:split_after_dots(UncommentToks),
     ?D(length(Functions)),
     AutoImports = erlide_util:add_auto_imported([]),
-%%     ?D(AutoImports),
     {Collected, Refs} = classify_and_collect(Functions, [], [], [], AutoImports),
     ?D({'>>',length(Collected)}),
-    CommentedCollected = erlide_np_util:get_function_comments(Collected, Comments),
-    ?D(CommentedCollected),
-    Model = #model{forms=CommentedCollected, comments=Comments},
-    %%erlide_noparse_server:create(ScannerName, Model),
-%%     ?D({"Model", length(Model#model.forms), erts_debug:flat_size(Model)}),
+    Model = #model{forms=Collected, comments=Comments},
     FixedModel = fixup_model(Model),
-%%     ?D(erts_debug:flat_size(FixedModel)),
-    %% 	?D([erts_debug:flat_size(F) || F <- element(2, FixedModel)]),
     ?D(StateDir),
     case StateDir of
         "" -> ok;
@@ -141,8 +132,7 @@ do_parse2(ScannerName, RefsFileName, Toks, StateDir, UpdateSearchServer) ->
             file:write_file(RefsFileName, term_to_binary(Refs, [compressed]))
     end,
     update_search_server(UpdateSearchServer, ScannerName, Refs),
-%%     ?D(FixedModel),
-    FixedModel.
+    {FixedModel, Refs}.
 
 update_search_server(true, ScannerName, Refs) ->
     erlide_search_server:add_module_refs(ScannerName, Refs);
@@ -172,8 +162,8 @@ binary_args(Args) when is_list(Args) ->
 binary_args(_) ->
     [].
 
-fixup_form(#function{comment=Comment, clauses=Clauses, args=Args} = Function) ->
-    Function#function{comment= to_binary(Comment), clauses=fixup_forms(Clauses), args=binary_args(Args)};
+fixup_form(#function{clauses=Clauses, args=Args} = Function) ->
+    Function#function{clauses=fixup_forms(Clauses), args=binary_args(Args)};
 fixup_form(#clause{head=Head, args=Args} = Clause) ->
     Clause#clause{head=to_binary(Head), args=binary_args(Args)};
 fixup_form(Other) ->
@@ -231,40 +221,15 @@ cac(attribute, Attribute, _Exports, _Imports) ->
     case Attribute of
         %% -spec, -type or -opaque
         [#token{kind='-', offset=Offset, line=Line},
-         #token{kind=Kind, line=_Line, offset=_Offset, value=Value} | Args]
-          when (Kind=:='spec') or ((Kind=:=atom) and (Value=:='type'))
-                   or ((Kind=:=atom) and (Value=:='opaque'))->
-            ?D(Value),
-            Name = case Kind of 'spec' -> Kind; _ -> Value end,
-            #token{line=LastLine, offset=LastOffset,
-                   length=LastLength} = last_not_eof(Attribute),
-            PosLength = LastOffset - Offset + LastLength,
-            ?D(Args),
-            Extra = to_string(Args),
-            ?D(Extra),
-            {AttrArgs, _, _} = get_attribute_args(Kind, Args, Args),
-            ?D({AttrArgs, Extra}),
-            ExternalRefs = get_refs(tl(AttrArgs), Extra, ?ARI_TYPESPEC),
-            {#attribute{pos={{Line, LastLine, Offset}, PosLength},
-                        name=Name, args=AttrArgs, extra=Extra},
-             [#ref{data=#type_def{type=Name}, offset=Offset, length=PosLength, function=Name, 
-                   arity=?ARI_TYPESPEC, clause="", sub_clause=false} | ExternalRefs], [], []};
+         #token{kind=Kind, line=_Line, offset=_Offset, value=Name} | Args]
+          when (Kind=:='spec') or ((Kind=:=atom) and (Name=:='type'))
+                   or ((Kind=:=atom) and (Name=:='opaque'))->
+            get_type_attribute(Kind, Name, Offset, Line, Attribute, Args);
         %% other attributes
         [#token{kind='-', offset=Offset, line=Line},
          #token{kind=atom, value=Name, line=_Line, offset=_Offset},
          _, #token{value=Args} | _] = Attribute ->
-            #token{line=LastLine, offset=LastOffset, 
-                   length=LastLength} = last_not_eof(Attribute),
-            PosLength = LastOffset - Offset + LastLength,
-            Between = erlide_np_util:get_between_outer_pars(Attribute, '(', ')'),
-            Extra = to_string(Between),
-            {AttrArgs, Exports, Imports} = get_attribute_args(Name, Between, Args),
-            ?D({AttrArgs, Between}),
-            {#attribute{pos={{Line, LastLine, Offset}, PosLength},
-                        name=Name, args=AttrArgs, extra=Extra},
-             make_attribute_ref(Name, AttrArgs, Extra, Offset, PosLength)++
-                 make_attribute_arg_refs(Name, AttrArgs, Between),
-             Exports, Imports};
+            get_other_attribute(Name, Offset, Line, Attribute, Args);
         [_, #token{kind=atom, value=Name, line=Line, offset=Offset} | _] ->
             #token{line=LastLine, offset=LastOffset, 
                    length=LastLength} = last_not_eof(Attribute),
@@ -277,6 +242,43 @@ cac(other, [#token{value=Name, line=Line, offset=Offset, length=Length} | _],
     {#other{pos={{Line, Line, Offset}, Length}, name=Name}, [], [], []};
 cac(_, _D, _E, _I) ->
     {eof, [], [], []}.
+
+get_type_attribute(Kind, Name0, Offset, Line, Attribute, Args) ->
+    ?D(Name0),
+    Name = case Kind of 'spec' -> Kind; _ -> Name0 end,
+    #token{line=LastLine, offset=LastOffset,
+           length=LastLength} = last_not_eof(Attribute),
+    PosLength = LastOffset - Offset + LastLength,
+    ?D(Args),
+    Extra = to_string(Args),
+    ?D(Extra),
+    {AttrArgs, _, _} = get_attribute_args(Kind, Args, Args),
+    ?D({AttrArgs, Extra}),
+    ExternalRefs = get_refs(tl(AttrArgs), Extra, ?ARI_TYPESPEC),
+    Arity = case Kind of
+                'spec' ->
+                    erlide_text:guess_arity(Args);
+                _ ->
+                    -1
+            end,
+    {#attribute{pos={{Line, LastLine, Offset}, PosLength},
+                name=Name, args=AttrArgs, extra=Extra, arity=Arity},
+     [#ref{data=#type_def{type=Name}, offset=Offset, length=PosLength, function=Name, 
+           arity=?ARI_TYPESPEC, clause="", sub_clause=false} | ExternalRefs], [], []}.
+
+get_other_attribute(Name, Offset, Line, Attribute, Args) ->
+    #token{line=LastLine, offset=LastOffset, 
+           length=LastLength} = last_not_eof(Attribute),
+    PosLength = LastOffset - Offset + LastLength,
+    Between = erlide_np_util:get_between_outer_pars(Attribute, '(', ')'),
+    Extra = to_string(Between),
+    {AttrArgs, Exports, Imports} = get_attribute_args(Name, Between, Args),
+    ?D({AttrArgs, Between}),
+    {#attribute{pos={{Line, LastLine, Offset}, PosLength},
+                name=Name, args=AttrArgs, extra=Extra},
+     make_attribute_ref(Name, AttrArgs, Extra, Offset, PosLength)++
+         make_attribute_arg_refs(Name, AttrArgs, Between),
+     Exports, Imports}.
 
 get_exported(F_A, Exports) ->
     lists:member(F_A, Exports).
@@ -628,8 +630,10 @@ unquote(L) ->
     lists:reverse(unquote_first(lists:reverse(unquote_first(L)))).
 
 unquote_first([$" | Rest]) ->
-    Rest.
+    Rest;
+unquote_first(L) ->
+    L.
 
-remove_rest([], _) -> [];
-remove_rest(Rest, Rest) -> [];
-remove_rest([Hd | Tl], Rest) -> [Hd | remove_rest(Tl, Rest)].
+%% remove_rest([], _) -> [];
+%% remove_rest(Rest, Rest) -> [];
+%% remove_rest([Hd | Tl], Rest) -> [Hd | remove_rest(Tl, Rest)].

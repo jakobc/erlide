@@ -1,5 +1,6 @@
 package com.ericsson.otp.erlang;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
@@ -25,6 +26,19 @@ public class OtpErlang {
             result.add(new OtpErlangString(s.toString()));
         }
         return mkList(result);
+    }
+
+    // for debugging purposes
+    public static long sizeOf(final OtpErlangObject obj) {
+        final OtpOutputStream buf = new OtpOutputStream(obj);
+        try {
+            return buf.size();
+        } finally {
+            try {
+                buf.close();
+            } catch (final IOException e) {
+            }
+        }
     }
 
 }

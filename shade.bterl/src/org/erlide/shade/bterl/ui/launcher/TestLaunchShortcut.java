@@ -25,19 +25,21 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.IBackend;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.util.ErlangFunction;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.test_support.ui.suites.TestResultsView;
 
 public class TestLaunchShortcut implements ILaunchShortcut {
 
+    @Override
     public void launch(final ISelection selection, final String mode) {
         if (selection instanceof IStructuredSelection) {
             final Object item = ((IStructuredSelection) selection)
@@ -46,6 +48,7 @@ public class TestLaunchShortcut implements ILaunchShortcut {
         }
     }
 
+    @Override
     public void launch(final IEditorPart editor, final String mode) {
         doLaunch(editor, mode);
     }
@@ -98,7 +101,7 @@ public class TestLaunchShortcut implements ILaunchShortcut {
         }
     }
 
-    private String getTargetName(final Object target) {
+    protected String getTargetName(final Object target) {
         Object newtarget = target;
         if (target instanceof IEditorPart) {
             newtarget = getEditorTarget(target);
@@ -140,8 +143,8 @@ public class TestLaunchShortcut implements ILaunchShortcut {
                 if (sel instanceof ITextSelection && !sel.isEmpty()) {
                     final ITextSelection tsel = (ITextSelection) sel;
                     try {
-                        final IErlModule module = CoreScope.getModel()
-                                .findModule(file);
+                        final IErlModule module = ErlModelManager
+                                .getErlangModel().findModule(file);
                         if (module != null) {
                             result = module.getElementAt(tsel.getOffset());
                             result = getFunction(result);
@@ -175,7 +178,8 @@ public class TestLaunchShortcut implements ILaunchShortcut {
             final IErlFunctionClause clause = (IErlFunctionClause) result;
             final ErlangFunction fc = new ErlangFunction(
                     clause.getFunctionName(), clause.getArity());
-            final IErlFunction fun = clause.getModule().findFunction(fc);
+            final IErlFunction fun = ModelUtils.getModule(clause).findFunction(
+                    fc);
             return fun;
         }
         return result;

@@ -94,6 +94,7 @@ public class TraceLogView extends ViewPart {
             return getName();
         }
 
+        @Override
         public Object getAdapter(@SuppressWarnings("rawtypes") final Class key) {
             return null;
         }
@@ -132,6 +133,7 @@ public class TraceLogView extends ViewPart {
 
         private TreeParent invisibleRoot;
 
+        @Override
         public void inputChanged(final Viewer v, final Object oldInput,
                 final Object newInput) {
             if (newInput instanceof IErlModule[]) {
@@ -144,9 +146,11 @@ public class TraceLogView extends ViewPart {
             }
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public Object[] getElements(final Object parent) {
             if (parent.equals(getViewSite())) {
                 if (invisibleRoot == null) {
@@ -157,6 +161,7 @@ public class TraceLogView extends ViewPart {
             return getChildren(parent);
         }
 
+        @Override
         public Object getParent(final Object child) {
             if (child instanceof TreeObject) {
                 return ((TreeObject) child).getParent();
@@ -164,6 +169,7 @@ public class TraceLogView extends ViewPart {
             return null;
         }
 
+        @Override
         public Object[] getChildren(final Object parent) {
             if (parent instanceof TreeParent) {
                 return ((TreeParent) parent).getChildren();
@@ -171,6 +177,7 @@ public class TraceLogView extends ViewPart {
             return new Object[0];
         }
 
+        @Override
         public boolean hasChildren(final Object parent) {
             if (parent instanceof TreeParent) {
                 return ((TreeParent) parent).hasChildren();
@@ -254,6 +261,7 @@ public class TraceLogView extends ViewPart {
         menuMgr.setRemoveAllWhenShown(true);
         menuMgr.addMenuListener(new IMenuListener() {
 
+            @Override
             public void menuAboutToShow(final IMenuManager manager) {
                 TraceLogView.this.fillContextMenu(manager);
             }
@@ -349,6 +357,7 @@ public class TraceLogView extends ViewPart {
     private void hookDoubleClickAction() {
         viewer.addDoubleClickListener(new IDoubleClickListener() {
 
+            @Override
             public void doubleClick(final DoubleClickEvent event) {
                 doubleClickAction.run();
             }

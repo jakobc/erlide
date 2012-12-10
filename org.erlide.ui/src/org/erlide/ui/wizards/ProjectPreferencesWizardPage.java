@@ -34,17 +34,16 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfoManager;
-import org.erlide.core.common.CommonUtils;
-import org.erlide.core.common.PreferencesUtils;
+import org.eclipse.wb.swt.SWTResourceManager;
+import org.erlide.backend.BackendCore;
 import org.erlide.core.internal.model.root.OldErlangProjectProperties;
 import org.erlide.core.internal.model.root.PathSerializer;
 import org.erlide.ui.internal.ErlideUIPlugin;
+import org.erlide.utils.PreferencesUtils;
+import org.erlide.utils.SystemConfiguration;
 
 import com.ericsson.otp.erlang.RuntimeVersion;
 import com.google.common.collect.Lists;
-import com.swtdesigner.SWTResourceManager;
 
 /**
  * 
@@ -89,6 +88,7 @@ public class ProjectPreferencesWizardPage extends WizardPage {
     /**
      * @see org.eclipse.jface.dialogs.IDialogPage#createControl(org.eclipse.swt.widgets.Composite)
      */
+    @Override
     public void createControl(final Composite parent) {
         prefs = new OldErlangProjectProperties();
         prefs.setRuntimeVersion(BackendCore.getRuntimeInfoManager()
@@ -173,6 +173,7 @@ public class ProjectPreferencesWizardPage extends WizardPage {
         discoverBtn.setText("Discover paths...");
         discoverBtn.addListener(SWT.Selection, new Listener() {
 
+            @Override
             public void handleEvent(final Event event) {
                 discoverPaths();
             }
@@ -193,7 +194,7 @@ public class ProjectPreferencesWizardPage extends WizardPage {
         runtimeVersion.addListener(SWT.Modify, nameModifyListener);
 
         new Label(composite, SWT.NONE);
-        if (CommonUtils.isTest()) {
+        if (SystemConfiguration.getInstance().isTest()) {
             createExternalModuleEditor(composite);
             createExternalIncludeEditor(composite);
         }
@@ -201,7 +202,8 @@ public class ProjectPreferencesWizardPage extends WizardPage {
     }
 
     private String[] getAllRuntimeNames() {
-        final String[][] runtimes = RuntimeInfoManager.getAllRuntimesVersions();
+        final String[][] runtimes = BackendCore.getRuntimeInfoManager()
+                .getAllRuntimesVersions();
         final List<String> runtimeNames = Lists.newArrayList();
         for (int i = 0; i < runtimes.length; i++) {
             if (!runtimeNames.contains(runtimes[i][0])) {
@@ -292,6 +294,7 @@ public class ProjectPreferencesWizardPage extends WizardPage {
 
     private final Listener nameModifyListener = new Listener() {
 
+        @Override
         public void handleEvent(final Event e) {
             prefs.setOutputDir(new Path(output.getText()));
             prefs.setSourceDirs(PathSerializer.unpackList(source.getText()));

@@ -32,9 +32,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.SelectionDialog;
-import org.erlide.core.common.CommonUtils;
-import org.erlide.ui.editors.erl.outline.FilterDescriptor;
 import org.erlide.ui.util.SWTUtil;
+import org.erlide.utils.ListsUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -57,7 +56,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
     private final Stack<FilterDescriptor> fFilterDescriptorChangeHistory;
 
     /**
-     * Creates a dialog to customize Java element filters.
+     * Creates a dialog to customize Erlang element filters.
      * 
      * @param shell
      *            the parent shell
@@ -166,7 +165,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
 
     private String convertToString(final List<String> patterns,
             final String separator) {
-        return CommonUtils.packList(patterns, separator);
+        return ListsUtils.packList(patterns, separator);
     }
 
     private void createCheckBoxList(final Composite parent) {
@@ -202,6 +201,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
         description.setLayoutData(data);
         fCheckBoxList
                 .addSelectionChangedListener(new ISelectionChangedListener() {
+                    @Override
                     public void selectionChanged(
                             final SelectionChangedEvent event) {
                         final ISelection selection = event.getSelection();
@@ -222,6 +222,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
              * org.eclipse.jface.viewers.ICheckStateListener#checkStateChanged
              * (org.eclipse.jface.viewers.CheckStateChangedEvent)
              */
+            @Override
             public void checkStateChanged(final CheckStateChangedEvent event) {
                 final Object element = event.getElement();
                 if (element instanceof FilterDescriptor) {
@@ -336,7 +337,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
 
     private List<String> convertFromString(final String text,
             final String separator) {
-        return CommonUtils.unpackList(text, separator);
+        return ListsUtils.unpackList(text, separator);
     }
 
     /**

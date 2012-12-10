@@ -30,23 +30,24 @@ import org.eclipse.ui.IWorkingSet;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.progress.IProgressService;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.BackendCore;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlAttribute;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlPreprocessorDef;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.util.ModelUtils;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.core.services.search.ErlSearchScope;
 import org.erlide.core.services.search.ErlangSearchPattern;
-import org.erlide.core.services.search.ErlangSearchPattern.LimitTo;
 import org.erlide.core.services.search.ErlideOpen;
+import org.erlide.core.services.search.LimitTo;
 import org.erlide.core.services.search.OpenResult;
+import org.erlide.core.services.search.SearchPatternFactory;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.ui.actions.SelectionDispatchAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.internal.ExceptionHandler;
@@ -55,7 +56,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * Abstract class for Java search actions.
+ * Abstract class for Erlang search actions.
  * <p>
  * Note: This class is for internal use only. Clients should not use this class.
  * </p>
@@ -65,8 +66,8 @@ import com.google.common.collect.Sets;
 public abstract class FindAction extends SelectionDispatchAction {
 
     // A dummy which can't be selected in the UI
-    // private static final IErlElement RETURN_WITHOUT_BEEP = JavaCore
-    // .create(JavaPlugin.getWorkspace().getRoot());
+    // private static final IErlElement RETURN_WITHOUT_BEEP = ErlangCore
+    // .create(ErlangPlugin.getWorkspace().getRoot());
 
     private ErlangEditor fEditor;
 
@@ -226,12 +227,12 @@ public abstract class FindAction extends SelectionDispatchAction {
         if (module == null) {
             return;
         }
-        final IRpcCallSite b = BackendCore.getBackendManager().getIdeBackend();
+        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
         final ISelection sel = getSelection();
         final ITextSelection textSel = (ITextSelection) sel;
         final int offset = textSel.getOffset();
         final OpenResult res = ErlideOpen.open(b, module, offset, ModelUtils
-                .getImportsAsList(module), "", CoreScope.getModel()
+                .getImportsAsList(module), "", ErlModelManager.getErlangModel()
                 .getPathVars());
         ErlLogger.debug("find " + res);
         final ErlangSearchPattern ref = SearchUtil
@@ -288,7 +289,7 @@ public abstract class FindAction extends SelectionDispatchAction {
 
     protected void performNewSearch(final IErlElement element,
             final ErlSearchScope scope) {
-        final ErlangSearchPattern pattern = ErlangSearchPattern
+        final ErlangSearchPattern pattern = SearchPatternFactory
                 .getSearchPatternFromErlElementAndLimitTo(element, getLimitTo());
         SearchUtil.runQuery(pattern, scope, getScopeDescription(), getShell());
     }

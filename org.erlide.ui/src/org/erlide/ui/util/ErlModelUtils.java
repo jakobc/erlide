@@ -10,7 +10,10 @@
  *******************************************************************************/
 package org.erlide.ui.util;
 
+import org.eclipse.core.resources.IEncodedStorage;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IStorage;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -20,21 +23,22 @@ import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IStorageEditorInput;
 import org.eclipse.ui.IURIEditorInput;
 import org.eclipse.ui.PartInitException;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.BackendException;
+import org.erlide.backend.BackendException;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlTypespec;
+import org.erlide.core.model.erlang.ISourceRange;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.root.ISourceRange;
 import org.erlide.core.model.util.ErlangFunction;
 import org.erlide.core.model.util.ModelUtils;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.util.EditorUtility;
 import org.erlide.ui.editors.util.ErlangExternalEditorInput;
+import org.erlide.utils.Util;
 
 public class ErlModelUtils {
 
@@ -52,8 +56,9 @@ public class ErlModelUtils {
             final ErlangFunction function, final String modulePath,
             final IErlModule module, final IErlProject project,
             final IErlElementLocator.Scope scope) throws CoreException {
-        final IErlModule module2 = ModelUtils.findModule(project, moduleName,
-                modulePath, scope);
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
+        final IErlModule module2 = ModelUtils.findModule(model, project,
+                moduleName, modulePath, scope);
         if (module2 != null) {
             final IEditorPart editor = EditorUtility.openInEditor(module2);
             return openFunctionInEditor(function, editor);
@@ -120,7 +125,7 @@ public class ErlModelUtils {
         if (editorInput instanceof IFileEditorInput) {
             final IFileEditorInput input = (IFileEditorInput) editorInput;
             final IFile file = input.getFile();
-            final IErlModel model = CoreScope.getModel();
+            final IErlModel model = ErlModelManager.getErlangModel();
             IErlModule module = model.findModule(file);
             if (module != null) {
                 return module;
@@ -135,12 +140,22 @@ public class ErlModelUtils {
             final ErlangExternalEditorInput erlangExternalEditorInput = (ErlangExternalEditorInput) editorInput;
             return erlangExternalEditorInput.getModule();
         }
-        String path = null;
+        String path = null, initialText = null;
         if (editorInput instanceof IStorageEditorInput) {
             final IStorageEditorInput sei = (IStorageEditorInput) editorInput;
             try {
-                final IPath p = sei.getStorage().getFullPath();
+                final IStorage storage = sei.getStorage();
+                final IPath p = storage.getFullPath();
                 path = p.toPortableString();
+                String encoding;
+                if (storage instanceof IEncodedStorage) {
+                    final IEncodedStorage encodedStorage = (IEncodedStorage) storage;
+                    encoding = encodedStorage.getCharset();
+                } else {
+                    encoding = ResourcesPlugin.getEncoding();
+                }
+                initialText = Util.getInputStreamAsString(
+                        storage.getContents(), encoding);
             } catch (final CoreException e) {
             }
         }
@@ -149,14 +164,15 @@ public class ErlModelUtils {
             path = ue.getURI().getPath();
         }
         if (path != null) {
-            final IErlModule module = ModelUtils.findModule(null, null, path,
-                    IErlElementLocator.Scope.ALL_PROJECTS);
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
+            final IErlModule module = ModelUtils.findModule(model, null, null,
+                    path, IErlElementLocator.Scope.ALL_PROJECTS);
             if (module != null) {
                 return module;
             }
             final IPath p = new Path(path);
-            return CoreScope.getModel().getModuleFromFile(null,
-                    p.lastSegment(), null, path, path);
+            return ErlModelManager.getErlangModel().getModuleFromFile(null,
+                    p.lastSegment(), initialText, path, path);
         }
         return null;
     }
@@ -164,7 +180,8 @@ public class ErlModelUtils {
     public static void openMFA(final String module, final String function,
             final int arity) throws CoreException {
         ErlModelUtils.openExternalFunction(module, new ErlangFunction(function,
-                arity), null, CoreScope.getModel().findModule(module), null,
+                arity), null,
+                ErlModelManager.getErlangModel().findModule(module), null,
                 IErlElementLocator.Scope.ALL_PROJECTS);
     }
 
@@ -174,8 +191,9 @@ public class ErlModelUtils {
     }
 
     public static void openModule(final String moduleName) throws CoreException {
-        final IErlModule module = ModelUtils.findModule(null, moduleName, null,
-                IErlElementLocator.Scope.ALL_PROJECTS);
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
+        final IErlModule module = ModelUtils.findModule(model, null,
+                moduleName, null, IErlElementLocator.Scope.ALL_PROJECTS);
         if (module != null) {
             EditorUtility.openInEditor(module);
         }

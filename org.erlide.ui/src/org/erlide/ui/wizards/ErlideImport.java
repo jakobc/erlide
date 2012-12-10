@@ -5,9 +5,9 @@ package org.erlide.ui.wizards;
 
 import java.util.List;
 
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.RpcException;
+import org.erlide.backend.IBackend;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.RpcException;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -26,7 +26,7 @@ public class ErlideImport {
      * 
      * @return
      */
-    public static ErlProjectImport importProject(final IRpcCallSite b,
+    public static ErlProjectImport importProject(final IBackend b,
             final String prefix, final List<String> importSources) {
         OtpErlangObject res = null;
         try {

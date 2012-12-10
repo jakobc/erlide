@@ -30,13 +30,15 @@ import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubProgressMonitor;
 import org.eclipse.osgi.util.NLS;
-import org.erlide.core.CoreScope;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.BackendException;
-import org.erlide.core.backend.IBackend;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.BackendException;
+import org.erlide.backend.IBackend;
+import org.erlide.core.internal.model.root.OldErlangProjectProperties;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.rpc.IRpcFuture;
+import org.erlide.core.services.builder.BuilderHelper.SearchVisitor;
 import org.erlide.jinterface.ErlLogger;
+import org.erlide.jinterface.rpc.IRpcFuture;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -66,20 +68,34 @@ public class ErlideBuilder {
 
         try {
             initializeBuilder(monitor);
-            MarkerUtils.removeProblemsAndTasksFor(currentProject);
-            final IErlProject erlProject = CoreScope.getModel()
+            MarkerUtils.removeProblemMarkersFor(currentProject);
+            final DialyzerPreferences prefs = DialyzerPreferences
+                    .get(currentProject);
+            if (prefs.getRemoveWarningsOnClean()) {
+                MarkerUtils.removeDialyzerMarkersFor(currentProject);
+            }
+            final IErlProject erlProject = ErlModelManager.getErlangModel()
                     .getErlangProject(currentProject);
             final IFolder bf = currentProject.getFolder(erlProject
                     .getOutputLocation());
             if (bf.exists()) {
-                final IResource[] beams = bf.members();
-                monitor.beginTask("Cleaning Erlang files", beams.length);
-                if (beams.length > 0) {
-                    final float delta = 100.0f / beams.length;
-                    for (final IResource element : beams) {
-                        if ("beam".equals(element.getFileExtension())) {
-                            element.delete(true, monitor);
-                            notifier.updateProgressDelta(delta);
+                final boolean nukeOutput = new OldErlangProjectProperties(
+                        currentProject).isNukeOutputOnClean();
+                if (nukeOutput) {
+                    bf.delete(true, monitor);
+                } else {
+                    final IResource[] beams = bf.members();
+                    monitor.beginTask("Cleaning Erlang files", beams.length);
+                    if (beams.length > 0) {
+                        final float delta = 100.0f / beams.length;
+                        for (final IResource element : beams) {
+                            if ("beam".equals(element.getFileExtension())) {
+                                final IResource source = findCorrespondingSource(element);
+                                if (source != null) {
+                                    element.delete(true, monitor);
+                                }
+                                notifier.updateProgressDelta(delta);
+                            }
                         }
                     }
                 }
@@ -115,8 +131,8 @@ public class ErlideBuilder {
         ErlLogger.debug("###** Starting build " + helper.buildKind(kind)
                 + " of " + project.getName());
         // }
-        final IErlProject erlProject = CoreScope.getModel().getErlangProject(
-                project);
+        final IErlProject erlProject = ErlModelManager.getErlangModel()
+                .getErlangProject(project);
         try {
             MarkerUtils.deleteMarkers(project);
             initializeBuilder(monitor);
@@ -132,8 +148,8 @@ public class ErlideBuilder {
                 }
             }
 
-            final OtpErlangList compilerOptions = CompilerPreferences
-                    .get(project);
+            final OtpErlangList compilerOptions = CompilerOptions.get(project);
+            ErlLogger.debug(">>> compiler options ::: " + compilerOptions);
 
             final Set<BuildResource> resourcesToBuild = getResourcesToBuild(
                     kind, args, project, resourceDelta);
@@ -282,6 +298,15 @@ public class ErlideBuilder {
 
     public IProject getProject() {
         return myProject;
+    }
+
+    public IResource findCorrespondingSource(final IResource beam)
+            throws CoreException {
+        final String[] p = beam.getName().split("\\.");
+        final SearchVisitor searcher = helper.new SearchVisitor(p[0], null);
+        beam.getProject().accept(searcher);
+        final IResource source = searcher.getResult();
+        return source;
     }
 
 }

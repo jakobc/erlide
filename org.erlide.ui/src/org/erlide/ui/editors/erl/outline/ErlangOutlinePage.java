@@ -10,6 +10,7 @@
 
 package org.erlide.ui.editors.erl.outline;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -36,7 +37,9 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IPartListener;
 import org.eclipse.ui.IWorkbenchCommandConstants;
+import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.actions.ActionContext;
 import org.eclipse.ui.actions.ActionGroup;
@@ -47,12 +50,12 @@ import org.eclipse.ui.model.WorkbenchAdapter;
 import org.eclipse.ui.part.IPageSite;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.eclipse.ui.views.contentoutline.ContentOutlinePage;
-import org.erlide.core.CoreScope;
 import org.erlide.core.ErlangCore;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.erlang.ISourceReference;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlModelChangeListener;
-import org.erlide.core.model.root.ISourceReference;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.ErlideImage;
 import org.erlide.ui.actions.ActionMessages;
@@ -61,6 +64,9 @@ import org.erlide.ui.actions.ErlangSearchActionGroup;
 import org.erlide.ui.actions.SortAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.erl.IErlangHelpContextIds;
+import org.erlide.ui.editors.erl.outline.filters.FilterDescriptor;
+import org.erlide.ui.editors.erl.outline.filters.OutlineFilterUtils;
+import org.erlide.ui.editors.erl.outline.filters.PatternFilter;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.navigator.ErlElementSorter;
 import org.erlide.ui.prefs.PreferenceConstants;
@@ -87,6 +93,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
     private OpenAndLinkWithEditorHelper fOpenAndLinkWithEditorHelper;
     private ToggleLinkingAction fToggleLinkingAction;
     private final PatternFilter fPatternFilter = new PatternFilter();
+    private IPartListener fPartListener;
 
     @Override
     public Control getControl() {
@@ -123,7 +130,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
     public ErlangOutlinePage(final ErlangEditor editor) {
         // myDocProvider = documentProvider;
         fEditor = editor;
-        CoreScope.getModel().addModelChangeListener(this);
+        ErlModelManager.getErlangModel().addModelChangeListener(this);
     }
 
     /**
@@ -139,8 +146,36 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
             if (fModule != null) {
                 fModule.open(null);
             }
+            // addFilters();
         } catch (final CoreException e) {
         }
+    }
+
+    private void addFilters() {
+        final IEclipsePreferences prefsNode = ErlangOutlinePage.getPrefsNode();
+        final Collection<FilterDescriptor> filterDescriptors = FilterDescriptor
+                .getFilterDescriptors();
+        final List<FilterDescriptor> descs = Lists.newArrayList();
+        for (final FilterDescriptor filterDescriptor : filterDescriptors) {
+            final String filterId = filterDescriptor.getId();
+            final boolean value = prefsNode.getBoolean(filterId, false);
+            if (value) {
+                descs.add(filterDescriptor);
+            }
+        }
+        OutlineFilterUtils.setFilters(descs, this);
+        final List<String> userDefinedPatterns = Lists.newArrayList();
+        final Set<String> enabledFilterIDs = Sets.newHashSet();
+        final List<String> emptyList = Lists.newArrayList();
+        final Set<String> emptySet = Sets.newHashSet();
+        final boolean userFiltersEnabled = OutlineFilterUtils.loadViewDefaults(
+                userDefinedPatterns, enabledFilterIDs);
+        if (!userFiltersEnabled) {
+            userDefinedPatterns.clear();
+        }
+        OutlineFilterUtils.updateViewerFilters(getTreeViewer(), emptyList,
+                emptySet, userDefinedPatterns, enabledFilterIDs,
+                getPatternFilter());
     }
 
     public void refresh() {
@@ -152,11 +187,11 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
             final Display d = c.getDisplay();
             d.asyncExec(new Runnable() {
 
+                @Override
                 public void run() {
                     if (getTreeViewer().getControl() != null
                             && !getTreeViewer().getControl().isDisposed()) {
-                        // ErlLogger.log("*>> refreshing.");
-                        getTreeViewer().setInput(fModule);
+                        getTreeViewer().refresh(fModule);
                     }
                 }
             });
@@ -174,18 +209,6 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
         fOutlineViewer.setLabelProvider(fEditor.createOutlineLabelProvider());
         fOutlineViewer.addPostSelectionChangedListener(this);
         fOutlineViewer.setInput(fModule);
-        final List<String> userDefinedPatterns = Lists.newArrayList();
-        final Set<String> enabledFilterIDs = Sets.newHashSet();
-        final boolean userFiltersEnabled = OutlineFilterUtils.loadViewDefaults(
-                userDefinedPatterns, enabledFilterIDs);
-        final List<String> emptyList = Lists.newArrayList();
-        final Set<String> emptySet = Sets.newHashSet();
-        if (!userFiltersEnabled) {
-            userDefinedPatterns.clear();
-        }
-        OutlineFilterUtils.updateViewerFilters(getTreeViewer(), emptyList,
-                emptySet, userDefinedPatterns, enabledFilterIDs,
-                getPatternFilter());
         fOpenAndLinkWithEditorHelper = new OpenAndLinkWithEditorHelper(
                 fOutlineViewer) {
 
@@ -219,6 +242,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
         final MenuManager manager = new MenuManager();
         manager.setRemoveAllWhenShown(true);
         manager.addMenuListener(new IMenuListener() {
+            @Override
             public void menuAboutToShow(final IMenuManager m) {
                 // recursive loop?
                 // menuAboutToShow(m);
@@ -245,6 +269,31 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
         handlerService.activateHandler(
                 IWorkbenchCommandConstants.NAVIGATE_TOGGLE_LINK_WITH_EDITOR,
                 new ActionHandler(fToggleLinkingAction));
+        fPartListener = new IPartListener() {
+
+            @Override
+            public void partOpened(final IWorkbenchPart part) {
+                addFilters(); // JC borde filter-metoden ovan räcka?
+            }
+
+            @Override
+            public void partDeactivated(final IWorkbenchPart part) {
+            }
+
+            @Override
+            public void partClosed(final IWorkbenchPart part) {
+            }
+
+            @Override
+            public void partBroughtToTop(final IWorkbenchPart part) {
+            }
+
+            @Override
+            public void partActivated(final IWorkbenchPart part) {
+                addFilters();
+            }
+        };
+        getSite().getPage().addPartListener(fPartListener);
     }
 
     protected void contextMenuAboutToShow(final IMenuManager menu) {
@@ -270,6 +319,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
          * 
          * @see org.eclipse.core.runtime.IAdaptable#getAdapter(Class)
          */
+        @Override
         public Object getAdapter(@SuppressWarnings("rawtypes") final Class clas) {
             if (clas == IWorkbenchAdapter.class) {
                 return this;
@@ -295,15 +345,17 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
 
     @Override
     public void dispose() {
+        getSite().getPage().removePartListener(fPartListener);
         if (fEditor != null) {
             fEditor.outlinePageClosed();
             fEditor = null;
         }
-        CoreScope.getModel().removeModelChangeListener(this);
+        ErlModelManager.getErlangModel().removeModelChangeListener(this);
 
         super.dispose();
     }
 
+    @Override
     public void elementChanged(final IErlElement element) {
         if (fModule == element) {
             refresh();
@@ -328,8 +380,9 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
         viewMenuManager.add(fToggleLinkingAction);
     }
 
+    @Override
     public void sort(final boolean sorting) {
-        ErlLogger.debug("sorting " + sorting);
+        ErlLogger.debug("NYI: sorting " + sorting);
     }
 
     public static IEclipsePreferences getPrefsNode() {
@@ -341,8 +394,8 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
     }
 
     /**
-     * This action toggles whether this Java Outline page links its selection to
-     * the active editor.
+     * This action toggles whether this Erlang Outline page links its selection
+     * to the active editor.
      * 
      * @since 3.0
      */

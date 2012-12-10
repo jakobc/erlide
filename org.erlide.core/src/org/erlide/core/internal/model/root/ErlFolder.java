@@ -11,16 +11,18 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.erlide.core.common.CommonUtils;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.ModuleKind;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.ErlModelStatusConstants;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlFolder;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.model.root.IParent;
+import org.erlide.core.model.util.ModelUtils;
+import org.erlide.utils.SystemConfiguration;
 
 /**
  * Implementation of folder in erlang model
@@ -39,7 +41,7 @@ public class ErlFolder extends Openable implements IErlFolder {
     @Override
     protected boolean buildStructure(final IProgressMonitor pm)
             throws ErlModelException {
-        final IErlModel model = getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         final IContainer c = (IContainer) getResource();
         try {
             // FIXME this is general stuff, should we put it in model or
@@ -66,12 +68,14 @@ public class ErlFolder extends Openable implements IErlFolder {
         }
     }
 
+    @Override
     public Collection<IErlModule> getModules() throws ErlModelException {
         final List<IErlModule> result = new ArrayList<IErlModule>();
         addModules(result);
         return result;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.FOLDER;
     }
@@ -86,21 +90,24 @@ public class ErlFolder extends Openable implements IErlFolder {
         return folder;
     }
 
+    @Override
     public boolean isOnSourcePath() {
-        final IErlProject project = getProject();
+        final IErlProject project = ModelUtils.getProject(this);
         return ErlFolder.isOnPaths(folder, project.getWorkspaceProject(),
                 project.getSourceDirs());
     }
 
+    @Override
     public boolean isOnIncludePath() {
-        final IErlProject project = getProject();
+        final IErlProject project = ModelUtils.getProject(this);
         return ErlFolder.isOnPaths(folder, project.getWorkspaceProject(),
                 project.getIncludeDirs());
     }
 
+    @Override
     public boolean isSourcePathParent() {
         final IProject project = folder.getProject();
-        final IErlProject erlProject = getProject();
+        final IErlProject erlProject = ModelUtils.getProject(this);
         final Collection<IPath> sourcePaths = erlProject.getSourceDirs();
         final IPath path = folder.getFullPath();
         for (final IPath i : sourcePaths) {
@@ -130,7 +137,8 @@ public class ErlFolder extends Openable implements IErlFolder {
     @Override
     public void setChildren(final Collection<? extends IErlElement> c) {
         if (isOnIncludePath() || isOnSourcePath()) {
-            ErlModel.getErlModelCache().removeProject(getProject());
+            ErlModel.getErlModelCache().removeProject(
+                    ModelUtils.getProject(this));
         }
         super.setChildren(c);
     }
@@ -138,7 +146,8 @@ public class ErlFolder extends Openable implements IErlFolder {
     @Override
     public void clearCaches() {
         if (isOnIncludePath() || isOnSourcePath()) {
-            ErlModel.getErlModelCache().removeProject(getProject());
+            ErlModel.getErlModelCache().removeProject(
+                    ModelUtils.getProject(this));
         }
         super.clearCaches();
     }
@@ -157,7 +166,7 @@ public class ErlFolder extends Openable implements IErlFolder {
         }
         boolean hasExtension;
         if (name != null) {
-            hasExtension = CommonUtils.hasExtension(name);
+            hasExtension = SystemConfiguration.hasExtension(name);
             for (final IErlModule module : modules) {
                 final String name2 = module.getName();
                 final String moduleName = hasExtension ? name2 : module
@@ -173,11 +182,13 @@ public class ErlFolder extends Openable implements IErlFolder {
         return null;
     }
 
+    @Override
     public IErlModule findModule(final String moduleName,
             final String modulePath) throws ErlModelException {
         return findModuleOrInclude(moduleName, modulePath, false);
     }
 
+    @Override
     public IErlModule findInclude(final String includeName,
             final String includePath) throws ErlModelException {
         return findModuleOrInclude(includeName, includePath, true);

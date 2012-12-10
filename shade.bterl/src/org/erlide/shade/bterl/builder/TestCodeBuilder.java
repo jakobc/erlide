@@ -29,20 +29,23 @@ import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.IStreamListener;
 import org.eclipse.debug.core.model.IStreamMonitor;
 import org.eclipse.debug.internal.core.StreamsProxy;
-import org.erlide.core.ErlangCore;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.BackendException;
-import org.erlide.core.backend.BackendUtils;
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.core.rpc.IRpcFuture;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.BackendException;
+import org.erlide.backend.BackendUtils;
+import org.erlide.backend.IBackend;
 import org.erlide.core.services.builder.BuildResource;
 import org.erlide.core.services.builder.BuilderHelper;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.util.ErlUtils;
+import org.erlide.jinterface.rpc.IRpcFuture;
+import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.shade.bterl.ui.launcher.TestLaunchDelegate;
+import org.erlide.utils.ErlUtils;
+import org.erlide.utils.SystemConfiguration;
 
+import com.ericsson.otp.erlang.OtpErlang;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -55,7 +58,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
     public static final String BUILDER_ID = "shade.bterl.builder";
     private static final String MARKER_TYPE = "org.erlide.test_support.bterlProblem";
     private static final boolean DEBUG = Boolean.parseBoolean(System
-            .getProperty("erlide.test_support.debug"));
+            .getProperty("erlide.test_builder.debug"));
     private static final boolean DISABLED = Boolean.parseBoolean(System
             .getProperty("erlide.test_builder.disabled"));
 
@@ -77,10 +80,10 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
     @Override
     protected IProject[] build(final int kind, final Map args,
             final IProgressMonitor monitor) throws CoreException {
+        final IProject project = getProject();
         if (DISABLED) {
             return null;
         }
-        final IProject project = getProject();
         if (DEBUG) {
             ErlLogger.info("##### start test builder (%s) %s",
                     helper.buildKind(kind), project.getName());
@@ -155,7 +158,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             final boolean deleteMarkers, final IProgressMonitor monitor) {
         try {
             final Map<IRpcFuture, IResource> results = Maps.newHashMap();
-            IRpcCallSite backend;
+            IBackend backend;
             try {
                 backend = BackendCore.getBackendManager().getBuildBackend(
                         project);
@@ -169,6 +172,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                 // IMarker.SEVERITY_ERROR);
                 throw new BackendException(message);
             }
+            registerBterlBeams(backend);
             for (final BuildResource bres : resourcesToBuild) {
                 if (monitor.isCanceled()) {
                     return;
@@ -176,15 +180,18 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                 final IResource resource = bres.getResource();
                 resource.deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_ZERO);
 
-                // FIXME use real bterl path!!
-                final OtpErlangList compilerOptions = (OtpErlangList) ErlUtils
-                        .format("[{i, ~s}]", TestLaunchDelegate.getBterlPath()
-                                + "/../bt_tool");
+                final List<OtpErlangObject> incs = Lists.newArrayList();
+                for (final String path : TestLaunchDelegate.getBterlPath()) {
+                    incs.add(ErlUtils.format("{i, ~s}", path));
+                }
+                final OtpErlangList compilerOptions = OtpErlang.mkList(incs
+                        .toArray(new OtpErlangObject[incs.size()]));
 
                 final String outputDir = bres.getResource().getParent()
                         .getProjectRelativePath().toString();
-                final IRpcFuture f = helper.startCompileErl(project, bres,
-                        outputDir, backend, compilerOptions, false);
+                IRpcFuture f = null;
+                f = helper.startCompileErl(project, bres, outputDir, backend,
+                        compilerOptions, false);
                 if (f != null) {
                     results.put(f, resource);
                 }
@@ -216,6 +223,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                 waiting.removeAll(done);
                 done.clear();
             }
+            unregisterBterlBeams(backend);
 
         } catch (final OperationCanceledException e) {
             if (BuilderHelper.isDebugging()) {
@@ -229,6 +237,22 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             // e.getLocalizedMessage());
             // MarkerHelper.addProblemMarker(project, null, msg, 0,
             // IMarker.SEVERITY_ERROR);
+        }
+    }
+
+    public void registerBterlBeams(final IBackend backend)
+            throws CoreException, RpcException {
+        final String[] bterl_beams = TestLaunchDelegate.getBterlPath();
+        for (final String bterl_beam : bterl_beams) {
+            backend.call("code", "add_path", "s", bterl_beam);
+        }
+    }
+
+    public void unregisterBterlBeams(final IBackend backend)
+            throws CoreException, RpcException {
+        final String[] bterl_beams = TestLaunchDelegate.getBterlPath();
+        for (final String bterl_beam : bterl_beams) {
+            backend.call("code", "del_path", "s", bterl_beam);
         }
     }
 
@@ -296,6 +320,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             cleaning = clean;
         }
 
+        @Override
         public boolean visit(final IResource resource) throws CoreException {
             final IProject my_project = resource.getProject();
             if (resource.isDerived()) {
@@ -346,6 +371,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             this.monitor = monitor;
         }
 
+        @Override
         public boolean visit(final IResourceDelta delta) throws CoreException {
             final IResource resource = delta.getResource();
             if (resource.isDerived()) {
@@ -417,8 +443,9 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                 final Process makeLinks = DebugPlugin.exec(
                         new String[] { "./make_links" }, dir);
                 final StreamsProxy proxy = new StreamsProxy(makeLinks,
-                        "ISO-8859-1");
+                        Charsets.ISO_8859_1.name());
                 final IStreamListener listener = new IStreamListener() {
+                    @Override
                     public void streamAppended(final String text,
                             final IStreamMonitor streamMonitor) {
                         final String[] lines = text.split("\n");
@@ -427,7 +454,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                         }
                     }
                 };
-                if (ErlangCore.hasFeatureEnabled("erlide.make_links.snoop")) {
+                if (SystemConfiguration.hasFeatureEnabled("erlide.make_links.snoop")) {
                     proxy.getOutputStreamMonitor().addListener(listener);
                     proxy.getErrorStreamMonitor().addListener(listener);
                 }
@@ -459,6 +486,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             return haslinks;
         }
 
+        @Override
         public boolean visit(final IResource resource) throws CoreException {
             final IProject my_project = resource.getProject();
             if (resource.isDerived()) {

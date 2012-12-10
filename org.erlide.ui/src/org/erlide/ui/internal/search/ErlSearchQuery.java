@@ -10,15 +10,16 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.search.ui.ISearchQuery;
 import org.eclipse.search.ui.ISearchResult;
 import org.eclipse.search.ui.text.Match;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangPlugin;
-import org.erlide.core.backend.BackendCore;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.rpc.IRpcResultCallback;
-import org.erlide.core.rpc.RpcException;
 import org.erlide.core.services.search.ErlSearchScope;
 import org.erlide.core.services.search.ErlangSearchPattern;
 import org.erlide.core.services.search.ErlideSearchServer;
 import org.erlide.core.services.search.ModuleLineFunctionArityRef;
+import org.erlide.jinterface.rpc.IRpcResultCallback;
+import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.ui.internal.ErlideUIPlugin;
 
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -60,18 +61,22 @@ public class ErlSearchQuery implements ISearchQuery {
         }
     }
 
+    @Override
     public boolean canRerun() {
         return true;
     }
 
+    @Override
     public boolean canRunInBackground() {
         return true;
     }
 
+    @Override
     public String getLabel() {
         return pattern.labelString();
     }
 
+    @Override
     public ISearchResult getSearchResult() {
         if (fSearchResult == null) {
             fSearchResult = new ErlangSearchResult(this);
@@ -79,11 +84,13 @@ public class ErlSearchQuery implements ISearchQuery {
         return fSearchResult;
     }
 
+    @Override
     public IStatus run(final IProgressMonitor monitor)
             throws OperationCanceledException {
         final Object locker = new Object();
         final IRpcResultCallback callback = new IRpcResultCallback() {
 
+            @Override
             public void start(final OtpErlangObject msg) {
                 if (fSearchResult != null) {
                     fSearchResult.removeAll();
@@ -98,6 +105,7 @@ public class ErlSearchQuery implements ISearchQuery {
                 monitor.beginTask("Searching", progressMax);
             }
 
+            @Override
             public void stop(final OtpErlangObject msg) {
                 monitor.done();
                 synchronized (locker) {
@@ -105,6 +113,7 @@ public class ErlSearchQuery implements ISearchQuery {
                 }
             }
 
+            @Override
             public void progress(final OtpErlangObject msg) {
                 final OtpErlangTuple t = (OtpErlangTuple) msg;
                 final OtpErlangPid backgroundSearchPid = (OtpErlangPid) t
@@ -134,7 +143,8 @@ public class ErlSearchQuery implements ISearchQuery {
         };
         try {
             ErlideSearchServer.startFindRefs(BackendCore.getBackendManager()
-                    .getIdeBackend(), pattern, scope, getStateDir(), callback);
+                    .getIdeBackend(), pattern, scope, getStateDir(), callback,
+                    false);
         } catch (final RpcException e) {
             return new Status(IStatus.ERROR, ErlideUIPlugin.PLUGIN_ID,
                     "Search error", e);

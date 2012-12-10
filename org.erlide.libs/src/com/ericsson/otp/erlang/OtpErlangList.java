@@ -326,10 +326,11 @@ public class OtpErlangList extends OtpErlangObject implements
         try {
             return new OtpErlangList(elements(), getLastTail());
         } catch (final OtpErlangException e) {
-            return null;
+            throw new AssertionError(e);
         }
     }
 
+    @Override
     public Iterator<OtpErlangObject> iterator() {
         return iterator(0);
     }
@@ -483,10 +484,12 @@ public class OtpErlangList extends OtpErlangObject implements
             this.cursor = cursor;
         }
 
+        @Override
         public boolean hasNext() {
             return cursor < elems.length;
         }
 
+        @Override
         public OtpErlangObject next() {
             try {
                 return elems[cursor++];
@@ -495,6 +498,7 @@ public class OtpErlangList extends OtpErlangObject implements
             }
         }
 
+        @Override
         public void remove() {
             throw new UnsupportedOperationException(
                     "OtpErlangList cannot be modified!");

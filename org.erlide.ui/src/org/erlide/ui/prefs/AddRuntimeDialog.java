@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -26,7 +25,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfo;
+import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.ui.dialogfields.DialogField;
 import org.erlide.ui.dialogfields.IDialogFieldListener;
 import org.erlide.ui.dialogfields.IListAdapter;
@@ -41,25 +40,31 @@ public class AddRuntimeDialog extends StatusDialog implements
 
     public static class StringLabelProvider implements ILabelProvider {
 
+        @Override
         public Image getImage(final Object element) {
             return null;
         }
 
+        @Override
         public String getText(final Object element) {
             return (String) element;
         }
 
+        @Override
         public void addListener(final ILabelProviderListener listener) {
         }
 
+        @Override
         public void dispose() {
         }
 
+        @Override
         public boolean isLabelProperty(final Object element,
                 final String property) {
             return false;
         }
 
+        @Override
         public void removeListener(final ILabelProviderListener listener) {
         }
 
@@ -104,6 +109,7 @@ public class AddRuntimeDialog extends StatusDialog implements
     protected void createFieldListeners() {
         fOtpHome.setDialogFieldListener(new IDialogFieldListener() {
 
+            @Override
             public void dialogFieldChanged(final DialogField field) {
                 setLocationStatus(validateLocation());
                 updateStatusLine();
@@ -111,6 +117,7 @@ public class AddRuntimeDialog extends StatusDialog implements
         });
         fName.setDialogFieldListener(new IDialogFieldListener() {
 
+            @Override
             public void dialogFieldChanged(final DialogField field) {
                 setNameStatus(validateName());
                 updateStatusLine();
@@ -126,6 +133,7 @@ public class AddRuntimeDialog extends StatusDialog implements
     protected Control createDialogArea(final Composite ancestor) {
         fOtpHome = new StringButtonDialogField(new IStringButtonAdapter() {
 
+            @Override
             public void changeControlPressed(final DialogField field) {
                 browseForInstallDir();
             }
@@ -255,10 +263,6 @@ public class AddRuntimeDialog extends StatusDialog implements
     private void doOkPressed() {
         if (returnNew) {
             final RuntimeInfo info = new RuntimeInfo();
-            final IWorkspaceRoot wroot = ResourcesPlugin.getWorkspace()
-                    .getRoot();
-            final String location = wroot.getLocation().toPortableString();
-            info.setWorkingDir(location);
             storeValues(info);
             fRequestor.itemAdded(info);
         } else {
@@ -344,6 +348,7 @@ public class AddRuntimeDialog extends StatusDialog implements
         // getDialogSettingsSectionName(), size);
     }
 
+    @Override
     public void customButtonPressed(final ListDialogField<String> field,
             final int index) {
         switch (index) {
@@ -411,9 +416,11 @@ public class AddRuntimeDialog extends StatusDialog implements
         }
     }
 
+    @Override
     public void doubleClicked(final ListDialogField<String> field) {
     }
 
+    @Override
     public void selectionChanged(final ListDialogField<String> field) {
     }
 

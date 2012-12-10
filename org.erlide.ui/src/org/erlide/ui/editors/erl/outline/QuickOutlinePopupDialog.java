@@ -51,6 +51,7 @@ import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.ErlideUIMessages;
 import org.erlide.ui.actions.SortAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.ui.editors.erl.outline.filters.FilterDescriptor;
 import org.erlide.ui.editors.util.EditorUtility;
 import org.erlide.ui.navigator.ErlElementSorter;
 import org.erlide.ui.util.StringMatcher;
@@ -204,6 +205,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         final Tree tree = fTreeViewer.getTree();
         // Handle key events
         tree.addKeyListener(new KeyListener() {
+            @Override
             public void keyPressed(final KeyEvent e) {
                 if (e.character == 0x1B) {
                     // Dispose on ESC key press
@@ -211,6 +213,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
                 }
             }
 
+            @Override
             public void keyReleased(final KeyEvent e) {
                 // NO-OP
             }
@@ -226,10 +229,12 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         tree.addMouseMoveListener(new QuickOutlineMouseMoveListener(fTreeViewer));
         // Handle widget selection events
         tree.addSelectionListener(new SelectionListener() {
+            @Override
             public void widgetSelected(final SelectionEvent e) {
                 // NO-OP
             }
 
+            @Override
             public void widgetDefaultSelected(final SelectionEvent e) {
                 gotoSelectedElement();
             }
@@ -266,24 +271,29 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
                 .getFirstElement();
     }
 
+    @Override
     public void addDisposeListener(final DisposeListener listener) {
         getShell().addDisposeListener(listener);
     }
 
+    @Override
     public void addFocusListener(final FocusListener listener) {
         getShell().addFocusListener(listener);
     }
 
+    @Override
     public Point computeSizeHint() {
         // Return the shell's size
         // Note that it already has the persisted size if persisting is enabled.
         return getShell().getSize();
     }
 
+    @Override
     public void dispose() {
         close();
     }
 
+    @Override
     public boolean isFocusControl() {
         if (fTreeViewer.getControl().isFocusControl()
                 || fFilterText.isFocusControl()) {
@@ -292,18 +302,22 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         return false;
     }
 
+    @Override
     public void removeDisposeListener(final DisposeListener listener) {
         getShell().removeDisposeListener(listener);
     }
 
+    @Override
     public void removeFocusListener(final FocusListener listener) {
         getShell().removeFocusListener(listener);
     }
 
+    @Override
     public void setBackgroundColor(final Color background) {
         applyBackgroundColor(background, getContents());
     }
 
+    @Override
     public void setFocus() {
         getShell().forceFocus();
         fFilterText.setFocus();
@@ -314,15 +328,18 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         return fFilterText;
     }
 
+    @Override
     public void setForegroundColor(final Color foreground) {
         applyForegroundColor(foreground, getContents());
     }
 
+    @Override
     public void setInformation(final String information) {
         // Ignore
         // See IInformationControlExtension2
     }
 
+    @Override
     public void setLocation(final Point location) {
         /*
          * If the location is persisted, it gets managed by PopupDialog - fine.
@@ -343,14 +360,17 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         }
     }
 
+    @Override
     public void setSize(final int width, final int height) {
         getShell().setSize(width, height);
     }
 
+    @Override
     public void setSizeConstraints(final int maxWidth, final int maxHeight) {
         // Ignore
     }
 
+    @Override
     public void setVisible(final boolean visible) {
         if (visible) {
             open();
@@ -360,6 +380,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         }
     }
 
+    @Override
     public boolean hasContents() {
         if (fTreeViewer == null || fTreeViewer.getInput() == null) {
             return false;
@@ -367,6 +388,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         return true;
     }
 
+    @Override
     public void setInput(final Object input) {
         // Input comes from ErlangSourceInfoProvider.getInformation2()
         // The input should be a model object of some sort
@@ -376,6 +398,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
         }
     }
 
+    @Override
     public void widgetDisposed(final DisposeEvent e) {
         // Note: We do not reuse the dialog
         fTreeViewer = null;
@@ -435,6 +458,7 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
     private void createUIListenersFilterText() {
         // Handle key events
         fFilterText.addKeyListener(new KeyListener() {
+            @Override
             public void keyPressed(final KeyEvent e) {
                 if (e.keyCode == 0x0D) {
                     // Return key was pressed
@@ -451,12 +475,14 @@ public class QuickOutlinePopupDialog extends PopupDialog implements
                 }
             }
 
+            @Override
             public void keyReleased(final KeyEvent e) {
                 // NO-OP
             }
         });
         // Handle text modify events
         fFilterText.addModifyListener(new ModifyListener() {
+            @Override
             public void modifyText(final ModifyEvent e) {
                 String text = ((Text) e.widget).getText();
                 final int length = text.length();

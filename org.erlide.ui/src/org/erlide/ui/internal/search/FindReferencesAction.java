@@ -14,12 +14,12 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IWorkbenchSite;
 import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.services.search.ErlSearchScope;
-import org.erlide.core.services.search.ErlangSearchPattern.LimitTo;
+import org.erlide.core.services.search.LimitTo;
 import org.erlide.ui.editors.erl.ErlangEditor;
 
 /**
  * Finds references of the selected element in the workspace. The action is
- * applicable to selections representing a Java element.
+ * applicable to selections representing a Erlang element.
  * 
  * <p>
  * This class may be instantiated; it is not intended to be subclassed.
@@ -46,7 +46,7 @@ public class FindReferencesAction extends FindAction {
      * this constructor.
      * 
      * @param editor
-     *            the Java editor
+     *            the Erlang editor
      */
     public FindReferencesAction(final ErlangEditor editor) {
         super(editor);

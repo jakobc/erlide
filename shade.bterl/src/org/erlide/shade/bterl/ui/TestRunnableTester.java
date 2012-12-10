@@ -13,6 +13,7 @@ import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.util.ErlangFunction;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.shade.bterl.builder.ErlTestNature;
 import org.erlide.shade.bterl.ui.launcher.TestLaunchShortcut;
 
@@ -45,6 +46,7 @@ public class TestRunnableTester extends PropertyTester {
      * Can run if it is a file with name matching "*_SUITE.erl" or a folder
      * containing such a file directly beneath it.
      */
+    @Override
     public boolean test(Object receiver, final String property,
             final Object[] args, final Object expectedValue) {
         if (receiver instanceof IEditorPart
@@ -76,6 +78,7 @@ public class TestRunnableTester extends PropertyTester {
     static class BterlVisitor implements IResourceVisitor {
         boolean hasTests = false;
 
+        @Override
         public boolean visit(final IResource resource) throws CoreException {
             if (isTestSuite(resource)) {
                 hasTests = true;
@@ -123,7 +126,7 @@ public class TestRunnableTester extends PropertyTester {
     static boolean isTestCase(final Object receiver) {
         if (receiver instanceof IErlFunction) {
             final IErlFunction fun = (IErlFunction) receiver;
-            final IErlModule mod = fun.getModule();
+            final IErlModule mod = ModelUtils.getModule(fun);
             final IResource file = mod.getResource();
             return isTestSuite(file) && fun.isExported();
         }
@@ -131,7 +134,8 @@ public class TestRunnableTester extends PropertyTester {
             final IErlFunctionClause clause = (IErlFunctionClause) receiver;
             final ErlangFunction fc = new ErlangFunction(
                     clause.getFunctionName(), clause.getArity());
-            final IErlFunction fun = clause.getModule().findFunction(fc);
+            final IErlFunction fun = ModelUtils.getModule(clause).findFunction(
+                    fc);
             return fun != null && isTestCase(fun);
         }
         return false;

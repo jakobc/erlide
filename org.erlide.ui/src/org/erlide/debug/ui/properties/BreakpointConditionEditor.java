@@ -29,9 +29,9 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.IHandlerActivation;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
-import org.erlide.core.debug.IErlangBreakpoint;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.ui.editors.erl.IErlangPartitions;
+import org.erlide.launch.debug.IErlangBreakpoint;
+import org.erlide.ui.editors.erl.scanner.IErlangPartitions;
 
 /**
  * The widget for the conditional editor on the breakpoints properties page
@@ -135,9 +135,11 @@ public class BreakpointConditionEditor {
             fViewer.setUndoManager(new TextViewerUndoManager(10));
             fViewer.getUndoManager().connect(fViewer);
             fDocumentListener = new IDocumentListener() {
+                @Override
                 public void documentAboutToBeChanged(final DocumentEvent event) {
                 }
 
+                @Override
                 public void documentChanged(final DocumentEvent event) {
                     valueChanged();
                 }
@@ -148,6 +150,7 @@ public class BreakpointConditionEditor {
             gd.widthHint = fPage.convertWidthInCharsToPixels(40);
             fViewer.getControl().setLayoutData(gd);
             fHandler = new AbstractHandler() {
+                @Override
                 public Object execute(final ExecutionEvent event)
                         throws org.eclipse.core.commands.ExecutionException {
                     fViewer.doOperation(ISourceViewer.CONTENTASSIST_PROPOSALS);

@@ -20,11 +20,12 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.backend.BackendCore;
-import org.erlide.core.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.internal.model.erlang.PropertiesUtils;
 import org.erlide.core.model.root.IOldErlangProjectProperties;
+import org.erlide.utils.SystemConfiguration;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.ericsson.otp.erlang.RuntimeVersion;
@@ -46,6 +47,7 @@ public final class OldErlangProjectProperties implements
     private RuntimeVersion runtimeVersion = new RuntimeVersion(
             ProjectPreferencesConstants.DEFAULT_RUNTIME_VERSION);
     private String runtimeName = null;
+    private boolean nukeOutputOnClean = false;
 
     public OldErlangProjectProperties() {
     }
@@ -64,7 +66,7 @@ public final class OldErlangProjectProperties implements
             return;
         }
 
-        if (ErlangCore.hasFeatureEnabled("erlide.newprops")) {
+        if (SystemConfiguration.hasFeatureEnabled("erlide.newprops")) {
             try {
                 final ErlProjectInfoBuilder builder = new ErlProjectInfoBuilder();
                 final ErlProjectInfo npp = builder
@@ -113,15 +115,18 @@ public final class OldErlangProjectProperties implements
         externalIncludesFile = node.get(
                 ProjectPreferencesConstants.EXTERNAL_INCLUDES,
                 ProjectPreferencesConstants.DEFAULT_EXTERNAL_INCLUDES);
+        setNukeOutputOnClean(node.getBoolean(
+                ProjectPreferencesConstants.NUKE_OUTPUT_ON_CLEAN, false));
     }
 
+    @Override
     public void store() throws BackingStoreException {
         if (project == null) {
             return;
         }
         final IEclipsePreferences node = new ProjectScope(project)
                 .getNode(ErlangCore.PLUGIN_ID);
-        if (ErlangCore.hasFeatureEnabled("erlide.newprops")) {
+        if (SystemConfiguration.hasFeatureEnabled("erlide.newprops")) {
             try {
                 final ErlProjectInfo npp = PropertiesUtils.convertOld(this);
                 final ErlProjectInfoBuilder builder = new ErlProjectInfoBuilder();
@@ -158,6 +163,8 @@ public final class OldErlangProjectProperties implements
             }
             node.put(ProjectPreferencesConstants.PROJECT_EXTERNAL_MODULES,
                     externalModulesFile);
+            node.putBoolean(ProjectPreferencesConstants.NUKE_OUTPUT_ON_CLEAN,
+                    isNukeOutputOnClean());
 
             node.flush();
         } finally {
@@ -165,14 +172,17 @@ public final class OldErlangProjectProperties implements
         }
     }
 
+    @Override
     public Collection<IPath> getIncludeDirs() {
         return Collections.unmodifiableCollection(includeDirs);
     }
 
+    @Override
     public void setIncludeDirs(final Collection<IPath> includeDirs2) {
         includeDirs = Lists.newArrayList(includeDirs2);
     }
 
+    @Override
     @Deprecated
     public IPath getOutputDir() {
         try {
@@ -182,10 +192,12 @@ public final class OldErlangProjectProperties implements
         }
     }
 
+    @Override
     public Collection<IPath> getOutputDirs() {
         return outputDirs;
     }
 
+    @Override
     @Deprecated
     public void setOutputDir(final IPath dir) {
         setOutputDirs(Lists.newArrayList(dir));
@@ -195,14 +207,17 @@ public final class OldErlangProjectProperties implements
         outputDirs = Lists.newArrayList(dirs);
     }
 
+    @Override
     public Collection<IPath> getSourceDirs() {
         return Collections.unmodifiableCollection(sourceDirs);
     }
 
+    @Override
     public void setSourceDirs(final Collection<IPath> sourceDirs2) {
         sourceDirs = Lists.newArrayList(sourceDirs2);
     }
 
+    @Override
     public void copyFrom(
             final IOldErlangProjectProperties erlangProjectProperties) {
         final OldErlangProjectProperties bprefs = (OldErlangProjectProperties) erlangProjectProperties;
@@ -213,22 +228,27 @@ public final class OldErlangProjectProperties implements
         runtimeVersion = bprefs.runtimeVersion;
     }
 
+    @Override
     public String getExternalIncludesFile() {
         return externalIncludesFile;
     }
 
+    @Override
     public void setExternalIncludesFile(final String file) {
         externalIncludesFile = file;
     }
 
+    @Override
     public void setExternalModulesFile(final String externalModules) {
         externalModulesFile = externalModules;
     }
 
+    @Override
     public String getExternalModulesFile() {
         return externalModulesFile;
     }
 
+    @Override
     public RuntimeInfo getRuntimeInfo() {
         final RuntimeInfo runtime = BackendCore.getRuntimeInfoManager()
                 .getRuntime(runtimeVersion, runtimeName);
@@ -239,18 +259,29 @@ public final class OldErlangProjectProperties implements
         return rt;
     }
 
+    @Override
     public RuntimeVersion getRuntimeVersion() {
         return runtimeVersion;
     }
 
+    @Override
     public void preferenceChange(final PreferenceChangeEvent event) {
         final IEclipsePreferences root = new ProjectScope(project)
                 .getNode(ErlangCore.PLUGIN_ID);
         load(root);
     }
 
+    @Override
     public void setRuntimeVersion(final RuntimeVersion runtimeVersion) {
         this.runtimeVersion = runtimeVersion;
+    }
+
+    public boolean isNukeOutputOnClean() {
+        return nukeOutputOnClean;
+    }
+
+    public void setNukeOutputOnClean(final boolean nukeOutputOnClean) {
+        this.nukeOutputOnClean = nukeOutputOnClean;
     }
 
 }

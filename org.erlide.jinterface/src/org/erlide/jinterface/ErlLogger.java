@@ -24,7 +24,6 @@ import java.util.logging.Logger;
 
 public class ErlLogger {
 
-    public static final String ERLIDE_GLOBAL_TRACE_OPTION = "org.erlide.backend/debug";
     private static ErlLogger instance;
     private Logger logger;
     private String logDir;
@@ -118,7 +117,6 @@ public class ErlLogger {
     }
 
     private ErlLogger() {
-        final ErlSimpleFormatter erlSimpleFormatter = new ErlSimpleFormatter();
         logger = Logger.getLogger("org.erlide");
         logger.setUseParentHandlers(false);
         logger.setLevel(java.util.logging.Level.FINEST);

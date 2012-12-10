@@ -20,11 +20,11 @@ import org.eclipse.ui.dialogs.ISelectionStatusValidator;
 import org.eclipse.ui.model.WorkbenchContentProvider;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 import org.eclipse.ui.views.navigator.ResourceComparator;
-import org.erlide.core.common.PreferencesUtils;
 import org.erlide.ui.util.FolderSelectionDialog;
 import org.erlide.ui.util.StatusInfo;
 import org.erlide.ui.util.TypedElementSelectionValidator;
 import org.erlide.ui.util.TypedViewerFilter;
+import org.erlide.utils.PreferencesUtils;
 
 public class ProjectPathEditor extends PathEditor {
     private final IProject project;
@@ -79,6 +79,7 @@ public class ProjectPathEditor extends PathEditor {
             ISelectionStatusValidator myValidator = new TypedElementSelectionValidator(
                     acceptedClasses, false);
 
+            @Override
             public IStatus validate(final Object[] selection) {
                 final IStatus typedStatus = myValidator.validate(selection);
                 if (!typedStatus.isOK()) {

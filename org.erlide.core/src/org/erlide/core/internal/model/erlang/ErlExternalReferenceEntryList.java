@@ -7,18 +7,19 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
-import org.erlide.core.CoreScope;
+import org.erlide.backend.BackendCore;
+import org.erlide.backend.IBackend;
 import org.erlide.core.internal.model.root.ErlModel;
 import org.erlide.core.internal.model.root.ErlModelCache;
 import org.erlide.core.internal.model.root.Openable;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlExternal;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.util.CoreUtil;
-import org.erlide.core.rpc.IRpcCallSite;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlideOpen;
 import org.erlide.core.services.search.ErlideOpen.ExternalTreeEntry;
 
@@ -43,6 +44,7 @@ public class ErlExternalReferenceEntryList extends Openable implements
         this.externalModules = externalModules;
     }
 
+    @Override
     public Kind getKind() {
         return Kind.EXTERNAL;
     }
@@ -53,16 +55,17 @@ public class ErlExternalReferenceEntryList extends Openable implements
         // TODO some code duplication within this function
         // ErlLogger.debug("ErlExternalReferenceEntryList.buildStructure %s",
         // externalName);
-        final IErlProject project = getProject();
+        final IErlProject project = ModelUtils.getProject(this);
         final ErlModelCache cache = ErlModel.getErlModelCache();
         List<ExternalTreeEntry> externalModuleTree = cache
                 .getExternalTree(externalModules);
         List<ExternalTreeEntry> externalIncludeTree = cache
                 .getExternalTree(externalIncludes);
         if (externalModuleTree == null || externalIncludeTree == null) {
-            final IRpcCallSite backend = CoreUtil.getBuildOrIdeBackend(project
+            final IBackend backend = BackendCore.getBuildOrIdeBackend(project
                     .getWorkspaceProject());
-            final OtpErlangList pathVars = CoreScope.getModel().getPathVars();
+            final OtpErlangList pathVars = ErlModelManager.getErlangModel()
+                    .getPathVars();
             if (externalModuleTree == null && externalModules.length() > 0) {
                 if (pm != null) {
                     pm.worked(1);
@@ -79,16 +82,16 @@ public class ErlExternalReferenceEntryList extends Openable implements
             }
         }
         setChildren(null);
-        final IErlModel model = getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         if (externalModuleTree != null && !externalModuleTree.isEmpty()) {
-            addExternalEntries(pm, externalModuleTree, model, "modules",
-                    externalModules, null, false);
+            addExternalEntries(pm, externalModuleTree, model, "modules", null,
+                    false);
             cache.putExternalTree(externalModules, project, externalModuleTree);
         }
         if (externalIncludeTree != null && !externalIncludeTree.isEmpty()
                 || !projectIncludes.isEmpty()) {
             addExternalEntries(pm, externalIncludeTree, model, "includes",
-                    externalIncludes, projectIncludes, true);
+                    projectIncludes, true);
             if (externalIncludeTree != null) {
                 cache.putExternalTree(externalIncludes, project,
                         externalIncludeTree);
@@ -99,9 +102,8 @@ public class ErlExternalReferenceEntryList extends Openable implements
 
     private void addExternalEntries(final IProgressMonitor pm,
             final List<ExternalTreeEntry> externalTree, final IErlModel model,
-            final String rootName, final String rootEntry,
-            final List<String> otherItems, final boolean includeDir)
-            throws ErlModelException {
+            final String rootName, final List<String> otherItems,
+            final boolean includeDir) throws ErlModelException {
         final Map<String, IErlExternal> pathToEntryMap = Maps.newHashMap();
         pathToEntryMap.put("root", this);
         IErlExternal parent = null;
@@ -126,8 +128,8 @@ public class ErlExternalReferenceEntryList extends Openable implements
         }
         if (otherItems != null) {
             if (parent == null) {
-                parent = new ErlExternalReferenceEntry(this, rootName,
-                        rootEntry, true, includeDir);
+                parent = new ErlExternalReferenceEntry(this, rootName, "."
+                        + rootName + ".", true, includeDir);
                 addChild(parent);
             }
             for (final String path : otherItems) {
@@ -180,10 +182,11 @@ public class ErlExternalReferenceEntryList extends Openable implements
         return false;
     }
 
-    public IRpcCallSite getBackend() {
+    public IBackend getBackend() {
         return null;
     }
 
+    @Override
     public boolean isOTP() {
         return false;
     }
@@ -193,6 +196,7 @@ public class ErlExternalReferenceEntryList extends Openable implements
         return null;
     }
 
+    @Override
     public boolean hasIncludes() {
         return true;
     }

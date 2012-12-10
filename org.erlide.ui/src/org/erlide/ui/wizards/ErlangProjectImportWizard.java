@@ -43,8 +43,8 @@ import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.dialogs.FileSystemElement;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.wizards.datatransfer.FileSystemStructureProvider;
+import org.erlide.backend.BackendCore;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.backend.BackendCore;
 import org.erlide.core.internal.model.root.OldErlangProjectProperties;
 import org.erlide.core.model.util.PluginUtils;
 import org.erlide.jinterface.ErlLogger;
@@ -181,6 +181,7 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
         return true;
     }
 
+    @Override
     public void init(final IWorkbench aWorkbench,
             final IStructuredSelection aSelection) {
         selection = aSelection;
@@ -211,6 +212,7 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
             final IPageChangeProvider pcp = (IPageChangeProvider) wizardContainer;
             pcp.addPageChangedListener(new IPageChangedListener() {
 
+                @Override
                 public void pageChanged(final PageChangedEvent event) {
                     if (event.getSelectedPage() == importIncludeAndSourceDirsPage) {
                         setupDirectoriesPage();

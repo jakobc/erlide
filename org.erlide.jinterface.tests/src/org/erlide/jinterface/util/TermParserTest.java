@@ -1,7 +1,11 @@
 package org.erlide.jinterface.util;
 
+import java.io.IOException;
+
 import junit.framework.Assert;
 
+import org.erlide.utils.TermParser;
+import org.erlide.utils.TermParserException;
 import org.junit.Test;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -162,7 +166,7 @@ public class TermParserTest {
     }
 
     @Test
-    public void sublist_5() throws TermParserException {
+    public void sublist_5() throws TermParserException, IOException {
         final OtpErlangList r = (OtpErlangList) termParser.parse("[1,2,3,4]");
         final OtpErlangObject ss = r.getNthTail(2);
         final OtpOutputStream out = new OtpOutputStream();
@@ -172,6 +176,7 @@ public class TermParserTest {
         final OtpErlangList s = (OtpErlangList) termParser.parse("[3,4]");
         s.encode(out);
         final byte[] contents2 = out.toByteArray();
+        out.close();
 
         Assert.assertEquals(contents2.length, contents1.length);
         for (int i = 0; i < contents1.length; i++) {
@@ -180,7 +185,7 @@ public class TermParserTest {
     }
 
     @Test
-    public void sublist_6() throws TermParserException {
+    public void sublist_6() throws TermParserException, IOException {
         final OtpErlangList r = (OtpErlangList) termParser.parse("[1,2,3|4]");
         final OtpErlangObject ss = r.getNthTail(2);
         final OtpOutputStream out = new OtpOutputStream();
@@ -190,6 +195,7 @@ public class TermParserTest {
         final OtpErlangList s = (OtpErlangList) termParser.parse("[3|4]");
         s.encode(out);
         final byte[] contents2 = out.toByteArray();
+        out.close();
 
         Assert.assertEquals(contents2.length, contents1.length);
         for (int i = 0; i < contents1.length; i++) {
