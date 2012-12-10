@@ -100,15 +100,15 @@ import org.eclipse.ui.part.PageSwitcher;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.IWorkbenchSiteProgressService;
 import org.eclipse.ui.progress.UIJob;
-import org.erlide.core.erlang.ErlangCore;
-import org.erlide.core.erlang.IErlElement;
-import org.erlide.core.erlang.IErlElementDelta;
-import org.erlide.core.erlang.IErlProject;
-import org.erlide.core.erlang.util.ElementChangedEvent;
-import org.erlide.core.erlang.util.IElementChangedListener;
+import org.erlide.core.model.root.ErlModelManager;
+import org.erlide.core.model.root.IErlElement;
+import org.erlide.core.model.root.IErlElementDelta;
+import org.erlide.core.model.root.IErlProject;
+import org.erlide.core.model.util.ElementChangedEvent;
+import org.erlide.core.model.util.IElementChangedListener;
 import org.erlide.eunit.EUnitPlugin;
 import org.erlide.eunit.EUnitPreferencesConstants;
-import org.erlide.jinterface.util.ErlLogger;
+import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.eunit.internal.launcher.EUnitLaunchConfigurationConstants;
 import org.erlide.ui.eunit.internal.model.EUnitModel;
 import org.erlide.ui.eunit.internal.model.ITestRunSessionListener;
@@ -723,8 +723,9 @@ public class TestRunnerViewPart extends ViewPart {
 					}
 					if (fDirtyListener == null) {
 						fDirtyListener = new DirtyListener();
-						ErlangCore.getModelManager().addElementChangedListener(
-								fDirtyListener);
+
+						ErlModelManager.getErlangModel()
+								.addElementChangedListener(fDirtyListener);
 					}
 					warnOfContentChange();
 				}
@@ -1664,7 +1665,7 @@ public class TestRunnerViewPart extends ViewPart {
 					.removeMenuListener(fViewMenuListener);
 		}
 		if (fDirtyListener != null) {
-			ErlangCore.getModelManager().removeElementChangedListener(
+			ErlModelManager.getErlangModel().removeElementChangedListener(
 					fDirtyListener);
 			fDirtyListener = null;
 		}
@@ -2169,7 +2170,7 @@ public class TestRunnerViewPart extends ViewPart {
 
 	void codeHasChanged() {
 		if (fDirtyListener != null) {
-			ErlangCore.getModelManager().removeElementChangedListener(
+			ErlModelManager.getErlangModel().removeElementChangedListener(
 					fDirtyListener);
 			fDirtyListener = null;
 		}

@@ -94,42 +94,10 @@ public abstract class SourceRefElement extends ErlElement implements
     /**
      * @see ISourceReference
      */
-    // public String getSource() throws ErlModelException {
-    // // final IOpenable openable = getOpenableParent();
-    // // final IBuffer buffer = openable.getBuffer();
-    // // if (buffer == null) {
-    // // return null;
-    // // }
-    // // final ISourceRange range = getSourceRange();
-    // // final int offset = range.getOffset();
-    // // final int length = range.getLength();
-    // // if (offset == -1 || length == 0) {
-    // // return null;
-    // // }
-    // // try {
-    // // return buffer.getText(offset, length);
-    // // } catch (final RuntimeException e) {
-    // // return null;
-    // // }
-    // return "";
-    // }
-    /**
-     * @see ISourceReference
-     */
     @Override
     public ISourceRange getSourceRange() {
         return new SourceRange(fSourceRangeOffset, fSourceRangeLength);
     }
-
-    // /**
-    // * @see IErlElement
-    // */
-    // public IResource getUnderlyingResource() throws ErlModelException {
-    // if (!exists()) {
-    // throw newNotPresentException();
-    // }
-    // return getParent().getUnderlyingResource();
-    // }
 
     /**
      * @see IParent

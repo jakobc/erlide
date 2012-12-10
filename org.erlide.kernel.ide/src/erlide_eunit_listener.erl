@@ -25,7 +25,7 @@
 
 -define(NODEBUG, true).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("eunit/src/eunit_internal.hrl").
+%% -include_lib("eunit/src/eunit_internal.hrl").
 
 %% called from ErlIDE
 -export([start/1]).

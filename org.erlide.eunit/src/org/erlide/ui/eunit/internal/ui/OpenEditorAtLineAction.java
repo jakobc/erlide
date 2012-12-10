@@ -16,8 +16,8 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.erlang.IErlElement;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.root.IErlElement;
+import org.erlide.core.model.root.IErlProject;
 
 /**
  * Open a test in the Java editor and reveal a given line

@@ -20,7 +20,7 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 import org.eclipse.core.runtime.Assert;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.root.IErlProject;
 import org.erlide.ui.eunit.model.ITestElement;
 import org.erlide.ui.eunit.model.ITestElement.FailureTrace;
 import org.erlide.ui.eunit.model.ITestElement.ProgressState;

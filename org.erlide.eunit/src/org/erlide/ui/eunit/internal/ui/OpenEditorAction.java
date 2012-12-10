@@ -15,10 +15,10 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.erlang.ErlModelException;
-import org.erlide.core.erlang.ErlangCore;
-import org.erlide.core.erlang.IErlModule;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.ErlModelManager;
+import org.erlide.core.model.root.IErlProject;
 import org.erlide.ui.util.ErlModelUtils;
 
 /**
@@ -85,7 +85,7 @@ public abstract class OpenEditorAction extends Action {
 		try {
 			IErlModule module = project.getModule(name);
 			if (module == null) {
-				module = ErlangCore.getModel().findModule(name);
+				module = ErlModelManager.getErlangModel().findModule(name);
 			}
 			return module;
 		} catch (final ErlModelException e) {

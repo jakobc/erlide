@@ -48,9 +48,9 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.part.PageBook;
-import org.erlide.core.erlang.ErlModelException;
-import org.erlide.core.erlang.IErlModule;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.root.IErlProject;
 import org.erlide.ui.eunit.internal.model.TestCaseElement;
 import org.erlide.ui.eunit.internal.model.TestElement;
 import org.erlide.ui.eunit.internal.model.TestElement.Status;
@@ -79,7 +79,7 @@ public class TestViewer {
 		@Override
 		public boolean select(final Viewer viewer, final Object parentElement,
 				final Object element) {
-			return select(((TestElement) element));
+			return select((TestElement) element);
 		}
 
 		public boolean select(final TestElement testElement) {

@@ -16,9 +16,10 @@ package org.erlide.ui.eunit.internal.model;
 
 import java.util.Stack;
 
-import org.erlide.core.erlang.ErlangCore;
-import org.erlide.core.erlang.IErlModel;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.root.ErlModelManager;
+import org.erlide.core.model.root.IErlElement;
+import org.erlide.core.model.root.IErlModel;
+import org.erlide.core.model.root.IErlProject;
 import org.erlide.ui.eunit.internal.model.TestElement.Status;
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
@@ -73,13 +74,17 @@ public class TestRunHandler extends DefaultHandler {
 		if (qName.equals(IXMLTags.NODE_TESTRUN)) {
 			if (fTestRunSession == null) {
 				final String name = attributes.getValue(IXMLTags.ATTR_NAME);
-				final String project = attributes
+				final String projectName = attributes
 						.getValue(IXMLTags.ATTR_PROJECT);
 				IErlProject erlProject = null;
-				if (project != null) {
-					final IErlModel model = ErlangCore.getModel();
-					erlProject = model.getErlangProject(project);
-					if (!erlProject.exists()) {
+				if (projectName != null) {
+					final IErlModel model = ErlModelManager.getErlangModel();
+					final IErlElement element = model
+							.getChildNamed(projectName);
+					if (element instanceof IErlProject) {
+						erlProject = (IErlProject) element;
+					}
+					if (erlProject != null && !erlProject.exists()) {
 						erlProject = null;
 					}
 				}

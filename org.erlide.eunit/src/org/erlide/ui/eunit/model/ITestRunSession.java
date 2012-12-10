@@ -11,7 +11,7 @@
 package org.erlide.ui.eunit.model;
 
 import org.eclipse.debug.core.ILaunch;
-import org.erlide.core.erlang.IErlProject;
+import org.erlide.core.model.root.IErlProject;
 import org.erlide.ui.eunit.internal.launcher.EUnitEventHandler;
 
 /**
