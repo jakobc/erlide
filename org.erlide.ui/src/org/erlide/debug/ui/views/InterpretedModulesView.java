@@ -27,13 +27,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PartInitException;
 import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlModule;
-<<<<<<< HEAD
-import org.erlide.core.rpc.IRpcCallSite;
-import org.erlide.ui.launch.DebugTab;
-import org.erlide.ui.launch.DebugTab.DebugTreeItem;
-import org.erlide.ui.launch.DebugTab.TreeContentProvider;
-import org.erlide.ui.util.ErlModelUtils;
-=======
 import org.erlide.core.model.util.ModelUtils;
 import org.erlide.debug.ui.utils.ModuleItemLabelProvider;
 import org.erlide.jinterface.ErlLogger;
@@ -44,7 +37,6 @@ import org.erlide.launch.debug.model.ErlangDebugElement;
 import org.erlide.launch.debug.model.ErlangDebugTarget;
 import org.erlide.launch.debug.model.ErtsProcess;
 import org.erlide.ui.editors.util.EditorUtility;
->>>>>>> pu
 
 /**
  * A view with a checkbox tree of interpreted modules checking/unchecking
