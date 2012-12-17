@@ -15,6 +15,7 @@ import org.erlide.core.model.root.IErlProject;
 import org.erlide.debug.ui.utils.ModuleListContentProvider;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.launch.ErlLaunchAttributes;
+import org.erlide.ui.util.ErlModelUtils;
 import org.erlide.utils.CommonUtils;
 
 public class InterpretedModuleListContentProvider extends
@@ -58,8 +59,8 @@ public class InterpretedModuleListContentProvider extends
             final String[] projectModule = projectColonModule.split(":");
             IErlModule module = null;
             if (projectModule.length > 1) {
-                final IErlProject project = (IErlProject) model
-                        .getChildNamed(projectModule[0]);
+                final IErlProject project = ErlModelUtils
+                        .getProjectByName(projectModule[0]);
                 if (project != null) {
                     final String mName = projectModule[1];
                     try {

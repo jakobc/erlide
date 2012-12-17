@@ -16,10 +16,8 @@ package org.erlide.ui.eunit.internal.launcher;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -34,12 +32,10 @@ import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
-import org.erlide.backend.BackendOptions;
 import org.erlide.backend.IBackend;
-import org.erlide.backend.internal.Backend;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.eunit.EUnitPlugin;
 import org.erlide.eunit.EUnitTestFunction;
@@ -339,7 +335,8 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 						.getRoot();
 				for (final String name : names) {
 					final IProject p = root.getProject(name);
-					result.add(CoreScope.getModel().getErlangProject(p));
+					result.add(ErlModelManager.getErlangModel()
+							.getErlangProject(p));
 				}
 				return result;
 			}
@@ -348,20 +345,12 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 		return null;
 	}
 
-	// FIXME JC is this better done with a backend listener?
 	@Override
-	protected void postLaunch(final String mode, final Set<IProject> projects,
-			final RuntimeInfo rt, final EnumSet<BackendOptions> options,
-			final IBackend backend, final ILaunch launch) throws DebugException {
-
-		backend.getEventDaemon().addHandler(
-				new EUnitEventHandler(backend.getEventPid(), launch, backend));
-		super.postLaunch(mode, projects, rt, options, backend, launch);
-	}
-
-	@Override
-	protected void runInitial(final String module, final String function,
-			final String args, final Backend backend) {
+	protected void postLaunch(final String mode, final IBackend backend,
+			final ILaunch launch, final IProgressMonitor monitor)
+			throws CoreException {
+		super.postLaunch(mode, backend, launch, monitor);
+		new EUnitEventHandler(backend.getEventPid(), launch, backend);
 		final OtpErlangPid jpid = backend.getEventPid();
 		final OtpErlangObject elems[] = new OtpErlangObject[fTestElements
 				.size()];

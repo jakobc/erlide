@@ -54,7 +54,6 @@ import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PartInitException;
-import org.erlide.core.ErlangCore;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.eunit.EUnitPlugin;
 import org.erlide.eunit.EUnitPreferencesConstants;
@@ -65,6 +64,7 @@ import org.erlide.ui.eunit.internal.launcher.EUnitLaunchConfigurationDelegate;
 import org.erlide.ui.eunit.internal.ui.TestRunnerViewPart;
 import org.erlide.ui.eunit.model.ITestRunSession;
 import org.erlide.ui.internal.ErlideUIPlugin;
+import org.erlide.ui.util.ErlModelUtils;
 import org.erlide.ui.util.SWTUtil;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -135,8 +135,8 @@ public final class EUnitModel {
 					.getAttribute(EUnitLaunchConfigurationConstants.ATTR_TEST_PROJECT);
 			if (testProjectName != null && testProjectName.length() > 0) {
 				fTrackedLaunches.remove(launch);
-				final IErlProject project = ErlangCore.getModel()
-						.getErlangProject(testProjectName);
+				final IErlProject project = ErlModelUtils
+						.getProjectByName(testProjectName);
 				SWTUtil.getStandardDisplay().syncExec(new Runnable() {
 					public void run() {
 						connectTestRunner(launch, project, testProjectName);

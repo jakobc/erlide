@@ -36,6 +36,7 @@ import org.eclipse.debug.core.model.IProcess;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendData;
 import org.erlide.backend.IBackend;
+import org.erlide.backend.internal.Backend;
 import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.model.erlang.ModuleKind;
 import org.erlide.jinterface.ErlLogger;
@@ -61,7 +62,7 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         if (backend == null) {
             return;
         }
-        postLaunch(mode, backend, monitor);
+        postLaunch(mode, backend, launch, monitor);
     }
 
     protected boolean preLaunch(final ILaunchConfiguration config,
@@ -106,8 +107,9 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         return null;
     }
 
-    protected void postLaunch(final String mode, final IBackend b,
-            final IProgressMonitor monitor) throws CoreException {
+    protected void postLaunch(final String mode, final IBackend backend,
+            final ILaunch launch, final IProgressMonitor monitor)
+            throws CoreException {
     }
 
     /*
@@ -254,6 +256,12 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
             }
         }
         return result;
+    }
+
+    protected void runInitial(final String module, final String function,
+            final String args, final Backend backend) {
+        // TODO Auto-generated method stub
+
     }
 
 }

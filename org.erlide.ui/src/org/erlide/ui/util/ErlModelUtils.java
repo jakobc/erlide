@@ -199,4 +199,9 @@ public class ErlModelUtils {
         }
     }
 
+    public static IErlProject getProjectByName(final String projectName) {
+        return (IErlProject) ErlModelManager.getErlangModel().getChildNamed(
+                projectName);
+    }
+
 }
