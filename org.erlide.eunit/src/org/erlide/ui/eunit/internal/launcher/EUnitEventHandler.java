@@ -24,7 +24,7 @@ public class EUnitEventHandler extends ErlangEventHandler {
 
 	private final OtpErlangPid eventPid;
 	private final ILaunch launch;
-	private final IBackend backend;
+	// private final IBackend backend;
 	private final ListenerList /* <ITestRunListener2> */listeners = new ListenerList();
 
 	public EUnitEventHandler(final OtpErlangPid eventPid, final ILaunch launch,
@@ -35,7 +35,7 @@ public class EUnitEventHandler extends ErlangEventHandler {
 				eventPid, launch, backend);
 		this.eventPid = eventPid;
 		this.launch = launch;
-		this.backend = backend;
+		// this.backend = backend;
 		EUnitPlugin.getModel().addEventHandler(this);
 	}
 
