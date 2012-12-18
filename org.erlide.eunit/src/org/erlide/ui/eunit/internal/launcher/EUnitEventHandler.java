@@ -235,6 +235,7 @@ public class EUnitEventHandler extends ErlangEventHandler {
 	public void shutdown() {
 		listeners.clear();
 		// backend.getEventDaemon().removeHandler(this);
+		// FIXME när ska göras dispose?
 	}
 
 	public void handleEvent(final Event event) {

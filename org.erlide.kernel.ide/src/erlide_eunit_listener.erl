@@ -88,7 +88,7 @@ sync_end(Result) ->
     end.
 
 reply(#state{jpid=JPid}, What, Argument) ->
-    JPid ! {What, JPid, Argument}.
+    JPid ! {event, eunit, {What, JPid, Argument}, self()}.
 
 handle_begin(group, Data, St) ->
     NewId = proplists:get_value(id, Data),

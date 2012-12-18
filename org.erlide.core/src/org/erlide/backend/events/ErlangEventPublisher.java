@@ -171,7 +171,7 @@ public class ErlangEventPublisher {
         properties.put("BACKEND", b);
         properties.put("DATA", event);
         properties.put("SENDER", sender);
-
+        ErlLogger.debug("publishEvent %s", event);
         final Event osgiEvent = new Event(getFullTopic(topic, b), properties);
         eventAdmin.postEvent(osgiEvent);
     }

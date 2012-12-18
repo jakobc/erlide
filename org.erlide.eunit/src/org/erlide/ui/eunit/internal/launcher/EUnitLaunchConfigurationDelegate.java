@@ -139,12 +139,14 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 			monitor.worked(1);
 
 			// Launch the configuration - 1 unit of work
-			doLaunch(configuration, mode, launch, monitor);
+			final IBackend backend = doLaunch(configuration, mode, launch,
+					monitor);
 
 			// check for cancellation
 			if (monitor.isCanceled()) {
 				return;
 			}
+			postLaunch(mode, backend, launch, monitor);
 		} finally {
 			// fTestElements = null;
 			monitor.done();
@@ -350,7 +352,9 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 			final ILaunch launch, final IProgressMonitor monitor)
 			throws CoreException {
 		super.postLaunch(mode, backend, launch, monitor);
-		new EUnitEventHandler(backend.getEventPid(), launch, backend);
+		final EUnitEventHandler eventHandler = new EUnitEventHandler(
+				backend.getEventPid(), launch, backend);
+		eventHandler.register();
 		final OtpErlangPid jpid = backend.getEventPid();
 		final OtpErlangObject elems[] = new OtpErlangObject[fTestElements
 				.size()];

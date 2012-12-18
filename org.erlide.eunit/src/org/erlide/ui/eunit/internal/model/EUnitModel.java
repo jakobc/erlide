@@ -146,10 +146,10 @@ public final class EUnitModel {
 		}
 
 		private void connectTestRunner(final ILaunch launch,
-				final IErlProject erlProject, final String name) {
+				final IErlProject project, final String name) {
 			showTestRunnerViewPartInActivePage(findTestRunnerViewPartInActivePage());
 			final TestRunSession testRunSession = new TestRunSession(launch,
-					name, erlProject);
+					name, project);
 			addTestRunSession(testRunSession);
 		}
 	}
