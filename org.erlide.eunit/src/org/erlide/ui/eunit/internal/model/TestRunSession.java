@@ -645,15 +645,15 @@ public class TestRunSession implements ITestRunSession {
 
 		private TestElement createUnrootedTestElement(final String testId,
 				final String testName) {
+			ErlLogger.debug("createUnrootedTestElement id %s name %s", testId,
+					testName);
 			final TestSuiteElement unrootedSuite = getUnrootedSuite();
 			final TestElement testElement = createTestElement(unrootedSuite,
 					testId, testName, false);
-
 			final Object[] listeners = fSessionListeners.getListeners();
 			for (int i = 0; i < listeners.length; ++i) {
 				((ITestSessionListener) listeners[i]).testAdded(testElement);
 			}
-
 			return testElement;
 		}
 
@@ -672,48 +672,50 @@ public class TestRunSession implements ITestRunSession {
 					((ITestSessionListener) listeners[i]).runningBegins();
 				}
 			}
-			TestElement testElement = getTestElement(testId);
-			if (testElement == null) {
-				testElement = createUnrootedTestElement(testId, testName);
-			} else if (!(testElement instanceof TestCaseElement)) {
-				logUnexpectedTest(testName, testElement);
-				return;
-			}
-			final TestCaseElement testCaseElement = (TestCaseElement) testElement;
-			setStatus(testCaseElement, Status.RUNNING);
-
-			fStartedCount++;
-
-			final Object[] listeners = fSessionListeners.getListeners();
-			for (int i = 0; i < listeners.length; ++i) {
-				((ITestSessionListener) listeners[i])
-						.testStarted(testCaseElement);
+			final TestCaseElement testCaseElement = checkTestCaseOrSuite(
+					testId, testName);
+			if (testCaseElement != null) {
+				setStatus(testCaseElement, Status.RUNNING);
+				fStartedCount++;
+				final Object[] listeners = fSessionListeners.getListeners();
+				for (int i = 0; i < listeners.length; ++i) {
+					((ITestSessionListener) listeners[i])
+							.testStarted(testCaseElement);
+				}
 			}
 		}
 
 		public void testEnded(final String testId, final String testName) {
+			final TestCaseElement testCaseElement = checkTestCaseOrSuite(
+					testId, testName);
+			if (testCaseElement != null) {
+				if (testName.startsWith(MessageIds.IGNORED_TEST_PREFIX)) {
+					testCaseElement.setIgnored(true);
+					fIgnoredCount++;
+				}
+				if (testCaseElement.getStatus() == Status.RUNNING) {
+					setStatus(testCaseElement, Status.OK);
+				}
+				final Object[] listeners = fSessionListeners.getListeners();
+				for (int i = 0; i < listeners.length; ++i) {
+					((ITestSessionListener) listeners[i])
+							.testEnded(testCaseElement);
+				}
+			}
+		}
+
+		private TestCaseElement checkTestCaseOrSuite(final String testId,
+				final String testName) {
 			TestElement testElement = getTestElement(testId);
 			if (testElement == null) {
 				testElement = createUnrootedTestElement(testId, testName);
-			} else if (!(testElement instanceof TestCaseElement)) {
-				logUnexpectedTest(testId, testElement);
-				return;
+			} else if (testElement instanceof TestSuiteElement) {
+			} else if (testElement instanceof TestCaseElement) {
+				return (TestCaseElement) testElement;
+			} else {
+				logUnexpectedTest(testName, testElement);
 			}
-			final TestCaseElement testCaseElement = (TestCaseElement) testElement;
-			if (testName.startsWith(MessageIds.IGNORED_TEST_PREFIX)) {
-				testCaseElement.setIgnored(true);
-				fIgnoredCount++;
-			}
-
-			if (testCaseElement.getStatus() == Status.RUNNING) {
-				setStatus(testCaseElement, Status.OK);
-			}
-
-			final Object[] listeners = fSessionListeners.getListeners();
-			for (int i = 0; i < listeners.length; ++i) {
-				((ITestSessionListener) listeners[i])
-						.testEnded(testCaseElement);
-			}
+			return null;
 		}
 
 		/*
