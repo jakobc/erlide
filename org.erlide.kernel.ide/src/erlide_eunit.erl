@@ -21,9 +21,8 @@ find_tests(Beams) ->
     R = get_exported_tests(Beams),
     {ok, R}.
 
-count_tests(Beams) ->
-    R = get_exported_tests(Beams),
-    count_eported_tests(R, 0).
+count_tests(List) ->
+    count_eported_tests(List, 0).
 
 run_tests(Tests, JPid) ->
     EUnitTests = get_tests(Tests),

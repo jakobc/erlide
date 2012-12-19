@@ -9,6 +9,7 @@ import org.erlide.jinterface.rpc.RpcException;
 import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -38,6 +39,22 @@ public final class ErlideEUnit {
 		return null;
 	}
 
+	public static int countTests(final IBackend backend,
+			final List<OtpErlangObject> tuples) {
+		OtpErlangObject res = null;
+		try {
+			res = backend.call("erlide_eunit", "count_tests", "lx", tuples);
+			if (Util.isOk(res)) {
+				final OtpErlangTuple t = (OtpErlangTuple) res;
+				final OtpErlangLong l = (OtpErlangLong) t.elementAt(1);
+				return l.intValue();
+			}
+		} catch (final Exception e) {
+			ErlLogger.warn(e);
+		}
+		return 0;
+	}
+
 	public static boolean runTests(final IBackend backend,
 			final OtpErlangList tests, final OtpErlangPid jpid) {
 		ErlLogger.debug("erlide_eunit:run_tests %s  (jpid %s", tests, jpid);
@@ -49,4 +66,5 @@ public final class ErlideEUnit {
 		}
 		return false;
 	}
+
 }
