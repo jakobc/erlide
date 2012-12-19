@@ -11,7 +11,7 @@
 %% Exported Functions
 %%
 
--export([find_tests/1, run_tests/2]).
+-export([find_tests/1, run_tests/2, count_tests/1]).
 
 %%
 %% API Functions
@@ -20,6 +20,10 @@
 find_tests(Beams) ->
     R = get_exported_tests(Beams),
     {ok, R}.
+
+count_tests(Beams) ->
+    R = get_exported_tests(Beams),
+    count_eported_tests(R, 0).
 
 run_tests(Tests, JPid) ->
     EUnitTests = get_tests(Tests),
@@ -33,6 +37,13 @@ run_tests(Tests, JPid) ->
 
 -record(test, {m, f}).
 -record(generated, {m, f}).
+
+count_eported_tests([], Acc) ->
+    Acc;
+count_eported_tests([#test{} | Rest], Acc) ->
+    count_eported_tests(Rest, Acc+1);
+count_eported_tests([#generated{f=F, m=M} | Rest], Acc) ->
+    count_eported_tests(Rest, Acc+length(F:M())). 
 
 get_exported_tests(Beams) ->
     get_exported_tests(Beams, []).

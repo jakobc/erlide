@@ -32,6 +32,7 @@ import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
+import org.eclipse.xtext.xbase.lib.Pair;
 import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
@@ -124,7 +125,8 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 			}
 
 			// get the tests
-			fTestElements = evaluateTests(configuration, monitor);
+			final Pair<Integer, Collection<EUnitTestFunction>> p = evaluateTests(configuration, monitor);
+			fTestElements = ;
 			ErlLogger.debug("fTestElements %s", fTestElements);
 
 			// check for cancellation
@@ -219,7 +221,7 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 	 * @throws CoreException
 	 *             an exception is thrown when the search for tests failed
 	 */
-	protected static Collection<EUnitTestFunction> evaluateTests(
+	protected static ¤ evaluateTests(
 			final ILaunchConfiguration configuration,
 			final IProgressMonitor monitor) throws CoreException {
 		List<IErlProject> erlProjects = getErlProjects(configuration);
