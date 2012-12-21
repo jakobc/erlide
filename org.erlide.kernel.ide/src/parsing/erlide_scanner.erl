@@ -11,6 +11,7 @@
 
 -include("erlide.hrl").
 -include("erlide_scanner.hrl").
+-include("erlide_scanner_server.hrl").
 
 %%
 %% Exported Functions
@@ -24,7 +25,7 @@
 %% API Functions
 %%
 
--define(CACHE_VERSION, 22).
+-define(CACHE_VERSION, 26).
 
 light_scan_string(B, latin1) ->
     S = binary_to_list(B),
@@ -148,12 +149,6 @@ replace_between_lines(From, Length, With, Lines) ->
 
 lines_to_text(Lines) ->
     lists:append([L || {_, L} <- Lines]).
-
--record(module, {name,
-                 lines = [], % [{Length, String}]
-                 tokens = [], % [{Length, [Token]}]
-                 cachedTokens = [],
-                 log = []}).
 
 initial_scan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache) ->
     Text = case InitialText of

@@ -11,6 +11,7 @@
 
 -include("erlide.hrl").
 -include("erlide_scanner.hrl").
+-include("erlide_scanner_server.hrl").
 -include("erlide_search_server.hrl").
 
 %%
@@ -35,7 +36,7 @@
 %% -define(SERVER, erlide_scanner).
 
 create(ScannerName) when is_atom(ScannerName) ->
-	spawn_server(ScannerName).
+    spawn_server(ScannerName).
 
 destroy(ScannerName) when is_atom(ScannerName) ->
     erlide_search_server:remove_module(ScannerName),
@@ -59,7 +60,7 @@ getTokenAt(ScannerName, Offset) when is_atom(ScannerName), is_integer(Offset) ->
 
 initialScan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache) 
   when is_atom(ScannerName), is_list(ModuleFileName), is_list(InitialText), is_list(StateDir) ->
-	spawn_server(ScannerName),
+    spawn_server(ScannerName),
     server_cmd(ScannerName, initial_scan,
                {ScannerName, ModuleFileName, InitialText, StateDir, UseCache}).
 
@@ -74,15 +75,15 @@ check_all(ScannerName, Text) when is_atom(ScannerName), is_list(Text) ->
     MatchTest = match_test(ScannerName, Text),
     ScanTest = scan_test(ScannerName),
     MatchTest ++ ScanTest.
-            
+
 match_test(Module, Text) ->
     case getText(Module) of
         Text ->
             "match\n";
         ModText -> 
             "text mismatch!"++
-		  "\n(Scanner text)----------------\n\"" ++ ModText ++
-		"\"\n(Eclipse text)----------------\n\""++Text++"\"\n"
+                "\n(Scanner text)----------------\n\"" ++ ModText ++
+                "\"\n(Eclipse text)----------------\n\""++Text++"\"\n"
     end.
 
 scan_test(Module) ->
@@ -101,56 +102,39 @@ scan_test(Module) ->
 %%
 
 server_cmd(ScannerName, Command) ->
-	server_cmd(ScannerName, Command, []).
+    server_cmd(ScannerName, Command, []).
 
 server_cmd(ScannerName, Command, Args) ->
-	try
-		ScannerName ! {Command, self(), Args},
-		receive
-			{Command, _Pid, Result} ->
-				Result
-		end
-	catch _:Exception ->
-			  {error, Exception, erlang:get_stacktrace()}
-	end.
-
-%% spawn_server() ->
-%% 	case whereis(?SERVER) of
-%% 		undefined ->
-%% 			Pid = spawn(fun() -> 
-%% 								?SAVE_CALLS,
-%% 								loop([]) 
-%% 						end),
-%% 			erlang:register(?SERVER, Pid);
-%% 		_ ->
-%% 			ok
-%% 	end.
-
--record(module, {name,
-                 lines = [], % [{Length, String}]
-                 tokens = [], % [{Length, [Token]}]
-                 cachedTokens = []}).
+    try
+        ScannerName ! {Command, self(), Args},
+        receive
+            {Command, _Pid, Result} ->
+                Result
+        end
+    catch _:Exception ->
+              {error, Exception, erlang:get_stacktrace()}
+    end.
 
 spawn_server(ScannerName) ->
-	case whereis(ScannerName) of
-		undefined ->
-			Pid = spawn(fun() -> 
-								?SAVE_CALLS,
-								loop(#module{name=ScannerName}) 
-						end),
-			erlang:register(ScannerName, Pid);
-		_ ->
-			ok
-	end.
+    case whereis(ScannerName) of
+        undefined ->
+            Pid = spawn(fun() -> 
+                                ?SAVE_CALLS,
+                                loop(#module{name=ScannerName}) 
+                        end),
+            erlang:register(ScannerName, Pid);
+        _ ->
+            ok
+    end.
 
 loop(Module) ->
     receive
-	{stop, From, []} ->
+        {stop, From, []} ->
             ?D({stop, erlang:process_info(self(), registered_name)}),
-	    reply(stop, From, stopped);
-	{Cmd, From, Args} ->
-	    NewModule = cmd(Cmd, From, Args, Module),
-	    ?MODULE:loop(NewModule)
+            reply(stop, From, stopped);
+        {Cmd, From, Args} ->
+            NewModule = cmd(Cmd, From, Args, Module),
+            ?MODULE:loop(NewModule)
     end.
 
 cmd(Cmd, From, Args, Module) ->
@@ -175,9 +159,6 @@ cmd(Cmd, From, Args, Module) ->
 reply(Cmd, From, R) ->
     From ! {Cmd, self(), R}.
 
-%% do_cmd(scan_uncached, {Mod, ModuleFileName}, _) ->
-%%     NewMod = erlide_scanner:do_scan_uncached(Mod, ModuleFileName),
-%%     NewMod;
 do_cmd(initial_scan, {Mod, ModuleFileName, InitialText, StateDir, UseCache}, _Module) ->
     ?D({initial_scan, Mod, length(InitialText)}),
     {Cached, NewMod} = erlide_scanner:initial_scan(Mod, ModuleFileName, InitialText, StateDir, UseCache),
@@ -198,5 +179,4 @@ do_cmd(get_tokens, [], Module) ->
     {erlide_scanner:get_all_tokens(Module), Module};
 do_cmd(get_token_window, {Offset, Before, After}, Module) ->
     {erlide_scanner:get_token_window(Module, Offset, Before, After), Module}.
-
 

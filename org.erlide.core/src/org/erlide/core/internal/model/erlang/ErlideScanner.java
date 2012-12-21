@@ -191,6 +191,7 @@ public class ErlideScanner {
                     .call(ERLIDE_SCANNER, "getText", "a", scannerName);
             return Util.stringValue(o);
         } catch (final RpcException e) {
+            ErlLogger.warn(e);
             return "";
         }
     }
