@@ -59,7 +59,7 @@ getTokenAt(ScannerName, Offset) when is_atom(ScannerName), is_integer(Offset) ->
 
 initialScan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache) 
   when is_atom(ScannerName), is_list(ModuleFileName), is_list(InitialText), is_list(StateDir) ->
-	spawn_server(ScannerName),
+    spawn_server(ScannerName),
     server_cmd(ScannerName, initial_scan,
                {ScannerName, ModuleFileName, InitialText, StateDir, UseCache}).
 

@@ -46,7 +46,7 @@ public class BackendShell implements IBackendShell {
 
     @Override
     public void close() {
-        if (server != null) {
+        if (!backend.isStopped() && server != null) {
             backend.send(server, new OtpErlangAtom("stop"));
         }
         server = null;

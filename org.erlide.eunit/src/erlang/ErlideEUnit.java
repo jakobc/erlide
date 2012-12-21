@@ -1,5 +1,6 @@
 package erlang;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.erlide.backend.IBackend;
@@ -39,20 +40,27 @@ public final class ErlideEUnit {
 		return null;
 	}
 
-	public static int countTests(final IBackend backend,
+	public static Collection<Integer> countTests(final IBackend backend,
 			final List<OtpErlangObject> tuples) {
-		OtpErlangObject res = null;
+		final List<Integer> result = Lists.newArrayListWithCapacity(tuples
+				.size());
 		try {
-			res = backend.call("erlide_eunit", "count_tests", "lx", tuples);
+			final OtpErlangObject res = backend.call("erlide_eunit",
+					"count_tests", "lx", tuples);
 			if (Util.isOk(res)) {
 				final OtpErlangTuple t = (OtpErlangTuple) res;
-				final OtpErlangLong l = (OtpErlangLong) t.elementAt(1);
-				return l.intValue();
+				final OtpErlangList counts = (OtpErlangList) t.elementAt(1);
+				for (final OtpErlangObject o : counts) {
+					final OtpErlangTuple t2 = (OtpErlangTuple) o;
+					final OtpErlangLong l = (OtpErlangLong) t2.elementAt(0);
+					result.add(l.intValue());
+				}
 			}
 		} catch (final Exception e) {
 			ErlLogger.warn(e);
 		}
-		return 0;
+		ErlLogger.debug("countTests %s", result);
+		return result;
 	}
 
 	public static boolean runTests(final IBackend backend,

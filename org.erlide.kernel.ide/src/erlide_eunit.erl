@@ -7,6 +7,10 @@
 %% Include files
 %%
 
+%% -define(DEBUG, 1).
+
+-include("erlide.hrl").
+
 %%
 %% Exported Functions
 %%
@@ -22,7 +26,7 @@ find_tests(Beams) ->
     {ok, R}.
 
 count_tests(List) ->
-    count_eported_tests(List, 0).
+    count_tests(List, []).
 
 run_tests(Tests, JPid) ->
     EUnitTests = get_tests(Tests),
@@ -37,12 +41,39 @@ run_tests(Tests, JPid) ->
 -record(test, {m, f}).
 -record(generated, {m, f}).
 
-count_eported_tests([], Acc) ->
+%% from eunit_internal...
+-record(group, {desc = undefined,
+                order = undefined,      % run in order or in parallel
+                timeout = undefined,
+                context = undefined,    % setup-context record
+                spawn = undefined,      % run group in new process
+                tests = undefined}).
+
+
+count_tests([], Acc) ->
+    {ok, lists:reverse(Acc)};
+count_tests([{generated, M, F} | Rest], Acc) ->
+    Iter = eunit_data:iter_init({generator, M, F}, "eunit_erlide"),
+    N = count_generated_tests({start, Iter}, 0),
+    count_tests(Rest, [{N} | Acc]);
+count_tests([{test, _Fun} | Rest], Acc) ->
+    count_tests(Rest, [{1} | Acc]);
+count_tests([{test, _M, _F} | Rest], Acc) ->
+    count_tests(Rest, [{1} | Acc]).
+
+count_generated_tests(none, Acc) ->
+    ?D(Acc),
     Acc;
-count_eported_tests([#test{} | Rest], Acc) ->
-    count_eported_tests(Rest, Acc+1);
-count_eported_tests([#generated{f=F, m=M} | Rest], Acc) ->
-    count_eported_tests(Rest, Acc+length(F:M())). 
+count_generated_tests({start, none}, Acc) ->
+    ?D(Acc),
+    Acc;
+count_generated_tests({#group{tests=Tests}, Iter}, Acc) ->
+    GroupIter = eunit_data:iter_init(Tests, eunit_data:iter_id(Iter)),
+    NewAcc = count_generated_tests({start, GroupIter}, Acc),
+    count_generated_tests(eunit_data:iter_next(Iter), NewAcc);
+count_generated_tests({_Test, Iter}, Acc) ->
+    ?D(Iter),
+    count_generated_tests(eunit_data:iter_next(Iter), Acc+1).
 
 get_exported_tests(Beams) ->
     get_exported_tests(Beams, []).

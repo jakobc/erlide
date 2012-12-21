@@ -32,8 +32,6 @@ import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
-import org.eclipse.xtext.xbase.lib.Pair;
-import org.erlide.backend.BackendCore;
 import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
@@ -71,7 +69,6 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 	}
 
 	private Collection<EUnitTestFunction> fTestElements;
-	private int fTestCount;
 
 	/*
 	 * (non-Javadoc)
@@ -127,10 +124,7 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 			}
 
 			// get the tests
-			final Pair<Integer, Collection<EUnitTestFunction>> p = evaluateTests(
-					configuration, monitor);
-			fTestCount = p.getKey();
-			fTestElements = p.getValue();
+			fTestElements = evaluateTests(configuration, monitor);
 			ErlLogger.debug("fTestElements %s", fTestElements);
 
 			// check for cancellation
@@ -225,7 +219,7 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 	 * @throws CoreException
 	 *             an exception is thrown when the search for tests failed
 	 */
-	protected static Pair<Integer, Collection<EUnitTestFunction>> evaluateTests(
+	protected static Collection<EUnitTestFunction> evaluateTests(
 			final ILaunchConfiguration configuration,
 			final IProgressMonitor monitor) throws CoreException {
 		List<IErlProject> erlProjects = getErlProjects(configuration);
@@ -260,20 +254,17 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 					"No tests found with test runner ''{0}''.", "EUnit");
 			abort(msg, null, DebugException.REQUEST_FAILED);// FIXME JC byt code
 		}
-		final int n = countTestFunctions(testFunctions);
-		return new Pair<Integer, Collection<EUnitTestFunction>>(n,
-				testFunctions);
+		return testFunctions;
 	}
 
-	private static int countTestFunctions(
+	private static Collection<Integer> countTestFunctions(
+			final IBackend backend,
 			final Collection<EUnitTestFunction> testFunctions) {
 		final List<OtpErlangObject> tuples = Lists
 				.newArrayListWithCapacity(testFunctions.size());
 		for (final EUnitTestFunction testFunction : testFunctions) {
 			tuples.add(testFunction.getTuple());
 		}
-		final IBackend backend = BackendCore.getBackendManager()
-				.getIdeBackend();
 		return ErlideEUnit.countTests(backend, tuples);
 	}
 
@@ -372,8 +363,11 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 			final ILaunch launch, final IProgressMonitor monitor)
 			throws CoreException {
 		super.postLaunch(mode, backend, launch, monitor);
+		final Collection<Integer> testCounts = countTestFunctions(backend,
+				fTestElements);
 		final EUnitEventHandler eventHandler = new EUnitEventHandler(
-				backend.getEventPid(), launch, backend);
+				backend.getEventPid(), launch, backend, fTestElements,
+				testCounts);
 		eventHandler.register();
 		final OtpErlangPid jpid = backend.getEventPid();
 		final OtpErlangObject elems[] = new OtpErlangObject[fTestElements

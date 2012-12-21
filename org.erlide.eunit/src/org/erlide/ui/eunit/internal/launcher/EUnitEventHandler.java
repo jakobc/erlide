@@ -1,6 +1,9 @@
 package org.erlide.ui.eunit.internal.launcher;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.runtime.ListenerList;
@@ -9,6 +12,7 @@ import org.eclipse.xtext.xbase.lib.Pair;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.events.ErlangEventHandler;
 import org.erlide.eunit.EUnitPlugin;
+import org.erlide.eunit.EUnitTestFunction;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.eunit.internal.model.ITestRunListener2;
 import org.erlide.utils.Util;
@@ -19,24 +23,47 @@ import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.common.collect.Maps;
 
 public class EUnitEventHandler extends ErlangEventHandler {
 
 	private final OtpErlangPid eventPid;
 	private final ILaunch launch;
-	// private final IBackend backend;
 	private final ListenerList /* <ITestRunListener2> */listeners = new ListenerList();
+	private final Map<String, Integer> testCounts;
+	private final int totalTestCount;
 
 	public EUnitEventHandler(final OtpErlangPid eventPid, final ILaunch launch,
-			final IBackend backend) {
+			final IBackend backend,
+			final Collection<EUnitTestFunction> testElements,
+			final Collection<Integer> testCounts) {
 		super("eunit", backend);
+		final Pair<Map<String, Integer>, Integer> p = getTestCounts(
+				testElements, testCounts);
+		this.testCounts = p.getKey();
+		totalTestCount = p.getValue();
 		ErlLogger.debug(
 				"adding eventhandler to eventPid %s launch %s backend %s",
 				eventPid, launch, backend);
 		this.eventPid = eventPid;
 		this.launch = launch;
-		// this.backend = backend;
 		EUnitPlugin.getModel().addEventHandler(this);
+	}
+
+	private Pair<Map<String, Integer>, Integer> getTestCounts(
+			final Collection<EUnitTestFunction> testElements,
+			final Collection<Integer> testCounts) {
+		final Iterator<EUnitTestFunction> i = testElements.iterator();
+		final Iterator<Integer> ic = testCounts.iterator();
+		final Map<String, Integer> result = Maps
+				.newHashMapWithExpectedSize(testElements.size());
+		int total = 0;
+		while (i.hasNext() && ic.hasNext()) {
+			final Integer n = ic.next();
+			total += n;
+			result.put(i.next().getName(), n);
+		}
+		return new Pair<Map<String, Integer>, Integer>(result, total);
 	}
 
 	private enum EUnitMsgWhat {
@@ -158,7 +185,7 @@ public class EUnitEventHandler extends ErlangEventHandler {
 			case run_started:
 				al = new AllListeners() {
 					public void apply(final ITestRunListener2 listener) {
-						listener.testRunStarted(0);
+						listener.testRunStarted(totalTestCount);
 					}
 				};
 				break;

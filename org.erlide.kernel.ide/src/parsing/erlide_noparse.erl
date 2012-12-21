@@ -42,21 +42,21 @@
 %%
 
 initial_parse(ScannerName, ModuleFileName, StateDir, UseCache,
-	      UpdateSearchServer) ->
+              UpdateSearchServer) ->
     try
         BaseName = filename:join(StateDir, atom_to_list(ScannerName)),
         RefsFileName = BaseName ++ ".refs",
         RenewFun = fun(_F) ->
-			   {Model, _Refs} = 
-			       do_parse(ScannerName, RefsFileName, StateDir,
-					UpdateSearchServer),
-			   Model
+                           {Model, _Refs} = 
+                               do_parse(ScannerName, RefsFileName, StateDir,
+                                        UpdateSearchServer),
+                           Model
                    end,
         CacheFileName = BaseName ++ ".noparse",
-	{Cached, Res} = erlide_util:check_and_renew_cached(
-			  ModuleFileName, CacheFileName, ?CACHE_VERSION, 
-			  RenewFun, UseCache),
-	{ok, Res, Cached}
+        {Cached, Res} = erlide_util:check_and_renew_cached(
+                          ModuleFileName, CacheFileName, ?CACHE_VERSION, 
+                          RenewFun, UseCache),
+        {ok, Res, Cached}
     catch
         error:Reason ->
             {error, Reason}
