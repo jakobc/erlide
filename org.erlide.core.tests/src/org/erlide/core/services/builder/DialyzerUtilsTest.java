@@ -1,8 +1,6 @@
 package org.erlide.core.services.builder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -105,7 +103,7 @@ public class DialyzerUtilsTest {
             // putting a dialyzer warning on it
             final int lineNumber = 3;
             final String message = "test message";
-            final IErlElementLocator model = erlProject.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             MarkerUtils.addDialyzerWarningMarker(model, erlModule.getResource()
                     .getLocation().toPortableString(), lineNumber, message);
             // then
@@ -143,12 +141,12 @@ public class DialyzerUtilsTest {
                     "f([_ | _]=L ->\n    atom_to_list(L).\n");
             externalInclude = ErlideTestUtils.createTmpFile(
                     "external_includes", externalFile.getAbsolutePath());
-            MarkerUtils.removeDialyzerMarkers(root);
+            MarkerUtils.removeDialyzerMarkersFor(root);
             // when
             // putting dialyzer warning markers on the external file
             final String message = "test message";
             final int lineNumber = 2;
-            final IErlElementLocator model = erlProject.getModel();
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
             MarkerUtils.addDialyzerWarningMarker(model,
                     externalFile.getAbsolutePath(), lineNumber, message);
             // then
@@ -171,7 +169,7 @@ public class DialyzerUtilsTest {
                 assertEquals(message, marker.getAttribute(IMarker.MESSAGE));
             }
         } finally {
-            MarkerUtils.removeDialyzerMarkers(root);
+            MarkerUtils.removeDialyzerMarkersFor(root);
             if (externalInclude != null && externalInclude.exists()) {
                 externalInclude.delete();
             }

@@ -15,7 +15,7 @@ public class UIMessageReporter extends MessageReporter {
     @Override
     public void displayMessage(final MessageType type, final String message,
             final ReporterPosition style) {
-        new UIJob("crashed backend") {
+        new UIJob("erlide message") {
             @Override
             public IStatus runInUIThread(final IProgressMonitor monitor) {
                 switch (style) {
@@ -23,10 +23,10 @@ public class UIMessageReporter extends MessageReporter {
                     PopupDialog.showModalDialog("erlide " + type, message);
                     break;
                 case CENTER:
-                    PopupDialog.showDialog("erlide " + type, message, 3000);
+                    PopupDialog.showDialog("erlide " + type, message, 4000);
                     break;
                 case CORNER:
-                    PopupDialog.showBalloon("erlide " + type, message, 3000);
+                    PopupDialog.showBalloon("erlide " + type, message, 5000);
                     break;
                 default:
                     break;

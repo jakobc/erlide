@@ -14,15 +14,16 @@ import org.eclipse.core.runtime.Assert;
 import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.debug.core.model.IStreamsProxy;
-import org.erlide.backend.BackendData;
 import org.erlide.backend.BackendException;
-import org.erlide.backend.IErlRuntime;
+import org.erlide.backend.IBackendData;
+import org.erlide.backend.IBackendManager;
+import org.erlide.runtime.IErlRuntime;
 
 public class ExternalBackend extends Backend {
 
-    public ExternalBackend(final BackendData data, final IErlRuntime runtime)
-            throws BackendException {
-        super(data, runtime);
+    public ExternalBackend(final IBackendData data, final IErlRuntime runtime,
+            final IBackendManager backendManager) throws BackendException {
+        super(data, runtime, backendManager);
         Assert.isNotNull(getLaunch());
         assignStreamProxyListeners();
     }

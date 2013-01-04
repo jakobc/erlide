@@ -9,9 +9,9 @@ import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendData;
 import org.erlide.backend.IBackendListener;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.IDisposable;
 
 public class ErlConsoleManager implements IDisposable, IBackendListener {
@@ -32,7 +32,7 @@ public class ErlConsoleManager implements IDisposable, IBackendListener {
         if (b == null) {
             return;
         }
-        final RuntimeInfo info = b.getRuntimeInfo();
+        final IBackendData info = b.getData();
         if (!info.hasConsole()) {
             return;
         }

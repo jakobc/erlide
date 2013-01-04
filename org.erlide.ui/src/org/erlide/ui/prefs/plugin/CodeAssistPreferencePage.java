@@ -17,8 +17,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.util.StatusInfo;
+import org.erlide.utils.ErlLogger;
 import org.osgi.service.prefs.BackingStoreException;
 
 public class CodeAssistPreferencePage extends PreferencePage implements
@@ -127,7 +127,7 @@ public class CodeAssistPreferencePage extends PreferencePage implements
     }
 
     protected void validateSettings() {
-        statusChanged(EditorPreferencePage.validatePositiveNumber(delayText
+        statusChanged(ErlidePreferencePage.validatePositiveNumber(delayText
                 .getText()));
         statusChanged(validateCommaSeparatedCharacters(erlangTriggersText
                 .getText()));
@@ -153,7 +153,7 @@ public class CodeAssistPreferencePage extends PreferencePage implements
     private void statusChanged(final IStatus status) {
         final boolean valid = !status.matches(IStatus.ERROR);
         setValid(valid);
-        EditorPreferencePage.applyToStatusLine(this, status);
+        ErlidePreferencePage.applyToStatusLine(this, status);
     }
 
     @Override

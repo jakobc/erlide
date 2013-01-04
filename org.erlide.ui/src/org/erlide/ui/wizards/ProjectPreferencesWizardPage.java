@@ -34,16 +34,16 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
+import org.eclipse.wb.swt.SWTResourceManager;
 import org.erlide.backend.BackendCore;
 import org.erlide.core.internal.model.root.OldErlangProjectProperties;
 import org.erlide.core.internal.model.root.PathSerializer;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.utils.PreferencesUtils;
-import org.erlide.utils.SystemUtils;
+import org.erlide.utils.SystemConfiguration;
 
 import com.ericsson.otp.erlang.RuntimeVersion;
 import com.google.common.collect.Lists;
-import com.swtdesigner.SWTResourceManager;
 
 /**
  * 
@@ -194,7 +194,7 @@ public class ProjectPreferencesWizardPage extends WizardPage {
         runtimeVersion.addListener(SWT.Modify, nameModifyListener);
 
         new Label(composite, SWT.NONE);
-        if (SystemUtils.getInstance().isTest()) {
+        if (SystemConfiguration.getInstance().isTest()) {
             createExternalModuleEditor(composite);
             createExternalIncludeEditor(composite);
         }

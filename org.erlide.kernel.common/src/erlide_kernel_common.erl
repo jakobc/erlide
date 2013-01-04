@@ -1,50 +1,42 @@
 -module(erlide_kernel_common).
 
 -export([
-     init/3,
-     set_monitoring/1,
-     set_monitoring_interval/1
+     init/4
     ]).
 
-init(JRex, Monitor, Watch) ->
+init(JRex, Kill, HeapWarnLimit, HeapKillLimit) ->
   spawn(fun () ->
-                 startup(JRex, Monitor, Watch)
+                 startup(JRex, Kill, HeapWarnLimit, HeapKillLimit)
         end).
 
-startup(JRex, Monitor, Watch)->
-    %% must be first so that only system processes are ignored
-    erlide_monitor:start(),
-    set_monitoring(Monitor), 
-
+startup(JRex, Kill, HeapWarnLimit, HeapKillLimit)->
     erlide_jrpc:init(JRex),
-    watch_eclipse(node(JRex), Watch),
-    
+    watch_eclipse(node(JRex), Kill),
+
+	erlide_monitor:start(HeapWarnLimit, HeapKillLimit),
+    erlang:system_monitor(erlang:whereis(erlide_monitor),
+						  [{long_gc, 3000}, {large_heap, HeapWarnLimit*1000000 div 2}]),
+
     erlide_batch:start(erlide_builder),
     ok.
 
-watch_eclipse(JavaNode, Watch) ->
+watch_eclipse(JavaNode, Kill) ->
   spawn(fun() ->
           monitor_node(JavaNode, true),
+		  erlide_log:log({"Monitoring java node", JavaNode}),
+		  write_message({"start monitoring", JavaNode, Kill}),
           receive
-            {nodedown, JavaNode} ->
-              case Watch of
+            {nodedown, JavaNode}=_Msg ->
+			  write_message(_Msg),
+              case Kill of
                 true ->
-                  init:stop();
+                  erlang:halt();
                 false ->
                   shutdown()
               end,
-              ok
+			  ok
           end
       end).
-
-monitor() ->
-  receive
-    {erlide_monitor, _Node, _Diff}=Msg ->
-      erlide_log:logp("~p.", [Msg]),
-      monitor();
-    _ ->
-      monitor()
-  end.
 
 shutdown() ->
   erlide_monitor:stop(),
@@ -52,15 +44,10 @@ shutdown() ->
   [exit(whereis(list_to_atom(X)), kill) || X <- L],
   ok.
 
-set_monitoring(true) ->
-    erlide_log:log("start ide monitoring"),
-    Mon = spawn(fun monitor/0),
-    erlide_monitor:subscribe(Mon);
-set_monitoring(false) ->
-    erlide_log:log("stop ide monitoring"),
-    ok.
-
-set_monitoring_interval(N) ->
-    erlide_monitor:configure(poll_interval, N*1000),
-    erlide_monitor ! take_snapshot.
-
+write_message(Msg) ->
+	{ok, [[Home]]} = init:get_argument(home),
+	{ok, F} = file:open(Home++"/erlide_debug.txt", [append, raw]),
+	file:write(F, io_lib:format("~p: ~p got ~p~n", [erlang:universaltime(), node(), Msg])),
+	file:sync(F),
+	file:close(F),
+	ok.

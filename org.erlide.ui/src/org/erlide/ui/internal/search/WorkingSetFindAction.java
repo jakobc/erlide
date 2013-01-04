@@ -13,10 +13,10 @@ package org.erlide.ui.internal.search;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IWorkbenchSite;
-import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.services.search.ErlSearchScope;
-import org.erlide.core.services.search.ErlangSearchPattern.LimitTo;
+import org.erlide.core.services.search.LimitTo;
 import org.erlide.ui.editors.erl.ErlangEditor;
 
 /**

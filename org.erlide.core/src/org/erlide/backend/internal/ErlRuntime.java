@@ -14,16 +14,17 @@ import java.io.IOException;
 
 import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.model.IProcess;
-import org.erlide.backend.IErlRuntime;
 import org.erlide.core.MessageReporter;
 import org.erlide.core.MessageReporter.ReporterPosition;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.IRpcCallback;
-import org.erlide.jinterface.rpc.IRpcFuture;
-import org.erlide.jinterface.rpc.IRpcResultCallback;
-import org.erlide.jinterface.rpc.RpcException;
-import org.erlide.jinterface.rpc.RpcHelper;
-import org.erlide.utils.SystemUtils;
+import org.erlide.runtime.HostnameUtils;
+import org.erlide.runtime.IErlRuntime;
+import org.erlide.runtime.rpc.IRpcCallback;
+import org.erlide.runtime.rpc.IRpcFuture;
+import org.erlide.runtime.rpc.IRpcResultCallback;
+import org.erlide.runtime.rpc.RpcException;
+import org.erlide.runtime.rpc.RpcHelper;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -32,9 +33,10 @@ import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 import com.ericsson.otp.erlang.OtpNodeStatus;
 import com.ericsson.otp.erlang.SignatureException;
+import com.google.common.base.Strings;
 
 public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
-    private static final int MAX_RETRIES = 20;
+    private static final int MAX_RETRIES = 10;
     public static final int RETRY_DELAY = Integer.parseInt(System.getProperty(
             "erlide.connect.delay", "300"));
     private static final Object connectLock = new Object();
@@ -51,13 +53,21 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
     private final String cookie;
     private boolean reported;
     private final IProcess process;
+    private final boolean reportWhenDown;
+    private final boolean longName;
+    private final boolean connectOnce;
 
     public ErlRuntime(final String name, final String cookie,
-            final IProcess process) {
+            final IProcess process, final boolean reportWhenDown,
+            final boolean longName, final boolean connectOnce) {
         state = State.DISCONNECTED;
         peerName = name;
         this.cookie = cookie;
         this.process = process;
+        this.reportWhenDown = reportWhenDown;
+        this.longName = longName;
+        this.connectOnce = connectOnce;
+
         startLocalNode();
         // if (epmdWatcher.isRunningNode(name)) {
         // connect();
@@ -71,7 +81,7 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
             do {
                 try {
                     i++;
-                    localNode = ErlRuntime.createOtpNode(cookie);
+                    localNode = ErlRuntime.createOtpNode(cookie, longName);
                     localNode.registerStatusHandler(this);
                     nodeCreated = true;
                 } catch (final IOException e) {
@@ -206,6 +216,8 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
                 reported = false;
                 if (connectRetry()) {
                     state = State.CONNECTED;
+                } else if (connectOnce) {
+                    state = State.DOWN;
                 } else {
                     state = State.DISCONNECTED;
                 }
@@ -213,24 +225,7 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
             case CONNECTED:
                 break;
             case DOWN:
-                final String fmt = "Backend '%s' is down";
-                final String msg = String.format(fmt, peerName);
-                if (!reported) {
-                    final String user = System.getProperty("user.name");
-                    final String bigMsg = msg
-                            + "\n\n"
-                            + "This error is not recoverable, please restart the application."
-                            + "\n\n"
-                            + "If an error report "
-                            + user
-                            + "_<timestamp>.txt has been created in your home directory, "
-                            + "please consider reporting the problem. \n"
-                            + (SystemUtils
-                                    .hasFeatureEnabled("erlide.ericsson.user") ? ""
-                                    : "http://www.assembla.com/spaces/erlide/support/tickets");
-                    MessageReporter.showError(bigMsg, ReporterPosition.MODAL);
-                    reported = true;
-                }
+                final String msg = reportRuntimeDown(peerName);
                 try {
                     if (process != null) {
                         process.terminate();
@@ -244,6 +239,42 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
         }
     }
 
+    private String reportRuntimeDown(final String peer) {
+        final String fmt = "Backend '%s' is down";
+        final String msg = String.format(fmt, peer);
+        if (reportWhenDown && !reported) {
+            final String user = System.getProperty("user.name");
+
+            String msg1;
+            if (connectOnce) {
+                msg1 = "It is likely that your network is misconfigured or uses 'strange' host names.\n"
+                        + "Please check the "
+                        + "Window->preferences->erlang->network page for hints about that."
+                        + "\n\n"
+                        + "Also, check if you can create and connect two erlang nodes on your machine\n"
+                        + "using \"erl -name foo1\" and \"erl -name foo2\".";
+            } else {
+                msg1 = "If you didn't shut it down on purpose, it is an "
+                        + "unrecoverable error, please restart Eclipse. ";
+            }
+
+            final String bigMsg = msg
+                    + "\n\n"
+                    + msg1
+                    + "\n\n"
+                    + "If an error report named '"
+                    + user
+                    + "_<timestamp>.txt' has been created in your home directory,\n "
+                    + "please consider reporting the problem. \n"
+                    + (SystemConfiguration
+                            .hasFeatureEnabled("erlide.ericsson.user") ? ""
+                            : "http://www.assembla.com/spaces/erlide/support/tickets");
+            MessageReporter.showError(bigMsg, ReporterPosition.CORNER);
+            reported = true;
+        }
+        return msg;
+    }
+
     @Override
     public boolean isAvailable() {
         return state == State.CONNECTED;
@@ -254,26 +285,34 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
         return "jerlide_" + fUniqueId;
     }
 
+    public static String createJavaNodeName(final String hostName) {
+        return createJavaNodeName() + "@" + hostName;
+    }
+
     static String getTimeSuffix() {
         String fUniqueId;
         fUniqueId = Long.toHexString(System.currentTimeMillis() & 0xFFFFFFF);
         return fUniqueId;
     }
 
-    public static OtpNode createOtpNode(final String cookie) throws IOException {
+    public static OtpNode createOtpNode(final String cookie,
+            final boolean longName) throws IOException {
         OtpNode node;
-        if (cookie == null) {
-            node = new OtpNode(createJavaNodeName());
+        final String hostName = HostnameUtils.getErlangHostName(longName);
+        if (Strings.isNullOrEmpty(cookie)) {
+            node = new OtpNode(createJavaNodeName(hostName));
         } else {
-            node = new OtpNode(createJavaNodeName(), cookie);
+            node = new OtpNode(createJavaNodeName(hostName), cookie);
         }
-        final String nodeCookie = node.cookie();
-        final int len = nodeCookie.length();
-        final String trimmed = len > 7 ? nodeCookie.substring(0, 7)
-                : nodeCookie;
+        debugPrintCookie(node.cookie());
+        return node;
+    }
+
+    private static void debugPrintCookie(final String cookie) {
+        final int len = cookie.length();
+        final String trimmed = len > 7 ? cookie.substring(0, 7) : cookie;
         ErlLogger.debug("using cookie '%s...'%d (info: '%s')", trimmed, len,
                 cookie);
-        return node;
     }
 
     @Override
@@ -286,9 +325,6 @@ public class ErlRuntime extends OtpNodeStatus implements IErlRuntime {
     @Override
     public void send(final String fullNodeName, final String name,
             final Object msg) throws SignatureException, RpcException {
-        // XXX
-        state = State.DOWN;
-        //
         tryConnect();
         rpcHelper.send(localNode, fullNodeName, name, msg);
     }

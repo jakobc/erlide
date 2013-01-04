@@ -12,6 +12,7 @@ package org.erlide.ui.internal.information;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.AbstractReusableInformationControlCreator;
 import org.eclipse.jface.text.DefaultInformationControl;
@@ -24,20 +25,15 @@ import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.EditorsUI;
-import org.erlide.backend.BackendCore;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.services.search.OpenResult;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.ErlideImage;
-import org.erlide.ui.actions.OpenAction;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.erl.SimpleSelectionProvider;
-import org.erlide.ui.editors.util.EditorUtility;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.eclipse.text.BrowserInformationControl;
 import org.erlide.ui.util.eclipse.text.BrowserInformationControlInput;
 import org.erlide.ui.util.eclipse.text.BrowserInput;
 import org.erlide.ui.views.EdocView;
+import org.erlide.utils.ErlLogger;
 
 public final class PresenterControlCreator extends
         AbstractReusableInformationControlCreator {
@@ -161,56 +157,7 @@ public final class PresenterControlCreator extends
         }
     }
 
-    /**
-     * Action that opens the current hover input element.
-     * 
-     * @since 3.4
-     */
-    private static final class OpenDeclarationAction extends Action {
-        private final BrowserInformationControl fInfoControl;
-        private final ErlangEditor editor;
-
-        public OpenDeclarationAction(
-                final BrowserInformationControl infoControl,
-                final ErlangEditor editor) {
-            fInfoControl = infoControl;
-            this.editor = editor;
-            setText("Open declaration");
-            ErlideImage.setLocalImageDescriptors(this, "goto_input.gif");
-        }
-
-        /*
-         * @see org.eclipse.jface.action.Action#run()
-         */
-        @Override
-        public void run() {
-            final BrowserInformationControlInput infoInput = fInfoControl
-                    .getInput();
-            fInfoControl.notifyDelayedInputChange(null);
-            fInfoControl.dispose();
-            // TODO: add hover location to editor navigation history?
-            try {
-                final Object element = infoInput.getInputElement();
-                if (element instanceof IErlElement) {
-                    EditorUtility.openElementInEditor(element, true);
-                } else if (element instanceof OpenResult) {
-                    final OpenResult or = (OpenResult) element;
-                    try {
-                        OpenAction
-                                .openOpenResult(editor, editor.getModule(),
-                                        BackendCore.getBackendManager()
-                                                .getIdeBackend(), -1, null, or);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            } catch (final PartInitException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private final ErlangEditor editor;
+    final ErlangEditor editor;
 
     public PresenterControlCreator(final ErlangEditor editor) {
         this.editor = editor;
@@ -222,26 +169,40 @@ public final class PresenterControlCreator extends
             final ToolBarManager tbm = new ToolBarManager(SWT.FLAT);
 
             final String font = JFaceResources.DIALOG_FONT;
-            final BrowserInformationControl iControl = new BrowserInformationControl(
+            final BrowserInformationControl control = new BrowserInformationControl(
                     parent, font, tbm);
 
             final PresenterControlCreator.BackAction backAction = new PresenterControlCreator.BackAction(
-                    iControl);
+                    control);
             backAction.setEnabled(false);
             tbm.add(backAction);
             final PresenterControlCreator.ForwardAction forwardAction = new PresenterControlCreator.ForwardAction(
-                    iControl);
+                    control);
             tbm.add(forwardAction);
             forwardAction.setEnabled(false);
 
             final PresenterControlCreator.ShowInEdocViewAction showInEdocViewAction = new PresenterControlCreator.ShowInEdocViewAction(
-                    iControl);
+                    control);
             tbm.add(showInEdocViewAction);
-            final PresenterControlCreator.OpenDeclarationAction openDeclarationAction = new PresenterControlCreator.OpenDeclarationAction(
-                    iControl, editor);
+            final OpenDeclarationAction openDeclarationAction = new OpenDeclarationAction(
+                    control, editor);
             tbm.add(openDeclarationAction);
 
             final SimpleSelectionProvider selectionProvider = new SimpleSelectionProvider();
+            final OpenEdocInExternalBrowserAction openEdocInExternalBrowserAction = new OpenEdocInExternalBrowserAction(
+                    editor.getSite(), null);
+            openEdocInExternalBrowserAction
+                    .setSpecialSelectionProvider(selectionProvider);
+            selectionProvider
+                    .addSelectionChangedListener(openEdocInExternalBrowserAction);
+            final ImageDescriptor descriptor = ErlideImage.OBJS_EXTERNALBROWSER
+                    .getDescriptor();
+            openEdocInExternalBrowserAction.setImageDescriptor(descriptor);
+            openEdocInExternalBrowserAction
+                    .setDisabledImageDescriptor(descriptor);
+            selectionProvider.setSelection(new StructuredSelection());
+            tbm.add(openEdocInExternalBrowserAction);
+
             // OpenExternalBrowserAction openExternalJavadocAction = new
             // OpenExternalBrowserAction(
             // parent.getDisplay(), selectionProvider);
@@ -267,14 +228,20 @@ public final class PresenterControlCreator extends
                         final boolean hasInputElement = inputElement != null;
                         showInEdocViewAction.setEnabled(hasInputElement);
                         openDeclarationAction.setEnabled(hasInputElement);
+                        openEdocInExternalBrowserAction.setInput(newInput);
+                        openEdocInExternalBrowserAction
+                                .setEnabled(hasInputElement);
                     }
                 }
             };
-            iControl.addInputChangeListener(inputChangeListener);
+            control.addInputChangeListener(inputChangeListener);
 
             tbm.update(true);
 
-            return iControl;
+            control.addLocationListener(new HandleEdocLinksLocationListener(
+                    control));
+
+            return control;
         } else {
             return new DefaultInformationControl(parent,
                     EditorsUI.getTooltipAffordanceString(),

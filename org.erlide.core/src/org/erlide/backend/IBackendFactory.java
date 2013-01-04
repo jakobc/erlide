@@ -1,6 +1,6 @@
 package org.erlide.backend;
 
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
 
 public interface IBackendFactory {
 
@@ -8,6 +8,6 @@ public interface IBackendFactory {
 
     IBackend createBuildBackend(final RuntimeInfo info);
 
-    IBackend createBackend(final BackendData data);
+    IBackend createBackend(final IBackendData data);
 
 }

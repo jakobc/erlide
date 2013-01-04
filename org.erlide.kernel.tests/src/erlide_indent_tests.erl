@@ -101,6 +101,32 @@ spec_test_() ->
                   "          {ok, pid()}.",
     ?Test_indent(SIndent, S).
 
+spec_2_test_() ->
+    S = ""++
+            "-spec start_link(config()) ->\n"++
+            "{ok, pid()}.\n"++
+            "f()->\n"++
+            "ok.",
+    SIndent = ""++
+                  "-spec start_link(config()) ->\n"++
+                  "          {ok, pid()}.\n"++
+                  "f()->\n"++
+                  "    ok.",
+    ?Test_indent(SIndent, S).
+
+spec_3_test_() ->
+    S = ""++
+            "-spec(start_link(config()) ->\n"++
+            "{ok, pid()}).\n"++
+            "f()->\n"++
+            "ok.",
+    SIndent = ""++
+                  "-spec(start_link(config()) ->\n"++
+                  "          {ok, pid()}).\n"++
+                  "f()->\n"++
+                  "    ok.",
+    ?Test_indent(SIndent, S).
+
 export_test_() ->
     S = ""++
             "-export([f/1,\n"++
@@ -151,7 +177,7 @@ type_test_() ->
                   "    ok.\n",
     ?Test_indent(SIndent, S).
 
-%% https://www.assembla.com/spaces/erlide/tickets/936-indent--macros-in-list-comprehensions
+%% http://www.assembla.com/spaces/erlide/tickets/936-indent--macros-in-list-comprehensions
 macro_in_lc_test_() ->
     S = "" ++
             "b() ->\n"++
@@ -163,6 +189,38 @@ macro_in_lc_test_() ->
             "    a.\n",
     ?Test_indent(I, S).
 
+%% http://www.assembla.com/spaces/erlide/tickets/776
+%% indentation: receive..after is wrong
+indent_after_test_() ->
+    S = "" ++
+            "a()->\n"++
+            "receive\n"++
+            "X ->\n"++
+            "ok\n"++
+            "after 500 ->\n"++
+            "error\n"++
+            "end.\n",
+    I = "" ++
+            "a()->\n"++
+            "    receive\n"++
+            "        X ->\n"
+            "            ok\n"++
+            "    after 500 ->\n"++
+            "            error\n"++
+            "    end.\n",
+    ?Test_indent(I, S).
+
+%% http://www.assembla.com/spaces/erlide/tickets/1083-indentation--bad-after--spec-with-when-clause
+indent_spec_with_when_test_() ->
+    S = "" ++
+            "-spec a(T) -> ok when T::term().\n"++
+            "a(apa) ->\n"++
+            "ok.\n",
+    I = "" ++
+            "-spec a(T) -> ok when T::term().\n"++
+            "a(apa) ->\n"++
+            "    ok.\n",
+    ?Test_indent(I, S).
 
 %%
 %% Local Functions

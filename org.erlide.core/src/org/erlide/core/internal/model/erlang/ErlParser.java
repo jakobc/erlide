@@ -11,6 +11,10 @@
 package org.erlide.core.internal.model.erlang;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.erlide.backend.BackendCore;
@@ -18,18 +22,19 @@ import org.erlide.backend.BackendHelper;
 import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangPlugin;
 import org.erlide.core.internal.model.root.ErlMember;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.erlang.IErlAttribute;
 import org.erlide.core.model.erlang.IErlComment;
+import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlImport;
 import org.erlide.core.model.erlang.IErlMember;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlParser;
 import org.erlide.core.model.erlang.IErlRecordDef;
+import org.erlide.core.model.erlang.IErlTypespec;
+import org.erlide.core.model.erlang.ISourceReference;
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.jinterface.Bindings;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.utils.ErlUtils;
-import org.erlide.utils.TermParserException;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -47,46 +52,55 @@ import com.google.common.collect.Lists;
  */
 public final class ErlParser implements IErlParser {
 
+    private final class SourceOffsetComparator implements
+            Comparator<ISourceReference> {
+        @Override
+        public int compare(final ISourceReference o1, final ISourceReference o2) {
+            final int offset1 = o1.getSourceRange().getOffset();
+            final int offset2 = o2.getSourceRange().getOffset();
+            if (offset1 < offset2) {
+                return -1;
+            } else if (offset1 > offset2) {
+                return 1;
+            }
+            return 0;
+        }
+    }
+
+    private static final int FUNCTION_COMMENT_THRESHOLD = 3;
+    private static final int MODULE_HEADER_COMMENT_THRESHOLD = 1;
+
     public ErlParser() {
     }
 
     @Override
     public boolean parse(final IErlModule module, final String scannerName,
             final boolean initialParse, final String path,
-            final boolean useCaches) {
-        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
-        if (b == null || module == null) {
+            final boolean useCaches, final boolean updateSearchServer) {
+        if (module == null) {
             return false;
         }
         OtpErlangList forms = null;
         OtpErlangList comments = null;
         OtpErlangTuple res = null;
+        final IBackend backend = BackendCore.getBackendManager()
+                .getIdeBackend();
         if (initialParse) {
-            // ErlLogger.debug("initialParse %s", path);
             final String stateDir = ErlangPlugin.getDefault()
                     .getStateLocation().toString();
-            res = ErlideNoparse.initialParse(b, scannerName, path, stateDir,
-                    useCaches, true);
+            res = ErlideNoparse.initialParse(backend, scannerName, path,
+                    stateDir, useCaches, updateSearchServer);
         } else {
-            res = ErlideNoparse.reparse(b, scannerName);
+            res = ErlideNoparse.reparse(backend, scannerName,
+                    updateSearchServer);
         }
         if (Util.isOk(res)) {
-            Bindings bindings = null;
-            try {
-                bindings = ErlUtils.match("{ok, {_, Forms, Comments}, _}", res);
-            } catch (final TermParserException e) {
-                e.printStackTrace();
-            }
-            if (bindings != null) {
-                forms = (OtpErlangList) bindings.get("Forms");
-                comments = (OtpErlangList) bindings.get("Comments");
-            } else {
-                ErlLogger.error("parser for %s got: %s", path, res);
-            }
+            final OtpErlangTuple t = (OtpErlangTuple) res.elementAt(1);
+            forms = (OtpErlangList) t.elementAt(1);
+            comments = (OtpErlangList) t.elementAt(2);
         } else {
-            ErlLogger.error("rpc error when parsing %s: %s", path, res);
+            ErlLogger.error("error when parsing %s: %s", path, res);
         }
-        // mm.setParseTree(forms);
         if (forms == null) {
             module.setChildren(null);
         } else {
@@ -114,7 +128,72 @@ public final class ErlParser implements IErlParser {
             }
             module.setComments(moduleComments);
         }
-        return true;
+        fixFunctionComments(module);
+        return forms != null && comments != null;
+    }
+
+    /**
+     * fix function documentation with heuristics: if a comment is within 3
+     * lines before function, or a sequence of comment, -spec, comment, then
+     * they should be added to function documentation
+     * 
+     * TODO: check that -spec is actually relevant to the function
+     * 
+     * @param module
+     */
+    private void fixFunctionComments(final IErlModule module) {
+        // TODO rewrite in Erlang? would be so much less code...
+        try {
+            final Collection<IErlComment> comments = module.getComments();
+            final List<IErlElement> children = module.getChildren();
+            final List<IErlMember> all = Lists
+                    .newArrayListWithCapacity(children.size() + comments.size());
+            all.addAll(comments);
+            for (final IErlElement element : children) {
+                if (element instanceof IErlMember) {
+                    all.add((IErlMember) element);
+                }
+            }
+            Collections.sort(all, new SourceOffsetComparator());
+            for (int i = 1; i < all.size(); i++) {
+                checkForComment(all, i);
+            }
+        } catch (final ErlModelException e) {
+            ErlLogger.warn(e);
+        }
+    }
+
+    private void checkForComment(final List<IErlMember> all, final int i) {
+        final IErlMember m = all.get(i);
+        if (m instanceof IErlFunction) {
+            final IErlFunction function = (IErlFunction) m;
+            final LinkedList<IErlMember> comments = Lists.newLinkedList();
+            int j = considerPrevious(i, all, comments);
+            j = considerPrevious(j, all, comments);
+            j = considerPrevious(j, all, comments);
+            if (!comments.isEmpty()) {
+                function.setComments(comments);
+            }
+        }
+    }
+
+    private int considerPrevious(final int i, final List<IErlMember> all,
+            final LinkedList<IErlMember> comments) {
+        final int i_1 = i - 1;
+        if (i_1 > 0) {
+            final IErlMember member = all.get(i);
+            final IErlMember member_1 = all.get(i_1);
+            if (member_1 instanceof IErlComment
+                    || member_1 instanceof IErlTypespec) {
+                if (member_1.getLineEnd() + FUNCTION_COMMENT_THRESHOLD >= member
+                        .getLineStart()) {
+                    comments.addFirst(member_1);
+                }
+            } else {
+                return -1;
+            }
+        }
+        return i_1;
     }
 
     /**
@@ -143,14 +222,15 @@ public final class ErlParser implements IErlParser {
         }
         lastLine = line;
         try {
-            if (c.elementAt(5) instanceof OtpErlangLong) {
+            if (c.elementAt(7) instanceof OtpErlangLong) {
                 final OtpErlangLong lastLineL = (OtpErlangLong) c.elementAt(7);
                 lastLine = lastLineL.intValue();
             }
         } catch (final OtpErlangRangeException e1) {
+            lastLine = line;
         }
         final ErlComment comment = new ErlComment(module, Util.stringValue(s),
-                line == 0 || line == 1);
+                line <= MODULE_HEADER_COMMENT_THRESHOLD);
         try {
             final int ofs = ((OtpErlangLong) c.elementAt(3)).intValue();
             final int len = ((OtpErlangLong) c.elementAt(4)).intValue();
@@ -177,8 +257,7 @@ public final class ErlParser implements IErlParser {
             final String msg = BackendHelper.format_error(BackendCore
                     .getBackendManager().getIdeBackend(), er);
 
-            final ErlMessage e = new ErlMessage(module,
-                    ErlMessage.MessageKind.ERROR, msg);
+            final ErlParserProblem e = ErlParserProblem.newError(module, msg);
             setPos(e, er.elementAt(0), false);
             return e;
         } else if ("tree".equals(typeS)) {
@@ -190,14 +269,16 @@ public final class ErlParser implements IErlParser {
             final OtpErlangObject val = atr.elementAt(2);
             final OtpErlangObject extra = el.arity() > 4 ? el.elementAt(4)
                     : null;
-            return addAttribute(module, pos, n, val, extra);
+            return addAttribute(module, pos, n, val, extra, null);
         } else if ("attribute".equals(typeS)) {
             final OtpErlangObject pos = el.elementAt(1);
             final OtpErlangAtom name = (OtpErlangAtom) el.elementAt(2);
             final OtpErlangObject val = el.elementAt(3);
             final OtpErlangObject extra = el.arity() > 4 ? el.elementAt(4)
                     : null;
-            return addAttribute(module, pos, name, val, extra);
+            final OtpErlangObject arity = el.arity() > 5 ? el.elementAt(5)
+                    : null;
+            return addAttribute(module, pos, name, val, extra, arity);
         } else if ("function".equals(typeS)) {
             final ErlFunction f = makeErlFunction(module, el);
             final OtpErlangList clauses = (OtpErlangList) el.elementAt(6);
@@ -234,16 +315,11 @@ public final class ErlParser implements IErlParser {
         final OtpErlangObject head = el.elementAt(5);
         final OtpErlangTuple namePos = (OtpErlangTuple) el.elementAt(7);
         ErlFunction f = null;
-        final OtpErlangObject commentO = el.elementAt(8);
-        final OtpErlangAtom exportedA = (OtpErlangAtom) el.elementAt(9);
+        final OtpErlangAtom exportedA = (OtpErlangAtom) el.elementAt(8);
         final boolean exported = Boolean.parseBoolean(exportedA.atomValue());
         try {
-            String comment = Util.stringValue(commentO);
-            if (comment != null) {
-                comment = comment.replaceAll("\n", "<br/>");
-            }
             f = new ErlFunction(module, name.atomValue(), arity.intValue(),
-                    Util.stringValue(head), comment, exported, parameters);
+                    Util.stringValue(head), exported, parameters);
         } catch (final OtpErlangRangeException e) {
             return f;
         }
@@ -294,7 +370,8 @@ public final class ErlParser implements IErlParser {
 
     private IErlMember addAttribute(final IErlModule module,
             final OtpErlangObject pos, final OtpErlangAtom name,
-            final OtpErlangObject val, final OtpErlangObject extra) {
+            final OtpErlangObject val, final OtpErlangObject extra,
+            final OtpErlangObject arity) {
         final String nameS = name.atomValue();
         if ("module".equals(nameS) && val instanceof OtpErlangAtom) {
             return addModuleAttribute(module, pos, (OtpErlangAtom) val, extra,
@@ -309,7 +386,7 @@ public final class ErlParser implements IErlParser {
             return addRecordDef(module, pos, val, extra);
         } else if ("type".equals(nameS) || "spec".equals(nameS)
                 || "opaque".equals(nameS)) {
-            return addTypespec(module, pos, extra);
+            return addTypespec(module, pos, arity, extra);
         } else if ("define".equals(nameS)) {
             return addMacroDef(module, pos, val, extra, nameS);
         }
@@ -447,11 +524,13 @@ public final class ErlParser implements IErlParser {
     }
 
     private IErlMember addTypespec(final IErlModule module,
-            final OtpErlangObject pos, final OtpErlangObject extra) {
+            final OtpErlangObject pos, final OtpErlangObject arityL,
+            final OtpErlangObject extra) {
         final String s = Util.stringValue(extra);
         final int p = s.indexOf('(');
         final String typeName = p < 0 ? s : s.substring(0, p);
-        final ErlTypespec a = new ErlTypespec(module, typeName, s);
+        final int arity = Util.getIntegerValue(arityL, -1);
+        final ErlTypespec a = new ErlTypespec(module, typeName, arity, s);
         setPos(a, pos, false);
         return a;
     }

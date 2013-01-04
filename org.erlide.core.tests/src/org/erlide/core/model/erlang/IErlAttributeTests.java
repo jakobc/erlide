@@ -1,6 +1,6 @@
 package org.erlide.core.model.erlang;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.erlide.core.model.root.IErlElement;
 import org.junit.Test;
@@ -10,7 +10,6 @@ import com.ericsson.otp.erlang.OtpErlangString;
 
 public class IErlAttributeTests extends ErlModelTestBase {
 
-    // public OtpErlangObject getValue();
     @Test
     public void getValue() throws Exception {
         module.open(null);

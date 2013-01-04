@@ -36,9 +36,9 @@ import org.erlide.core.internal.model.root.ProjectPreferencesConstants;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.wizards.ErlProjectImport;
 import org.erlide.ui.wizards.ErlideImport;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.PreferencesUtils;
 
 import com.bdaum.overlayPages.FieldEditorOverlayPage;

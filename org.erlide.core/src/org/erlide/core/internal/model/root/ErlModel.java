@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.erlide.core.internal.model.root;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,12 +42,14 @@ import org.eclipse.core.runtime.ISafeRunnable;
 import org.eclipse.core.runtime.SafeRunner;
 import org.erlide.core.ErlangCore;
 import org.erlide.core.internal.model.erlang.ErlModule;
+import org.erlide.core.model.ErlModelException;
+import org.erlide.core.model.IOpenable;
+import org.erlide.core.model.IParent;
 import org.erlide.core.model.erlang.ErlangToolkit;
 import org.erlide.core.model.erlang.FunctionRef;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlParser;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElementDelta;
 import org.erlide.core.model.root.IErlElementLocator;
@@ -56,16 +57,15 @@ import org.erlide.core.model.root.IErlFolder;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlModelChangeListener;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.root.IOpenable;
-import org.erlide.core.model.root.IParent;
 import org.erlide.core.model.util.ElementChangedEvent;
 import org.erlide.core.model.util.ErlangFunction;
 import org.erlide.core.model.util.ErlideUtil;
 import org.erlide.core.model.util.IElementChangedListener;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.model.util.PluginUtils;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.utils.CommonUtils;
-import org.erlide.utils.SystemUtils;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -183,7 +183,10 @@ public class ErlModel extends Openable implements IErlModel {
         if (e instanceof IErlProject) {
             return (IErlProject) e;
         }
-        return makeErlangProject(project);
+        if (ErlideUtil.hasErlangNature(project)) {
+            return makeErlangProject(project);
+        }
+        return null;
     }
 
     public IErlProject makeErlangProject(final IProject project) {
@@ -224,49 +227,6 @@ public class ErlModel extends Openable implements IErlModel {
         if (info == null) {
             buffer.append(" (not open)"); //$NON-NLS-1$
         }
-    }
-
-    /**
-     * Helper method - returns the targeted item (IResource if internal or
-     * java.io.File if external), or null if unbound Internal items must be
-     * referred to using container relative paths.
-     */
-    public static Object getTarget(final IContainer container,
-            final IPath path, final boolean checkResourceExistence) {
-
-        if (path == null) {
-            return null;
-        }
-
-        // lookup - inside the container
-        if (path.getDevice() == null) { // container relative paths should not
-            // contain a device
-            // (see http://dev.eclipse.org/bugs/show_bug.cgi?id=18684)
-            // (case of a workspace rooted at d:\ )
-            final IResource resource = container.findMember(path);
-            if (resource != null) {
-                if (!checkResourceExistence || resource.exists()) {
-                    return resource;
-                }
-                return null;
-            }
-        }
-
-        // if path is relative, it cannot be an external path
-        // (see http://dev.eclipse.org/bugs/show_bug.cgi?id=22517)
-        if (!path.isAbsolute()) {
-            return null;
-        }
-
-        // lookup - outside the container
-        final File externalFile = new File(path.toOSString());
-        if (!checkResourceExistence) {
-            return externalFile;
-        }
-        if (externalFile.exists()) {
-            return externalFile;
-        }
-        return null;
     }
 
     @Override
@@ -1085,7 +1045,8 @@ public class ErlModel extends Openable implements IErlModel {
             }
         }
         if (includeName != null) {
-            final boolean hasExtension = SystemUtils.hasExtension(includeName);
+            final boolean hasExtension = SystemConfiguration
+                    .hasExtension(includeName);
             for (final IErlModule module2 : includes) {
                 final String name = hasExtension ? module2.getName() : module2
                         .getModuleName();
@@ -1143,7 +1104,8 @@ public class ErlModel extends Openable implements IErlModel {
             }
         }
         if (moduleName != null) {
-            final boolean hasExtension = SystemUtils.hasExtension(moduleName);
+            final boolean hasExtension = SystemConfiguration
+                    .hasExtension(moduleName);
             for (final IErlModule module2 : modules) {
                 final String name = hasExtension ? module2.getName() : module2
                         .getModuleName();
@@ -1175,8 +1137,8 @@ public class ErlModel extends Openable implements IErlModel {
                 return include;
             }
         }
-        return findIncludeFromProject(module.getProject(), includeName,
-                includePath, false, true, scope);
+        return findIncludeFromProject(ModelUtils.getProject(module),
+                includeName, includePath, false, true, scope);
     }
 
     private final Object fModelLock = new Object();

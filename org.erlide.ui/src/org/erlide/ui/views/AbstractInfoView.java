@@ -30,10 +30,8 @@ import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.actions.ActionFactory;
 import org.eclipse.ui.part.ViewPart;
-import org.eclipse.ui.texteditor.ITextEditorActionConstants;
-import org.erlide.ui.actions.SelectionDispatchAction;
+import org.erlide.ui.internal.ErlBrowserInformationControlInput;
 import org.erlide.ui.internal.ErlideUIPlugin;
 
 /**
@@ -41,8 +39,8 @@ import org.erlide.ui.internal.ErlideUIPlugin;
  * 
  * @since 3.0
  */
-abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
-        IMenuListener {
+abstract public class AbstractInfoView extends ViewPart implements
+        ISelectionListener, IMenuListener {
 
     /*
      * @see IPartListener2
@@ -96,13 +94,7 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
     };
 
     /** The current info. */
-    protected String fCurrentViewInfo;
-
-    /** The copy to clipboard action. */
-    private SelectionDispatchAction fCopyToClipboardAction;
-
-    /** The goto input action. */
-    private GotoInputAction fGotoInputAction;
+    protected Object fCurrentViewInfo;
 
     /** Counts the number of background computation requests. */
     volatile int fComputeCount;
@@ -113,7 +105,7 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
      * @param input
      *            the input object
      */
-    abstract protected void setInfo(String info);
+    public abstract void setInfo(Object info);
 
     /**
      * Create the part control.
@@ -147,7 +139,7 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
      */
     abstract Control getControl();
 
-    abstract protected String getInfoForSelection(IWorkbenchPart part,
+    abstract protected Object getInfoForSelection(IWorkbenchPart part,
             ISelection selection);
 
     /**
@@ -178,14 +170,6 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
      * Creates the actions and action groups for this view.
      */
     protected void createActions() {
-        fGotoInputAction = new GotoInputAction(this);
-        fGotoInputAction.setEnabled(false);
-        fCopyToClipboardAction = new CopyToClipboardAction(getViewSite());
-
-        final ISelectionProvider provider = getSelectionProvider();
-        if (provider != null) {
-            provider.addSelectionChangedListener(fCopyToClipboardAction);
-        }
     }
 
     /**
@@ -197,7 +181,6 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
         menuManager.addMenuListener(this);
         final Menu contextMenu = menuManager.createContextMenu(getControl());
         getControl().setMenu(contextMenu);
-        getSite().registerContextMenu(menuManager, getSelectionProvider());
     }
 
     /*
@@ -206,29 +189,10 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
     @Override
     public void menuAboutToShow(final IMenuManager menu) {
         ErlideUIPlugin.createStandardGroups(menu);
-
-        IAction action;
-
-        action = getCopyToClipboardAction();
-        if (action != null) {
-            menu.appendToGroup(ITextEditorActionConstants.GROUP_EDIT, action);
-        }
-
-        action = getSelectAllAction();
-        if (action != null) {
-            menu.appendToGroup(ITextEditorActionConstants.GROUP_EDIT, action);
-        }
-
-        // TODO NYI menu.appendToGroup(IContextMenuConstants.GROUP_OPEN,
-        // fGotoInputAction);
     }
 
     protected IAction getSelectAllAction() {
         return null;
-    }
-
-    protected IAction getCopyToClipboardAction() {
-        return fCopyToClipboardAction;
     }
 
     /**
@@ -236,13 +200,8 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
      * 
      * @return input the input object or <code>null</code> if not input is set
      */
-    protected String getInfo() {
+    protected Object getInfo() {
         return fCurrentViewInfo;
-    }
-
-    // Helper method
-    ISelectionProvider getSelectionProvider() {
-        return getViewSite().getSelectionProvider();
     }
 
     /**
@@ -256,20 +215,6 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
     protected void fillActionBars(final IActionBars actionBars) {
         final IToolBarManager toolBar = actionBars.getToolBarManager();
         fillToolBar(toolBar);
-
-        IAction action;
-
-        action = getCopyToClipboardAction();
-        if (action != null) {
-            actionBars.setGlobalActionHandler(ActionFactory.COPY.getId(),
-                    action);
-        }
-
-        action = getSelectAllAction();
-        if (action != null) {
-            actionBars.setGlobalActionHandler(ActionFactory.SELECT_ALL.getId(),
-                    action);
-        }
     }
 
     /**
@@ -282,7 +227,6 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
      *            the tool bar manager
      */
     protected void fillToolBar(final IToolBarManager tbm) {
-        // TODO NYI tbm.add(fGotoInputAction);
     }
 
     /**
@@ -436,11 +380,6 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
         getSite().getWorkbenchWindow().getPartService()
                 .removePartListener(fPartListener);
 
-        final ISelectionProvider provider = getSelectionProvider();
-        if (provider != null) {
-            provider.removeSelectionChangedListener(fCopyToClipboardAction);
-        }
-
         internalDispose();
     }
 
@@ -482,8 +421,12 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
 
                 // final IErlElement je= findSelectedJavaElement(part,
                 // selection);
-                final String info = getInfoForSelection(part, selection);
-                if (info == null || info.length() == 0) {
+                final Object info = getInfoForSelection(part, selection);
+
+                if (info == null
+                        || info instanceof ErlBrowserInformationControlInput
+                        && ((ErlBrowserInformationControlInput) info).getHtml()
+                                .length() == 0) {
                     return;
                 }
                 final Shell shell = getSite().getShell();
@@ -521,12 +464,7 @@ abstract class AbstractInfoView extends ViewPart implements ISelectionListener,
         thread.start();
     }
 
-    void doSetInfo(final String info) {
+    protected void doSetInfo(final Object info) {
         setInfo(info);
-
-        fGotoInputAction.setEnabled(true);
-
-        // TODO setContentDescription
-        // TODO setTitleToolTip
     }
 }

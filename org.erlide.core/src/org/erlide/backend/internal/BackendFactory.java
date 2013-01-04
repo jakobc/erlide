@@ -10,22 +10,30 @@
  *******************************************************************************/
 package org.erlide.backend.internal;
 
+import java.io.File;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.core.model.IProcess;
+import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendData;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.BackendUtils;
 import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendData;
 import org.erlide.backend.IBackendFactory;
-import org.erlide.backend.IErlRuntime;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
-import org.erlide.backend.runtimeinfo.RuntimeInfoManager;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.utils.SystemUtils;
+import org.erlide.backend.IBackendManager;
+import org.erlide.runtime.HostnameUtils;
+import org.erlide.runtime.IErlRuntime;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.RpcException;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.runtime.runtimeinfo.RuntimeInfoManager;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 public class BackendFactory implements IBackendFactory {
 
@@ -38,7 +46,22 @@ public class BackendFactory implements IBackendFactory {
     @Override
     public IBackend createIdeBackend() {
         ErlLogger.debug("Create ide backend");
-        return createBackend(getIdeBackendData());
+        final IBackend backend = createBackend(getIdeBackendData());
+        setWorkDirForCoreDumps(backend);
+        return backend;
+    }
+
+    private void setWorkDirForCoreDumps(final IRpcSite backend) {
+        // set work dir to gather core dumps
+        final String dir = "/proj/uz/erlide/dumps";
+        if (new File(dir).exists()) {
+            try {
+                backend.call("c", "cd", "s", dir);
+            } catch (final RpcException e) {
+                ErlLogger
+                        .warn("Can't change erlang working dir, core dumps will not be available");
+            }
+        }
     }
 
     @Override
@@ -49,7 +72,7 @@ public class BackendFactory implements IBackendFactory {
     }
 
     @Override
-    public IBackend createBackend(final BackendData data) {
+    public IBackend createBackend(final IBackendData data) {
         ErlLogger.debug("Create backend " + data.getNodeName());
         if (!data.isManaged() && !data.isAutostart()) {
             ErlLogger.info("Not creating backend for %s", data.getNodeName());
@@ -57,23 +80,26 @@ public class BackendFactory implements IBackendFactory {
         }
 
         final IBackend b;
+        final String erlangHostName = HostnameUtils.getErlangHostName(data
+                .isLongName());
         try {
-            final RuntimeInfo info = data.getRuntimeInfo();
-            String nodeName = info.getNodeName();
+            String nodeName = data.getNodeName();
             final boolean hasHost = nodeName.contains("@");
-            nodeName = hasHost ? nodeName : nodeName + "@"
-                    + RuntimeInfo.getHost();
+            nodeName = hasHost ? nodeName : nodeName + "@" + erlangHostName;
             ILaunch launch = data.getLaunch();
-            final boolean internal = launch == null;
             if (launch == null) {
                 launch = launchPeer(data);
             }
             final IProcess mainProcess = launch.getProcesses().length == 0 ? null
                     : launch.getProcesses()[0];
             final IErlRuntime runtime = new ErlRuntime(nodeName,
-                    info.getCookie(), mainProcess);
-            b = internal ? new InternalBackend(data, runtime)
-                    : new ExternalBackend(data, runtime);
+                    data.getCookie(), mainProcess, !data.isTransient(),
+                    data.isLongName(), data.isInternal());
+            final IBackendManager backendManager = BackendCore
+                    .getBackendManager();
+            b = data.isInternal() ? new InternalBackend(data, runtime,
+                    backendManager) : new ExternalBackend(data, runtime,
+                    backendManager);
             b.initialize();
             return b;
         } catch (final BackendException e) {
@@ -82,11 +108,11 @@ public class BackendFactory implements IBackendFactory {
         return null;
     }
 
-    private ILaunch launchPeer(final BackendData data) {
+    private ILaunch launchPeer(final IBackendData data) {
         final ILaunchConfiguration launchConfig = data.asLaunchConfiguration();
         try {
             final boolean registerForDebug = data.getLaunch() != null
-                    || SystemUtils.getInstance().isDeveloper();
+                    || SystemConfiguration.getInstance().isDeveloper();
             return launchConfig.launch(ILaunchManager.RUN_MODE,
                     new NullProgressMonitor(), false, registerForDebug);
         } catch (final CoreException e) {
@@ -95,44 +121,45 @@ public class BackendFactory implements IBackendFactory {
         }
     }
 
-    private BackendData getIdeBackendData() {
+    private IBackendData getIdeBackendData() {
         final RuntimeInfo info = getIdeRuntimeInfo();
-        final BackendData result = new BackendData(runtimeInfoManager, info);
+        final IBackendData result = new BackendData(runtimeInfoManager, info);
+        result.setNodeName(getIdeNodeName());
         result.setDebug(false);
         result.setAutostart(true);
         result.setConsole(false);
-        if (SystemUtils.getInstance().isDeveloper()) {
+        result.setLongName(HostnameUtils.canUseLongNames());
+        if (SystemConfiguration.getInstance().isDeveloper()) {
             result.setConsole(true);
         }
-        if (SystemUtils.getInstance().isMonitoringIdeBackend()) {
-            result.setMonitored(true);
-        }
+        result.setInternal(true);
         return result;
     }
 
-    private BackendData getBuildBackendData(final RuntimeInfo info) {
+    private IBackendData getBuildBackendData(final RuntimeInfo info) {
         final RuntimeInfo myinfo = RuntimeInfo.copy(info, false);
-        myinfo.setNodeName(info.getVersion().asMajor().toString());
-        myinfo.setNodeNameSuffix("_" + BackendUtils.getErlideNodeNameTag());
 
-        final BackendData result = new BackendData(runtimeInfoManager, myinfo);
+        final IBackendData result = new BackendData(runtimeInfoManager, myinfo);
+        result.setNodeName(info.getVersion().asMajor().toString() + "_"
+                + BackendUtils.getErlideNodeNameTag());
         result.setCookie("erlide");
         result.setDebug(false);
         result.setAutostart(true);
         result.setConsole(false);
+        result.setLongName(HostnameUtils.canUseLongNames());
+        result.setInternal(true);
         return result;
     }
 
     private RuntimeInfo getIdeRuntimeInfo() {
         final RuntimeInfo info = RuntimeInfo.copy(
                 runtimeInfoManager.getErlideRuntime(), false);
-        if (info != null) {
-            final String dflt = BackendUtils.getErlideNodeNameTag() + "_erlide";
-            final String defLabel = getLabelProperty(dflt);
-            info.setNodeName(defLabel);
-            info.setCookie("erlide");
-        }
         return info;
+    }
+
+    private String getIdeNodeName() {
+        final String dflt = BackendUtils.getErlideNodeNameTag() + "_erlide";
+        return getLabelProperty(dflt);
     }
 
     private static String getLabelProperty(final String dflt) {

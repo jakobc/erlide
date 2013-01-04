@@ -36,11 +36,13 @@ import org.eclipse.debug.core.model.IProcess;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendData;
 import org.erlide.backend.IBackend;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
+import org.erlide.backend.IBackendData;
+import org.erlide.core.model.BeamLocator;
 import org.erlide.core.model.erlang.ModuleKind;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.launch.debug.ErlDebugConstants;
-import org.erlide.utils.SystemUtils;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 import com.google.common.collect.Maps;
 
@@ -83,11 +85,8 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         }
         ErlLogger.debug("doLaunch runtime %s (%s)", data.getRuntimeName(), data
                 .getRuntimeInfo().getName());
-        ErlLogger.debug("doLaunch cookie %s (%s)", data.getCookie(), data
-                .getRuntimeInfo().getCookie());
-        final boolean nodeExists = BackendCore.getBackendManager()
-                .getEpmdWatcher().hasLocalNode(data.getNodeName());
-        data.setManaged(!nodeExists);
+        ErlLogger.debug("doLaunch cookie %s (%s)", data.getCookie(),
+                data.getCookie());
 
         data = configureBackend(data, config, mode, launch);
 
@@ -124,10 +123,11 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         return data;
     }
 
-    private void startErtsProcess(final ILaunch launch, final BackendData data) {
+    private void startErtsProcess(final ILaunch launch, final IBackendData data) {
         final Process process = startRuntimeProcess(data);
         if (process == null) {
             ErlLogger.debug("Error starting process");
+            data.setManaged(false);
             return;
         }
         final Map<String, String> map = Maps.newHashMap();
@@ -153,11 +153,9 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         launch(wc, mode, launch, monitor);
     }
 
-    private Process startRuntimeProcess(final BackendData data) {
-        final RuntimeInfo info = data.getRuntimeInfo();
-
-        final String[] cmds = info.getCmdLine();
-        final File workingDirectory = new File(info.getWorkingDir());
+    private Process startRuntimeProcess(final IBackendData data) {
+        final String[] cmds = data.getCmdLine();
+        final File workingDirectory = new File(data.getWorkingDir());
 
         try {
             ErlLogger.debug("START node :> " + Arrays.toString(cmds) + " *** "
@@ -190,11 +188,11 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
         }
     }
 
-    private void setEnvironment(final BackendData data,
+    private void setEnvironment(final IBackendData data,
             final ProcessBuilder builder) {
         final Map<String, String> env = builder.environment();
-        if (!SystemUtils.getInstance().isOnWindows()
-                && SystemUtils.getInstance().hasSpecialTclLib()) {
+        if (!SystemConfiguration.getInstance().isOnWindows()
+                && SystemConfiguration.getInstance().hasSpecialTclLib()) {
             env.put("TCL_LIBRARY", "/usr/share/tcl/tcl8.4/");
         }
         if (data.getEnv() != null) {
@@ -249,7 +247,7 @@ public class ErlangLaunchDelegate implements ILaunchConfigurationDelegate {
             final String name = r.getName();
             if (ModuleKind.hasErlExtension(name)) {
                 final IProject p = r.getProject();
-                if (projects.contains(p)) {
+                if (projects == null || projects.contains(p)) {
                     final String s = p.getName() + ":" + name;
                     if (!result.contains(s)) {
                         result.add(s);

@@ -35,10 +35,11 @@ import org.eclipse.ui.IWorkingSet;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.IWorkingSetSelectionDialog;
 import org.eclipse.ui.progress.IProgressService;
+import org.erlide.core.model.ErlModelException;
+import org.erlide.core.model.IParent;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.ModuleKind;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.AcceptFlags;
@@ -47,20 +48,20 @@ import org.erlide.core.model.root.IErlElementVisitor;
 import org.erlide.core.model.root.IErlExternal;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.root.IParent;
 import org.erlide.core.model.util.ErlideUtil;
 import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlSearchScope;
 import org.erlide.core.services.search.ErlangSearchPattern;
-import org.erlide.core.services.search.ErlangSearchPattern.LimitTo;
-import org.erlide.core.services.search.ErlangSearchPattern.SearchFor;
 import org.erlide.core.services.search.FunctionPattern;
 import org.erlide.core.services.search.IncludePattern;
+import org.erlide.core.services.search.LimitTo;
 import org.erlide.core.services.search.MacroPattern;
 import org.erlide.core.services.search.ModuleLineFunctionArityRef;
 import org.erlide.core.services.search.OpenResult;
 import org.erlide.core.services.search.RecordFieldPattern;
 import org.erlide.core.services.search.RecordPattern;
+import org.erlide.core.services.search.SearchFor;
+import org.erlide.core.services.search.SearchPatternFactory;
 import org.erlide.core.services.search.TypeRefPattern;
 import org.erlide.core.services.search.VariablePattern;
 import org.erlide.ui.actions.OpenAction;
@@ -124,10 +125,12 @@ public class SearchUtil {
         }
         final IErlProject erlProject = ErlModelManager.getErlangModel()
                 .getErlangProject(project);
-        final Collection<IPath> sourcePaths = erlProject.getSourceDirs();
-        for (final IPath path : sourcePaths) {
-            final IFolder folder = project.getFolder(path);
-            addFolderToScope(folder, result);
+        if (erlProject != null) {
+            final Collection<IPath> sourcePaths = erlProject.getSourceDirs();
+            for (final IPath path : sourcePaths) {
+                final IFolder folder = project.getFolder(path);
+                addFolderToScope(folder, result);
+            }
         }
     }
 
@@ -387,7 +390,7 @@ public class SearchUtil {
             arity = Integer.valueOf(name.substring(p + 1));
             name = name.substring(0, p);
         }
-        return ErlangSearchPattern.getSearchPattern(searchFor, moduleName,
+        return SearchPatternFactory.getSearchPattern(searchFor, moduleName,
                 name, arity, limitTo);
     }
 

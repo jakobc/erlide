@@ -1,10 +1,10 @@
 /*******************************************************************************
  * Copyright (c) 2005 Vlad Dumitrescu and others.
- * All rights reserved. This program and the accompanying materials 
+ * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at 
+ * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Vlad Dumitrescu
  *******************************************************************************/
@@ -33,16 +33,17 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
-import org.erlide.backend.BackendData;
+import org.erlide.backend.IBackendData;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.launch.ErlLaunchAttributes;
 import org.erlide.launch.ErlangLaunchDelegate;
 import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.ListsUtils;
 import org.erlide.utils.StringUtils;
 
@@ -71,7 +72,7 @@ public class ErlangNodeLaunchShortcut implements ILaunchShortcut {
             }
             final IErlElement erlElement = ErlModelManager.getErlangModel()
                     .findElement((IResource) element);
-            final IErlProject project = erlElement.getProject();
+            final IErlProject project = ModelUtils.getProject(erlElement);
             if (project != null) {
                 projects.add(project);
             }
@@ -115,7 +116,7 @@ public class ErlangNodeLaunchShortcut implements ILaunchShortcut {
             final ErlangEditor erlangEditor = (ErlangEditor) editor;
             final IErlModule module = erlangEditor.getModule();
             if (module != null) {
-                final IErlProject project = module.getProject();
+                final IErlProject project = ModelUtils.getProject(module);
                 if (project != null) {
                     try {
                         doLaunch(mode, Lists.newArrayList(project));
@@ -173,7 +174,7 @@ public class ErlangNodeLaunchShortcut implements ILaunchShortcut {
         ILaunchConfigurationWorkingCopy wc = null;
         wc = launchConfigurationType.newInstance(null, name);
         wc.setAttribute(ErlLaunchAttributes.PROJECTS, ListsUtils.packList(
-                projectNames, BackendData.PROJECT_NAME_SEPARATOR));
+                projectNames, IBackendData.PROJECT_NAME_SEPARATOR));
         wc.setAttribute(ErlLaunchAttributes.RUNTIME_NAME, projects.iterator()
                 .next().getRuntimeInfo().getName());
         wc.setAttribute(ErlLaunchAttributes.NODE_NAME, name);

@@ -97,15 +97,14 @@ import org.eclipse.ui.texteditor.TextOperationAction;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 import org.eclipse.ui.views.properties.IPropertySource;
 import org.erlide.core.ErlangPlugin;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.erlang.IErlAttribute;
 import org.erlide.core.model.erlang.IErlFunctionClause;
 import org.erlide.core.model.erlang.IErlMember;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.ISourceRange;
 import org.erlide.core.model.erlang.ISourceReference;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.IErlElement;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.ui.actions.CompositeActionGroup;
 import org.erlide.ui.actions.ErlangSearchActionGroup;
 import org.erlide.ui.actions.OpenAction;
@@ -135,7 +134,8 @@ import org.erlide.ui.prefs.PreferenceConstants;
 import org.erlide.ui.util.ErlModelUtils;
 import org.erlide.ui.util.ProblemsLabelDecorator;
 import org.erlide.ui.views.ErlangPropertySource;
-import org.erlide.utils.SystemUtils;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 /**
  * The actual editor itself
@@ -387,15 +387,8 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
             setAction("Clean Up...", cleanUpAction);
         }
 
-        if (SystemUtils.getInstance().isTest()) {
-            testAction = new TestAction(
-                    ErlangEditorMessages.getBundleForConstructedKeys(),
-                    "Test.", this, getModule());
-            testAction
-                    .setActionDefinitionId(IErlangEditorActionDefinitionIds.TEST);
-            setAction("Test", testAction);
-            markAsStateDependentAction("Test", true);
-            markAsSelectionDependentAction("Test", true);
+        if (SystemConfiguration.getInstance().isTest()) {
+            setupTestAction();
             // PlatformUI.getWorkbench().getHelpSystem().setHelp(indentAction,
             // IErlangHelpContextIds.INDENT_ACTION);
         }
@@ -407,7 +400,7 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
         markAsStateDependentAction("CallHierarchy", true);
         markAsSelectionDependentAction("CallHierarchy", true);
 
-        if (SystemUtils.getInstance().isClearCacheAvailable()) {
+        if (SystemConfiguration.getInstance().isClearCacheAvailable()) {
             clearCacheAction = new ClearCacheAction(
                     ErlangEditorMessages.getBundleForConstructedKeys(),
                     "ClearCache.", this);
@@ -452,14 +445,28 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 
     }
 
+    private void setupTestAction() {
+        if (testAction != null) {
+            return;
+        }
+        testAction = new TestAction(
+                ErlangEditorMessages.getBundleForConstructedKeys(), "Test.",
+                this, getModule());
+        testAction.setActionDefinitionId(IErlangEditorActionDefinitionIds.TEST);
+        setAction("Test", testAction);
+        markAsStateDependentAction("Test", true);
+        markAsSelectionDependentAction("Test", true);
+    }
+
     @Override
     protected void editorContextMenuAboutToShow(final IMenuManager menu) {
         super.editorContextMenuAboutToShow(menu);
 
-        if (SystemUtils.getInstance().isTest()) {
+        if (SystemConfiguration.getInstance().isTest()) {
+            setupTestAction();
             menu.prependToGroup(IContextMenuConstants.GROUP_OPEN, testAction);
         }
-        if (SystemUtils.getInstance().isClearCacheAvailable()) {
+        if (SystemConfiguration.getInstance().isClearCacheAvailable()) {
             menu.prependToGroup(IContextMenuConstants.GROUP_OPEN,
                     clearCacheAction);
         }
@@ -1156,7 +1163,7 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
                 markOccurencesHandler.fActivationListener);
 
         if (markOccurencesHandler.isMarkingOccurrences()) {
-            markOccurencesHandler.installOccurrencesFinder(false);
+            markOccurencesHandler.installOccurrencesFinder(true);
         }
     }
 
@@ -1183,8 +1190,6 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
         }
     }
 
-    /**
-     */
     private ErlangEditorBracketInserter getBracketInserter() {
         if (fBracketInserter == null) {
             fBracketInserter = new ErlangEditorBracketInserter(this,
@@ -1432,7 +1437,6 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
      *            the position of the found annotation
      * @return the found annotation
      */
-    @SuppressWarnings("null")
     private Annotation getNextAnnotation(final int offset, final int length,
             final boolean forward, final Position annotationPosition) {
 
@@ -1670,6 +1674,11 @@ public class ErlangEditor extends TextEditor implements IOutlineContentCreator,
 
     public void reconcileNow() {
         ((EditorConfiguration) getSourceViewerConfiguration()).reconcileNow();
+    }
+
+    public void dumpReconcilerLog(final String filename) {
+        ((EditorConfiguration) getSourceViewerConfiguration())
+                .dumpReconcilerLog(filename);
     }
 
     public ActionGroup getActionGroup() {

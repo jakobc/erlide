@@ -18,11 +18,11 @@ import java.util.Map;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.internal.model.root.ErlProjectInfo;
 import org.erlide.core.internal.model.root.PathEntry;
 import org.erlide.core.model.root.IOldErlangProjectProperties;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.PreferencesUtils;
 
 import com.google.common.collect.Lists;
@@ -71,6 +71,7 @@ public final class PropertiesUtils {
         return result;
     }
 
+    @SuppressWarnings("unused")
     private static List<PathEntry> makeSourceLocations(
             final List<String> externalModules) {
         // FIXME!!!
@@ -112,6 +113,7 @@ public final class PropertiesUtils {
         return result;
     }
 
+    @SuppressWarnings("unused")
     private static List<PathEntry> mkSources(final Collection<IPath> list) {
         final List<PathEntry> result = Lists.newArrayList();
         // for (final IPath src : list) {

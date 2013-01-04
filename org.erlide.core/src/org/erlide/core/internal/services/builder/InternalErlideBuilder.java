@@ -8,9 +8,10 @@ import org.eclipse.core.runtime.IPath;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.IBackendManager;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.IRpcFuture;
-import org.erlide.jinterface.rpc.RpcException;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.IRpcFuture;
+import org.erlide.runtime.rpc.RpcException;
+import org.erlide.utils.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -18,9 +19,8 @@ import com.google.common.collect.Lists;
 
 public class InternalErlideBuilder {
 
-    public static IRpcFuture compileErl(final IBackend backend,
-            final IPath fn, final String outputdir,
-            final Collection<IPath> includedirs,
+    public static IRpcFuture compileErl(final IRpcSite backend, final IPath fn,
+            final String outputdir, final Collection<IPath> includedirs,
             final OtpErlangList compilerOptions) {
         final List<String> incs = Lists.newArrayList();
         for (final IPath p : includedirs) {
@@ -35,7 +35,7 @@ public class InternalErlideBuilder {
         }
     }
 
-    public static OtpErlangList getSourceClashes(final IBackend backend,
+    public static OtpErlangList getSourceClashes(final IRpcSite backend,
             final String[] dirList) throws RpcException {
         final OtpErlangObject res = backend.call("erlide_builder",
                 "source_clash", "ls", (Object) dirList);
@@ -46,7 +46,7 @@ public class InternalErlideBuilder {
                 + res);
     }
 
-    public static OtpErlangList getCodeClashes(final IBackend b)
+    public static OtpErlangList getCodeClashes(final IRpcSite b)
             throws RpcException {
         final OtpErlangList res = (OtpErlangList) b.call("erlide_builder",
                 "code_clash", null);
@@ -72,7 +72,7 @@ public class InternalErlideBuilder {
         }
     }
 
-    public static IRpcFuture compileYrl(final IBackend backend,
+    public static IRpcFuture compileYrl(final IRpcSite backend,
             final String fn, final String output) {
         try {
             return backend.async_call("erlide_builder", "compile_yrl", "ss",

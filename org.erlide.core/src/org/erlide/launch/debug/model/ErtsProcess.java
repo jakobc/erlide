@@ -16,8 +16,8 @@ import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.IStreamListener;
 import org.eclipse.debug.core.model.IStreamsProxy;
 import org.eclipse.debug.core.model.RuntimeProcess;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.launch.ErtsWatcher;
+import org.erlide.utils.ErlLogger;
 
 public class ErtsProcess extends RuntimeProcess {
 
@@ -93,7 +93,13 @@ public class ErtsProcess extends RuntimeProcess {
     @Override
     public void terminate() throws DebugException {
         ErlLogger.debug("ErtsProcess will be terminated: %s", getLabel());
-        super.terminate();
+        try {
+            super.terminate();
+        } finally {
+            if (!isTerminated()) {
+                ErlLogger.debug("Could not terminate process %s", getLabel());
+            }
+        }
     }
 
     private void startWatcher(final String nodeName, final String workingDir,

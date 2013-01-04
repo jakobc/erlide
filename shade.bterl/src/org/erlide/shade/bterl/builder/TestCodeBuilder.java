@@ -32,19 +32,20 @@ import org.eclipse.debug.internal.core.StreamsProxy;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.BackendUtils;
-import org.erlide.backend.IBackend;
 import org.erlide.core.services.builder.BuildResource;
 import org.erlide.core.services.builder.BuilderHelper;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.IRpcFuture;
-import org.erlide.jinterface.rpc.RpcException;
+import org.erlide.runtime.ErlUtils;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.IRpcFuture;
+import org.erlide.runtime.rpc.RpcException;
 import org.erlide.shade.bterl.ui.launcher.TestLaunchDelegate;
-import org.erlide.utils.ErlUtils;
-import org.erlide.utils.SystemUtils;
+import org.erlide.utils.ErlLogger;
+import org.erlide.utils.SystemConfiguration;
 
 import com.ericsson.otp.erlang.OtpErlang;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -58,6 +59,8 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
     private static final String MARKER_TYPE = "org.erlide.test_support.bterlProblem";
     private static final boolean DEBUG = Boolean.parseBoolean(System
             .getProperty("erlide.test_builder.debug"));
+    private static final boolean DISABLED = Boolean.parseBoolean(System
+            .getProperty("erlide.test_builder.disabled"));
 
     static void addMarker(final IResource file, final String message,
             int lineNumber, final int severity) {
@@ -78,6 +81,9 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
     protected IProject[] build(final int kind, final Map args,
             final IProgressMonitor monitor) throws CoreException {
         final IProject project = getProject();
+        if (DISABLED) {
+            return null;
+        }
         if (DEBUG) {
             ErlLogger.info("##### start test builder (%s) %s",
                     helper.buildKind(kind), project.getName());
@@ -103,6 +109,9 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
 
     @Override
     protected void clean(final IProgressMonitor monitor) throws CoreException {
+        if (DISABLED) {
+            return;
+        }
         final IProject project = getProject();
         project.deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
         final Set<BuildResource> resourcesToBuild = getResourcesToBuild(
@@ -149,7 +158,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
             final boolean deleteMarkers, final IProgressMonitor monitor) {
         try {
             final Map<IRpcFuture, IResource> results = Maps.newHashMap();
-            IBackend backend;
+            IRpcSite backend;
             try {
                 backend = BackendCore.getBackendManager().getBuildBackend(
                         project);
@@ -231,7 +240,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
         }
     }
 
-    public void registerBterlBeams(final IBackend backend)
+    public void registerBterlBeams(final IRpcSite backend)
             throws CoreException, RpcException {
         final String[] bterl_beams = TestLaunchDelegate.getBterlPath();
         for (final String bterl_beam : bterl_beams) {
@@ -239,7 +248,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
         }
     }
 
-    public void unregisterBterlBeams(final IBackend backend)
+    public void unregisterBterlBeams(final IRpcSite backend)
             throws CoreException, RpcException {
         final String[] bterl_beams = TestLaunchDelegate.getBterlPath();
         for (final String bterl_beam : bterl_beams) {
@@ -434,7 +443,7 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                 final Process makeLinks = DebugPlugin.exec(
                         new String[] { "./make_links" }, dir);
                 final StreamsProxy proxy = new StreamsProxy(makeLinks,
-                        "ISO-8859-1");
+                        Charsets.ISO_8859_1.name());
                 final IStreamListener listener = new IStreamListener() {
                     @Override
                     public void streamAppended(final String text,
@@ -445,8 +454,8 @@ public class TestCodeBuilder extends IncrementalProjectBuilder {
                         }
                     }
                 };
-                if (SystemUtils.getInstance().hasFeatureEnabled(
-                        "erlide.make_links.snoop")) {
+                if (SystemConfiguration
+                        .hasFeatureEnabled("erlide.make_links.snoop")) {
                     proxy.getOutputStreamMonitor().addListener(listener);
                     proxy.getErrorStreamMonitor().addListener(listener);
                 }

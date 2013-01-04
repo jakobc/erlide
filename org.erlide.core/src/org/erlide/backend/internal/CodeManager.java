@@ -19,15 +19,15 @@ import java.util.List;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
-import org.erlide.backend.BackendCore;
-import org.erlide.backend.BackendHelper;
 import org.erlide.backend.BackendUtils;
 import org.erlide.backend.IBackend;
+import org.erlide.backend.IBackendManager;
 import org.erlide.backend.ICodeBundle;
 import org.erlide.backend.ICodeManager;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
 import org.erlide.core.model.util.ErlideUtil;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.runtime.BeamLoader;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.utils.ErlLogger;
 import org.osgi.framework.Bundle;
 
 import com.ericsson.otp.erlang.OtpErlangBinary;
@@ -35,19 +35,19 @@ import com.ericsson.otp.erlang.OtpErlangBinary;
 public class CodeManager implements ICodeManager {
 
     private final IBackend backend;
-    private final String erlangVersion;
     private final RuntimeInfo runtimeInfo;
 
     private final List<PathItem> pathA;
     private final List<PathItem> pathZ;
     private final List<ICodeBundle> registeredBundles;
+    private final IBackendManager backendManager;
 
     // only to be called by Backend
-    CodeManager(final IBackend b, final String erlangVersion,
-            final RuntimeInfo runtimeInfo) {
+    CodeManager(final IBackend b, final RuntimeInfo runtimeInfo,
+            final IBackendManager backendManager) {
         backend = b;
-        this.erlangVersion = erlangVersion;
         this.runtimeInfo = runtimeInfo;
+        this.backendManager = backendManager;
         pathA = new ArrayList<PathItem>();
         pathZ = new ArrayList<PathItem>();
         registeredBundles = new ArrayList<ICodeBundle>();
@@ -107,7 +107,7 @@ public class CodeManager implements ICodeManager {
         if (bin == null) {
             return false;
         }
-        return BackendHelper.loadBeam(backend, moduleName, bin);
+        return BeamLoader.loadBeam(backend, moduleName, bin);
     }
 
     private void loadPluginCode(final ICodeBundle p) {
@@ -126,14 +126,10 @@ public class CodeManager implements ICodeManager {
             if ("beam_dir".equals(el.getName())
                     && c.getName().equals(b.getSymbolicName())) {
                 final String dir_path = el.getAttribute("path");
-                final String ver = erlangVersion;
                 @SuppressWarnings("rawtypes")
                 Enumeration e = null;
                 if (dir_path != null) {
-                    e = b.getEntryPaths(dir_path + "/" + ver);
-                    if (e == null || !e.hasMoreElements()) {
-                        e = b.getEntryPaths(dir_path);
-                    }
+                    e = b.getEntryPaths(dir_path);
                 }
                 if (e == null) {
                     ErlLogger.debug("* !!! error loading plugin "
@@ -153,8 +149,8 @@ public class CodeManager implements ICodeManager {
                                 ErlLogger.error("Could not load %s",
                                         beamModuleName);
                             }
-                            BackendCore.getBackendManager().moduleLoaded(
-                                    backend, null, beamModuleName);
+                            backendManager.moduleLoaded(backend, null,
+                                    beamModuleName);
                         } catch (final Exception ex) {
                             ErlLogger.warn(ex);
                         }
@@ -219,7 +215,8 @@ public class CodeManager implements ICodeManager {
                 final String localDir = ebinDir.replaceAll("\\\\", "/");
                 final boolean accessible = ErlideUtil.isAccessible(backend,
                         localDir);
-                if (accessible) {
+                final boolean embedded = ErlangCode.isEmbedded(backend);
+                if (accessible && !embedded) {
                     ErlLogger.debug("adding %s to code path for @%s:: %s",
                             localDir, backend.hashCode(), runtimeInfo);
                     ErlangCode.addPathA(backend, localDir);
@@ -258,16 +255,10 @@ public class CodeManager implements ICodeManager {
 
     private void unloadPluginCode(final ICodeBundle p) {
         final Bundle b = p.getBundle();
-        final String ver = erlangVersion;
         @SuppressWarnings("rawtypes")
-        Enumeration e = b.getEntryPaths("/ebin/" + ver);
-        if (e == null) {
-            return;
-        }
+        Enumeration e;
         ErlLogger.debug("*> really unloading plugin " + p.getClass().getName());
-        if (!e.hasMoreElements()) {
-            e = b.getEntryPaths("/ebin");
-        }
+        e = b.getEntryPaths("/ebin");
         while (e.hasMoreElements()) {
             final String s = (String) e.nextElement();
             final String beamModuleName = BackendUtils.getBeamModuleName(s);

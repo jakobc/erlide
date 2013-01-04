@@ -19,6 +19,10 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.dialogs.ControlEnableState;
+import org.eclipse.jface.viewers.IStructuredContentProvider;
+import org.eclipse.jface.viewers.ITableLabelProvider;
+import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
@@ -26,6 +30,7 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -42,22 +47,21 @@ import org.eclipse.ui.dialogs.PropertyPage;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.BackendHelper;
-import org.erlide.backend.IBackend;
-import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
 import org.erlide.core.services.builder.CompilerOption;
 import org.erlide.core.services.builder.CompilerOption.PathsOption;
 import org.erlide.core.services.builder.CompilerOptions;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.utils.ErlLogger;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.google.common.collect.Lists;
 
 public class CompilerPreferencePage extends PropertyPage implements
         IWorkbenchPreferencePage {
-
     CompilerOptions prefs;
     private Composite prefsComposite;
     private IProject fProject;
@@ -67,6 +71,7 @@ public class CompilerPreferencePage extends PropertyPage implements
     private final List<Button> optionButtons;
     private Text text;
     private Text text_1;
+    private Text text_2;
 
     public CompilerPreferencePage() {
         super();
@@ -141,6 +146,23 @@ public class CompilerPreferencePage extends PropertyPage implements
             public void modifyText(final ModifyEvent e) {
                 prefs.setSimpleOption(CompilerOption.PARSE_TRANSFORM,
                         text_1.getText());
+            }
+        });
+        new Label(prefsComposite, SWT.NONE);
+        new Label(prefsComposite, SWT.NONE);
+
+        final Label lblNewLabel_2 = new Label(prefsComposite, SWT.NONE);
+        lblNewLabel_2.setText("Custom options:");
+
+        text_2 = new Text(prefsComposite, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+        final GridData gd_text_2 = new GridData(SWT.FILL, SWT.CENTER, true,
+                false, 1, 1);
+        gd_text_2.heightHint = 60;
+        text_2.setLayoutData(gd_text_2);
+        text_2.addModifyListener(new ModifyListener() {
+            @Override
+            public void modifyText(final ModifyEvent e) {
+                prefs.setSimpleOption(CompilerOption.CUSTOM, text_2.getText());
             }
         });
 
@@ -364,13 +386,13 @@ public class CompilerPreferencePage extends PropertyPage implements
     enum OptionStatus {
         //@formatter:off
         OK, 
-        @SuppressWarnings("hiding") ERROR, 
+        ERROR, 
         NO_RUNTIME
         //@formatter:off
     }
 
     OptionStatus optionsAreOk(final String string) {
-        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
+        final IRpcSite b = BackendCore.getBackendManager().getIdeBackend();
         if (b == null) {
             return OptionStatus.NO_RUNTIME;
         }
@@ -427,6 +449,10 @@ public class CompilerPreferencePage extends PropertyPage implements
         if(parseTransform!=null) {
             text_1.setText(parseTransform);
         }
+        final String custom = prefs.getSimpleOption(CompilerOption.CUSTOM);
+        if(custom!=null) {
+            text_2.setText(custom);
+        }
     }
 
     @Override
@@ -439,4 +465,34 @@ public class CompilerPreferencePage extends PropertyPage implements
     public void init(final IWorkbench workbench) {
         performDefaults();
     }
+
+    @SuppressWarnings("unused")
+    private static class MacrosTableContentProvider implements IStructuredContentProvider {
+        @Override
+        public Object[] getElements(final Object inputElement) {
+            return new Object[]{"aaa", "vvv"};
+        }
+
+        @Override
+        public void dispose() {
+        }
+
+        @Override
+        public void inputChanged(final Viewer viewer, final Object oldInput,
+                final Object newInput) {
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private class MacrosTableLabelProvider extends LabelProvider implements ITableLabelProvider {
+        @Override
+        public Image getColumnImage(final Object element, final int columnIndex) {
+            return null;
+        }
+        @Override
+        public String getColumnText(final Object element, final int columnIndex) {
+            return element.toString();
+        }
+    }
+
 }

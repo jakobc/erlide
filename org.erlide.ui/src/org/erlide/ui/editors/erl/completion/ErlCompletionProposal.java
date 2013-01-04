@@ -17,18 +17,16 @@ import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.texteditor.link.EditorLinkedModeUI;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.ErlLogger;
 
 public class ErlCompletionProposal implements ICompletionProposal {
 
     protected static final class ExitPolicy implements LinkedModeUI.IExitPolicy {
 
         final char fExitCharacter;
-        private final IDocument fDocument;
 
         public ExitPolicy(final char exitCharacter, final IDocument document) {
             fExitCharacter = exitCharacter;
-            fDocument = document;
         }
 
         /*

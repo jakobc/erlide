@@ -5,8 +5,8 @@ import java.util.List;
 import org.eclipse.core.resources.IProject;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.IBackendListener;
-import org.erlide.jinterface.ErlLogger;
 import org.erlide.launch.debug.model.ErlangDebugTarget;
+import org.erlide.utils.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -62,7 +62,6 @@ public class DebuggerEventDaemon implements IBackendListener {
                                 ErlLogger.debug("MSG: %s", message);
                             }
                         }
-
                         handler.handleMessages(messages);
 
                         messages.clear();

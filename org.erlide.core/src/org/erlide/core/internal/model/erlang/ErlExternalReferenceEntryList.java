@@ -7,20 +7,21 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
-import org.erlide.backend.IBackend;
+import org.erlide.backend.BackendCore;
 import org.erlide.core.internal.model.root.ErlModel;
 import org.erlide.core.internal.model.root.ErlModelCache;
 import org.erlide.core.internal.model.root.Openable;
+import org.erlide.core.model.ErlModelException;
+import org.erlide.core.model.IParent;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlExternal;
 import org.erlide.core.model.root.IErlModel;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.root.IParent;
-import org.erlide.core.model.util.CoreUtil;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlideOpen;
 import org.erlide.core.services.search.ErlideOpen.ExternalTreeEntry;
+import org.erlide.runtime.IRpcSite;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.google.common.collect.Maps;
@@ -54,14 +55,14 @@ public class ErlExternalReferenceEntryList extends Openable implements
         // TODO some code duplication within this function
         // ErlLogger.debug("ErlExternalReferenceEntryList.buildStructure %s",
         // externalName);
-        final IErlProject project = getProject();
+        final IErlProject project = ModelUtils.getProject(this);
         final ErlModelCache cache = ErlModel.getErlModelCache();
         List<ExternalTreeEntry> externalModuleTree = cache
                 .getExternalTree(externalModules);
         List<ExternalTreeEntry> externalIncludeTree = cache
                 .getExternalTree(externalIncludes);
         if (externalModuleTree == null || externalIncludeTree == null) {
-            final IBackend backend = CoreUtil.getBuildOrIdeBackend(project
+            final IRpcSite backend = BackendCore.getBuildOrIdeBackend(project
                     .getWorkspaceProject());
             final OtpErlangList pathVars = ErlModelManager.getErlangModel()
                     .getPathVars();
@@ -81,7 +82,7 @@ public class ErlExternalReferenceEntryList extends Openable implements
             }
         }
         setChildren(null);
-        final IErlModel model = getModel();
+        final IErlModel model = ErlModelManager.getErlangModel();
         if (externalModuleTree != null && !externalModuleTree.isEmpty()) {
             addExternalEntries(pm, externalModuleTree, model, "modules", null,
                     false);
@@ -181,7 +182,7 @@ public class ErlExternalReferenceEntryList extends Openable implements
         return false;
     }
 
-    public IBackend getBackend() {
+    public IRpcSite getBackend() {
         return null;
     }
 

@@ -10,8 +10,8 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.cover.ui.Activator;
 import org.erlide.cover.ui.Images;
@@ -28,6 +28,7 @@ import org.erlide.ui.editors.erl.outline.ErlangElementImageProvider;
 public class StatsViewLabelProvider extends LabelProvider implements
         ITableLabelProvider {
 
+    @Override
     public Image getColumnImage(final Object element, final int columnIndex) {
         Image img = null;
 
@@ -76,6 +77,7 @@ public class StatsViewLabelProvider extends LabelProvider implements
         return img;
     }
 
+    @Override
     public String getColumnText(final Object element, final int columnIndex) {
         final ICoverageObject statsEl = (ICoverageObject) element;
         String text = "";

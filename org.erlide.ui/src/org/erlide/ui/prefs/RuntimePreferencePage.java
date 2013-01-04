@@ -12,7 +12,6 @@
 package org.erlide.ui.prefs;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -52,7 +51,6 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
@@ -64,8 +62,10 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.runtimeinfo.RuntimeInfo;
-import org.erlide.backend.runtimeinfo.RuntimeInfoManager;
+import org.erlide.backend.runtimeinfo.RuntimeInfoPreferencesSerializer;
+import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.runtime.runtimeinfo.RuntimeInfoManager;
+import org.erlide.runtime.runtimeinfo.RuntimeInfoManagerData;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.SWTUtil;
 
@@ -82,13 +82,12 @@ public class RuntimePreferencePage extends PreferencePage implements
         IAddDialogRequestor<RuntimeInfo>, ISelectionProvider,
         IWorkbenchPreferencePage {
 
-    private final RuntimeInfoManager manager;
-    private Combo combo;
     private static final String RUNTIMES_PREFERENCE_PAGE = "RUNTIMES_PREFERENCE_PAGE";
 
-    Collection<RuntimeInfo> runtimes;
-    RuntimeInfo defaultRuntime;
-    RuntimeInfo erlideRuntime;
+    private final RuntimeInfoManager manager;
+    private List<RuntimeInfo> runtimes;
+    private RuntimeInfo defaultRuntime;
+    private RuntimeInfo erlideRuntime;
 
     /**
      * The main list control
@@ -785,9 +784,11 @@ public class RuntimePreferencePage extends PreferencePage implements
         if (defaultRuntime == null) {
             defaultRuntime = (RuntimeInfo) fRuntimeList.getElementAt(0);
         }
-        manager.setDefaultRuntime(defaultRuntime.getName());
-        manager.setRuntimes(runtimes);
-        manager.store();
+        manager.setRuntimes(runtimes, defaultRuntime.getName(),
+                erlideRuntime.getName());
+        final RuntimeInfoPreferencesSerializer serializer = new RuntimeInfoPreferencesSerializer();
+        serializer.store(new RuntimeInfoManagerData(runtimes, defaultRuntime
+                .getName(), erlideRuntime.getName()));
 
         // save column widths
         final IDialogSettings settings = ErlideUIPlugin.getDefault()
@@ -799,7 +800,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
     @Override
     public void performDefaults() {
-        runtimes = manager.getRuntimes();
+        runtimes = new ArrayList<RuntimeInfo>(manager.getRuntimes());
         defaultRuntime = manager.getDefaultRuntime();
         erlideRuntime = manager.getErlideRuntime();
     }

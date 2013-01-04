@@ -11,21 +11,20 @@
 
 -include("erlide.hrl").
 -include("erlide_scanner.hrl").
+-include("erlide_scanner_server.hrl").
 -include("erlide_search_server.hrl").
 
 %%
 %% Exported Functions
 %%
 
--export([create/1, destroy/1, initialScan/5, getTokenAt/2, getTokenWindow/4, 
+-export([create/1, destroy/1, initialScan/6, getTokenAt/2, getTokenWindow/4, 
          getTokens/1, replaceText/4, check_all/2]).
 
 %% stop/0
 
 %% just for testing
--export([getTextLine/2, getText/1, dump_module/1, logging/1]).
--export([dump_log/1]).
-%% all/0, modules/0, dump_log/0, check_all/2,
+-export([getTextLine/2, getText/1, dump_module/1, dump_log/2]).
 
 %% internal exports 
 -export([loop/1]).
@@ -33,8 +32,6 @@
 %%
 %% API Functions
 %%
-
-%% -define(SERVER, erlide_scanner).
 
 create(ScannerName) when is_atom(ScannerName) ->
 	spawn_server(ScannerName).
@@ -59,30 +56,17 @@ getTokenWindow(ScannerName, Offset, Before, After)
 getTokenAt(ScannerName, Offset) when is_atom(ScannerName), is_integer(Offset) ->
     server_cmd(ScannerName, get_token_at, Offset).
 
-initialScan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache) 
+initialScan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache, Logging) 
   when is_atom(ScannerName), is_list(ModuleFileName), is_list(InitialText), is_list(StateDir) ->
 	spawn_server(ScannerName),
     server_cmd(ScannerName, initial_scan,
-               {ScannerName, ModuleFileName, InitialText, StateDir, UseCache}).
-
-%% scan_uncached(ScannerName, ModuleFileName) ->
-%%     spawn_server(ScannerName),
-%%     server_cmd(ScannerName, scan_uncached, ModuleFileName).
-
-%%modules() ->
-%%    server_cmd(modules, []).
-
-dump_log(ScannerName) when is_atom(ScannerName) ->
-   server_cmd(ScannerName, dump_log).
-
-%%all() ->
-%%    server_cmd(all, []).
+               {ScannerName, ModuleFileName, InitialText, StateDir, UseCache, Logging}).
 
 dump_module(ScannerName) when is_atom(ScannerName) ->
     server_cmd(ScannerName, dump_module).
 
-%%stop() ->
-%%    server_cmd(stop, []).
+dump_log(ScannerName, Filename) when is_atom(ScannerName) ->
+    server_cmd(ScannerName, dump_log, Filename).
 
 replaceText(ScannerName, Offset, RemoveLength, NewText)
   when is_atom(ScannerName), is_integer(Offset), is_integer(RemoveLength), is_list(NewText) ->
@@ -93,9 +77,6 @@ check_all(ScannerName, Text) when is_atom(ScannerName), is_list(Text) ->
     ScanTest = scan_test(ScannerName),
     MatchTest ++ ScanTest.
             
-logging(OnOff) ->
-    server_cmd(logging, OnOff).
-
 match_test(Module, Text) ->
     case getText(Module) of
         Text ->
@@ -135,24 +116,6 @@ server_cmd(ScannerName, Command, Args) ->
 			  {error, Exception, erlang:get_stacktrace()}
 	end.
 
-%% spawn_server() ->
-%% 	case whereis(?SERVER) of
-%% 		undefined ->
-%% 			Pid = spawn(fun() -> 
-%% 								?SAVE_CALLS,
-%% 								loop([]) 
-%% 						end),
-%% 			erlang:register(?SERVER, Pid);
-%% 		_ ->
-%% 			ok
-%% 	end.
-
--record(module, {name,
-                 lines = [], % [{Length, String}]
-                 tokens = [], % [{Length, [Token]}]
-                 cachedTokens = [],
-                 log = []}).
-
 spawn_server(ScannerName) ->
 	case whereis(ScannerName) of
 		undefined ->
@@ -177,12 +140,6 @@ loop(Module) ->
 
 cmd(Cmd, From, Args, Module) ->
     try
-        case get(logging) of
-            on ->
-                put(log, get(log)++[{Cmd, Args}]);
-            _ ->
-                ok
-        end,
         case do_cmd(Cmd, Args, Module) of
             {R, NewModule} ->
                 reply(Cmd, From, R),
@@ -203,20 +160,37 @@ cmd(Cmd, From, Args, Module) ->
 reply(Cmd, From, R) ->
     From ! {Cmd, self(), R}.
 
-%% do_cmd(scan_uncached, {Mod, ModuleFileName}, _) ->
-%%     NewMod = erlide_scanner:do_scan_uncached(Mod, ModuleFileName),
-%%     NewMod;
-do_cmd(initial_scan, {Mod, ModuleFileName, InitialText, StateDir, UseCache}, _Module) ->
-    ?D({initial_scan, Mod, length(InitialText)}),
-    {Cached, NewMod} = erlide_scanner:initial_scan(Mod, ModuleFileName, InitialText, StateDir, UseCache),
-    {{ok, Cached}, NewMod};
+log(#module{log=none}=Module, _Event) ->
+    Module;
+log(#module{log=Log}=Module, Event) ->
+    NewLog = [Event | Log],
+    Module#module{log=NewLog}.
+
+logging(Module, on) ->
+    Module#module{log=[]};
+logging(Module, off) ->
+    Module#module{log=none}.
+
+do_cmd(initial_scan, {ScannerName, ModuleFileName, InitialText, StateDir, UseCache, Logging}, _Module) ->
+    ?D({initial_scan, ScannerName, length(InitialText)}),
+    {{Cached, Module1}, Text} = erlide_scanner:initial_scan(ScannerName, ModuleFileName, InitialText, StateDir, UseCache),
+    Module2 = logging(Module1, Logging),
+    Module3 = log(Module2, {initial_scan, ScannerName, ModuleFileName, InitialText, Text}),
+    {{ok, Cached}, Module3};
 do_cmd(dump_module, [], Module) ->
     {Module, Module};
+do_cmd(dump_log, Filename, Module) ->
+    Log = lists:reverse(Module#module.log),
+    {ok, File} = file:open(Filename, [write]),
+    [io:format(File, "~p.\n", [L]) || L <- Log],
+    file:close(File),
+    {{ok, Filename}, Module};
 do_cmd(get_token_at, Offset, Module) ->
     {erlide_scanner:get_token_at(Module, Offset), Module};
 do_cmd(replace_text, {Offset, RemoveLength, NewText}, Module) ->
     ?D({replace_text, Offset, RemoveLength, length(NewText)}),
-    erlide_scanner:replace_text(Module, Offset, RemoveLength, NewText);
+    NewModule = log(Module, {replace_text, Offset, RemoveLength, NewText}),
+    erlide_scanner:replace_text(NewModule, Offset, RemoveLength, NewText);
 do_cmd(get_text, [], Module) ->
     {erlide_scanner:lines_to_text(Module#module.lines), Module};
 do_cmd(get_text_line, Line, Module) ->
@@ -224,12 +198,7 @@ do_cmd(get_text_line, Line, Module) ->
     {L, Module};
 do_cmd(get_tokens, [], Module) ->
     {erlide_scanner:get_all_tokens(Module), Module};
-do_cmd(dump_log, [], Module) ->
-    {get(log), Module};
 do_cmd(get_token_window, {Offset, Before, After}, Module) ->
-    {erlide_scanner:get_token_window(Module, Offset, Before, After), Module};
-do_cmd(logging, OnOff, Module) ->
-    put(log, []),
-    {put(logging, OnOff), Module}.
+    {erlide_scanner:get_token_window(Module, Offset, Before, After), Module}.
 
 

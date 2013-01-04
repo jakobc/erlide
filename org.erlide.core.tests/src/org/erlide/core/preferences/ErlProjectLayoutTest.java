@@ -1,8 +1,7 @@
 package org.erlide.core.preferences;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -10,8 +9,8 @@ import java.util.List;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.erlide.core.internal.model.root.ErlProjectLayout;
-import org.erlide.utils.ErlUtils;
-import org.erlide.utils.TermParserException;
+import org.erlide.runtime.ErlUtils;
+import org.erlide.runtime.TermParserException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -47,7 +46,7 @@ public class ErlProjectLayoutTest {
     public void shouldConvertfromTermAndBack() throws OtpErlangException,
             TermParserException {
         final ErlProjectLayout layout = new ErlProjectLayout(input);
-        assertEquals("convert from term and back", input, layout.asTerm());
+        assertThat(input, is(layout.asTerm()));
     }
 
     @Test

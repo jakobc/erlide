@@ -10,15 +10,16 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.dialogs.PropertyPage;
+import org.eclipse.wb.swt.SWTResourceManager;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlProject;
-import org.erlide.jinterface.TypeConverter;
+import org.erlide.core.model.util.ModelUtils;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.TypeConverter;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.swtdesigner.SWTResourceManager;
 
 public class ErlModulePropertyPage extends PropertyPage implements
         IWorkbenchPropertyPage {
@@ -43,13 +44,13 @@ public class ErlModulePropertyPage extends PropertyPage implements
                 file);
         String value = "There is no module information about this file.";
         if (module != null) {
-            final IErlProject project = module.getProject();
+            final IErlProject project = ModelUtils.getProject(module);
             final IPath beamPath = project.getOutputLocation()
                     .append(module.getModuleName()).addFileExtension("beam");
             final IFile beam = project.getWorkspaceProject().getFile(beamPath);
 
             // TODO should it be the build backend?
-            final IBackend backend = BackendCore.getBackendManager()
+            final IRpcSite backend = BackendCore.getBackendManager()
                     .getIdeBackend();
             try {
                 final OtpErlangObject info = backend.call("erlide_backend",

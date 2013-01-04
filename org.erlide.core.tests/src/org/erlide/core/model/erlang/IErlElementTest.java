@@ -1,10 +1,6 @@
 package org.erlide.core.model.erlang;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -16,7 +12,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.erlide.core.internal.model.root.ErlModelCache;
-import org.erlide.core.model.root.ErlModelException;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.AcceptFlags;
@@ -24,6 +20,7 @@ import org.erlide.core.model.root.IErlElement.Kind;
 import org.erlide.core.model.root.IErlElementLocator;
 import org.erlide.core.model.root.IErlElementVisitor;
 import org.erlide.core.model.root.IErlExternal;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.test.support.ErlideTestUtils;
 import org.junit.Test;
 
@@ -68,11 +65,11 @@ public class IErlElementTest extends ErlModelTestBase {
     // IErlProject getProject();
     @Test
     public void getProject() throws Exception {
-        assertEquals(project, module.getProject());
-        assertEquals(project, project.getProject());
+        assertEquals(project, ModelUtils.getProject(module));
+        assertEquals(project, ModelUtils.getProject(project));
         module.open(null);
         final IErlElement element = module.getElementAtLine(3);
-        assertEquals(project, element.getProject());
+        assertEquals(project, ModelUtils.getProject(element));
     }
 
     // IErlModule getModule();
@@ -80,7 +77,7 @@ public class IErlElementTest extends ErlModelTestBase {
     public void getModule() throws Exception {
         module.open(null);
         final IErlMember element = module.getElementAtLine(3);
-        assertEquals(module, element.getModule());
+        assertEquals(module, ModelUtils.getModule(element));
     }
 
     // IResource getCorrespondingResource();
@@ -90,7 +87,7 @@ public class IErlElementTest extends ErlModelTestBase {
         final IProject workspaceProject = project.getWorkspaceProject();
         final IFolder srcFolder = workspaceProject.getFolder("src");
         final IFile file = srcFolder.getFile("xx.erl");
-        final IErlElementLocator model = project.getModel();
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         final IErlModule otpFile = model.findModuleFromProject(project,
                 "file.erl", null, IErlElementLocator.Scope.PROJECT_ONLY);
         module.open(null);
@@ -122,7 +119,7 @@ public class IErlElementTest extends ErlModelTestBase {
         assertEquals(Kind.PROJECT, project.getKind());
         assertEquals(Kind.FUNCTION, element.getKind());
         assertEquals(Kind.ATTRIBUTE, element2.getKind());
-        assertEquals(Kind.MODEL, element2.getModel().getKind());
+        assertEquals(Kind.MODEL, ErlModelManager.getErlangModel().getKind());
     }
 
     // IErlModel getModel();
@@ -131,9 +128,7 @@ public class IErlElementTest extends ErlModelTestBase {
         module.open(null);
         final IErlElement element = module.getElementAtLine(3);
         final IErlElementLocator model = ErlModelManager.getErlangModel();
-        assertEquals(model, project.getModel());
-        assertEquals(model, module.getModel());
-        assertEquals(model, element.getModel());
+        assertEquals(model, ErlModelManager.getErlangModel());
     }
 
     // IParent getParent();
@@ -155,7 +150,7 @@ public class IErlElementTest extends ErlModelTestBase {
         final IProject workspaceProject = project.getWorkspaceProject();
         final IFolder srcFolder = workspaceProject.getFolder("src");
         final IFile file = srcFolder.getFile("xx.erl");
-        final IErlElementLocator model = project.getModel();
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         final IErlModule otpFile = model.findModuleFromProject(project,
                 "file.erl", null, IErlElementLocator.Scope.PROJECT_ONLY);
         module.open(null);
@@ -169,7 +164,7 @@ public class IErlElementTest extends ErlModelTestBase {
     @Test
     public void getSchedulingRule() throws Exception {
         project.open(null);
-        final IErlElementLocator model = project.getModel();
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         final IErlModule otpFile = model.findModuleFromProject(project,
                 "file.erl", null, IErlElementLocator.Scope.PROJECT_ONLY);
         module.open(null);
@@ -199,7 +194,7 @@ public class IErlElementTest extends ErlModelTestBase {
         final boolean structureKnown3 = module.isStructureKnown();
         module.open(null);
         final boolean structureKnown4 = module.isStructureKnown();
-        final IErlElementLocator model = project.getModel();
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         final IErlModule otpFile = model.findModuleFromProject(project,
                 "file.erl", null, IErlElementLocator.Scope.PROJECT_ONLY);
         final IErlExternal external = (IErlExternal) otpFile.getParent();

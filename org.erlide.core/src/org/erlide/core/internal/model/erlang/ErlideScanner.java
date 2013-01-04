@@ -3,16 +3,15 @@ package org.erlide.core.internal.model.erlang;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.runtime.Assert;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.IBackend;
 import org.erlide.core.ErlangPlugin;
 import org.erlide.core.model.erlang.ErlToken;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.RpcException;
-import org.erlide.jinterface.rpc.RpcTimeoutException;
-import org.erlide.utils.ErlUtils;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.RpcException;
+import org.erlide.runtime.rpc.RpcTimeoutException;
+import org.erlide.utils.ErlLogger;
 import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -27,14 +26,16 @@ public class ErlideScanner {
             "erlide.encoding.__test__", "latin1");
 
     public static void initialScan(final String module, final String path,
-            final String initialText, final boolean useCaches) {
+            final String initialText, final boolean useCaches,
+            final boolean logging) {
         final String stateDir = ErlangPlugin.getDefault().getStateLocation()
                 .toString();
         final IBackend backend = BackendCore.getBackendManager()
                 .getIdeBackend();
         try {
-            backend.call(ERLIDE_SCANNER, "initialScan", "assso", module, path,
-                    initialText, stateDir, useCaches);
+            final String loggingOnOff = logging ? "on" : "off";
+            backend.call(ERLIDE_SCANNER, "initialScan", "asssoa", module, path,
+                    initialText, stateDir, useCaches, loggingOnOff);
         } catch (final RpcTimeoutException e) {
             if (!backend.isStopped()) {
                 ErlLogger.warn(e);
@@ -118,7 +119,7 @@ public class ErlideScanner {
     public static List<ErlToken> lightScanString(final String string,
             final int offset) throws BackendException {
         OtpErlangObject r1 = null;
-        final IBackend backend = BackendCore.getBackendManager()
+        final IRpcSite backend = BackendCore.getBackendManager()
                 .getIdeBackend();
         try {
             r1 = backend.call("erlide_scanner", "light_scan_string", "ba",
@@ -197,31 +198,18 @@ public class ErlideScanner {
         }
     }
 
-    @SuppressWarnings("boxing")
-    public static void notifyChange(final String scannerName, final int offset,
-            final int length, final String text) {
-        Assert.isNotNull(scannerName);
+    public static boolean dumpLog(final String scannerName,
+            final String dumpLocationFilename) {
         try {
-            final OtpErlangObject msg = ErlUtils.format(
-                    "{change, ~a, ~i,  ~i, ~s}", scannerName, offset, length,
-                    text);
-            BackendCore.getBackendManager().getIdeBackend()
-                    .send("erlide_scanner_listener", msg);
-        } catch (final Exception e) {
+            final IBackend backend = BackendCore.getBackendManager()
+                    .getIdeBackend();
+            final OtpErlangObject object = backend.call(ERLIDE_SCANNER,
+                    "dump_log", "as", scannerName, dumpLocationFilename);
+            return Util.isOk(object);
+        } catch (final RpcException e) {
             ErlLogger.warn(e);
         }
-    }
-
-    public static void notifyNew(final String scannerName) {
-        Assert.isNotNull(scannerName);
-        try {
-            final OtpErlangObject msg = ErlUtils.format("{new, ~a}",
-                    scannerName);
-            BackendCore.getBackendManager().getIdeBackend()
-                    .send("erlide_scanner_listener", msg);
-        } catch (final Exception e) {
-            ErlLogger.warn(e);
-        }
+        return false;
     }
 
 }

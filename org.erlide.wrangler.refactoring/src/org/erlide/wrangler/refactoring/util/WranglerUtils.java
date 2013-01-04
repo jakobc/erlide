@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     György Orosz - initial API and implementation
  ******************************************************************************/
@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -41,6 +42,7 @@ import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlModel;
+import org.erlide.core.model.util.ModelUtils;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.wrangler.refactoring.backend.ChangedFile;
 import org.erlide.wrangler.refactoring.selection.IErlMemberSelection;
@@ -182,7 +184,7 @@ public final class WranglerUtils {
     }
 
     static private void findModulesRecursively(final IResource res,
-            final ArrayList<IFile> files) throws CoreException {
+            final List<IFile> files) throws CoreException {
         if (res instanceof IContainer) {
             final IContainer c = (IContainer) res;
             for (final IResource r : c.members()) {
@@ -330,7 +332,7 @@ public final class WranglerUtils {
         int offset, length;
         offset = clause.getNameRange().getOffset();
         length = clause.getNameRange().getLength();
-        final IErlModule module = clause.getModule();
+        final IErlModule module = ModelUtils.getModule(clause);
         final IEditorPart editor = openFile((IFile) module.getResource());
         highlightSelection(offset, length, (ITextEditor) editor);
 
@@ -471,7 +473,7 @@ public final class WranglerUtils {
      * @param changedFiles
      *            changed files
      */
-    public static void notifyErlide(final ArrayList<ChangedFile> changedFiles) {
+    public static void notifyErlide(final List<ChangedFile> changedFiles) {
 
         final IErlModel model = ErlModelManager.getErlangModel();
         for (final ChangedFile f : changedFiles) {

@@ -7,7 +7,7 @@ import org.eclipse.core.resources.IProject;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.IBackend;
 import org.erlide.backend.IBackendListener;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.utils.ErlLogger;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
@@ -80,6 +80,9 @@ public class ErlangEventPublisher {
     public void unsetEventAdmin() {
         final BundleContext ctx = FrameworkUtil.getBundle(
                 ErlangEventPublisher.class).getBundleContext();
+        if (ctx == null) {
+            return;
+        }
         final ServiceReference ref = ctx.getServiceReference(EventAdmin.class
                 .getName());
         if (ref == null) {

@@ -23,15 +23,14 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendException;
-import org.erlide.backend.IBackend;
 import org.erlide.core.internal.model.erlang.ModelInternalUtils;
+import org.erlide.core.model.ErlModelException;
 import org.erlide.core.model.erlang.IErlFunction;
 import org.erlide.core.model.erlang.IErlImport;
 import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.core.model.erlang.IErlRecordDef;
 import org.erlide.core.model.erlang.ISourceRange;
 import org.erlide.core.model.erlang.ISourceReference;
-import org.erlide.core.model.root.ErlModelException;
 import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.core.model.root.IErlElement;
 import org.erlide.core.model.root.IErlElement.Kind;
@@ -42,11 +41,12 @@ import org.erlide.core.model.util.ErlangFunction;
 import org.erlide.core.model.util.ModelUtils;
 import org.erlide.core.services.search.ErlideOpen;
 import org.erlide.core.services.search.OpenResult;
-import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.RpcException;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.RpcException;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.prefs.plugin.NavigationPreferencePage;
 import org.erlide.ui.util.ErlModelUtils;
+import org.erlide.utils.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
@@ -134,10 +134,10 @@ public class OpenAction extends SelectionDispatchAction {
         if (module == null) {
             return;
         }
-        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
+        final IRpcSite b = BackendCore.getBackendManager().getIdeBackend();
         final int offset = selection.getOffset();
         try {
-            final IErlProject project = module.getProject();
+            final IErlProject project = ModelUtils.getProject(module);
             final IErlModel model = ErlModelManager.getErlangModel();
             final String externalModulesString = project == null ? "" : project
                     .getExternalModulesString();
@@ -168,8 +168,8 @@ public class OpenAction extends SelectionDispatchAction {
     }
 
     public static void openOpenResult(final ErlangEditor editor,
-            final IErlModule module, final IBackend backend,
-            final int offset, final IErlProject erlProject, final OpenResult res)
+            final IErlModule module, final IRpcSite backend, final int offset,
+            final IErlProject erlProject, final OpenResult res)
             throws CoreException, ErlModelException, PartInitException,
             BadLocationException, OtpErlangRangeException, BackendException,
             RpcException {
@@ -183,7 +183,7 @@ public class OpenAction extends SelectionDispatchAction {
     }
 
     public static Object findOpenResult(final ErlangEditor editor,
-            final IErlModule module, final IBackend backend,
+            final IErlModule module, final IRpcSite backend,
             final IErlProject erlProject, final OpenResult res, final int offset)
             throws CoreException, RpcException, BackendException,
             ErlModelException, BadLocationException, OtpErlangRangeException {
@@ -238,7 +238,7 @@ public class OpenAction extends SelectionDispatchAction {
     }
 
     private static IErlElement findLocalCall(final IErlModule module,
-            final IBackend backend, final IErlProject erlProject,
+            final IRpcSite backend, final IErlProject erlProject,
             final OpenResult res, final IErlElement element,
             final IErlElementLocator.Scope scope) throws RpcException,
             CoreException {
@@ -264,8 +264,9 @@ public class OpenAction extends SelectionDispatchAction {
             // imported from otp module
             final OtpErlangString otpErlangString = (OtpErlangString) res2;
             final String modulePath = otpErlangString.stringValue();
-            return ModelUtils.findFunction(moduleName, res.getFunction(),
-                    modulePath, erlProject, scope, module);
+            final IErlElementLocator model = ErlModelManager.getErlangModel();
+            return ModelUtils.findFunction(model, moduleName,
+                    res.getFunction(), modulePath, erlProject, scope, module);
         } else {
             // functions defined in include files
             final Collection<IErlModule> allIncludedFiles = module
@@ -285,16 +286,18 @@ public class OpenAction extends SelectionDispatchAction {
             final OpenResult res, final IErlProject project,
             final IErlElement element, final IErlElementLocator.Scope scope)
             throws CoreException {
+        final IErlElementLocator model = ErlModelManager.getErlangModel();
         if (isTypeDefOrRecordDef(element, res)) {
-            return ModelUtils.findTypeDef(module, res.getName(), res.getFun(),
-                    res.getPath(), project, scope);
+            return ModelUtils.findTypeDef(model, module, res.getName(),
+                    res.getFun(), res.getPath(), project, scope);
         }
-        final IErlFunction result = ModelUtils.findFunction(res.getName(),
-                res.getFunction(), res.getPath(), project, scope, module);
+        final IErlFunction result = ModelUtils.findFunction(model,
+                res.getName(), res.getFunction(), res.getPath(), project,
+                scope, module);
         if (result != null) {
             return result;
         }
-        return ModelUtils.findFunction(res.getName(),
+        return ModelUtils.findFunction(model, res.getName(),
                 new ErlangFunction(res.getFun(), ErlangFunction.ANY_ARITY),
                 res.getPath(), project, scope, module);
     }

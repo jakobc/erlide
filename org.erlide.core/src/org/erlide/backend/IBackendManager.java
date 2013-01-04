@@ -6,9 +6,11 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.debug.core.ILaunch;
+import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.erlide.backend.ICodeBundle.CodeContext;
-import org.erlide.jinterface.epmd.EpmdWatcher;
-import org.erlide.utils.Tuple;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.epmd.EpmdWatcher;
 import org.osgi.framework.Bundle;
 
 public interface IBackendManager {
@@ -26,9 +28,9 @@ public interface IBackendManager {
     Collection<IBackend> getAllBackends();
 
     void addBundle(Bundle b, Map<String, CodeContext> paths,
-            Collection<Tuple<String, String>> inits);
+            Collection<Pair<String, String>> inits);
 
-    void forEachBackend(final IErlideBackendVisitor visitor);
+    void forEachBackend(final Procedure1<IBackend> visitor);
 
     void updateNodeStatus(final String host, final Collection<String> started,
             final Collection<String> stopped);
@@ -43,18 +45,18 @@ public interface IBackendManager {
 
     void loadCodepathExtensions();
 
-    IBackend getByName(final String nodeName);
+    IRpcSite getByName(final String nodeName);
 
     void moduleLoaded(final IBackend backend, final IProject project,
             final String moduleName);
 
-    IBackend getBackendForLaunch(final ILaunch launch);
+    IRpcSite getBackendForLaunch(final ILaunch launch);
 
     void terminateBackendsForLaunch(final ILaunch launch);
 
     void removeBackendsForLaunch(final ILaunch launch);
 
-    IBackend createExecutionBackend(final BackendData data);
+    IBackend createExecutionBackend(final IBackendData data);
 
     void dispose();
 
