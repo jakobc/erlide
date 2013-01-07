@@ -50,6 +50,7 @@ import org.erlide.core.model.util.PluginUtils;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.perspectives.ErlangPerspective;
 import org.erlide.utils.ErlLogger;
+import org.osgi.service.prefs.BackingStoreException;
 
 public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
     // {
@@ -274,7 +275,10 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
             erlangProjectProperties.setIncludeDirs(includeDirs);
             erlangProjectProperties.setSourceDirs(sourceDirs);
             erlangProjectProperties.setOutputDir(outputDir);
+            erlangProjectProperties.store();
         } catch (final CoreException e) {
+            throw new InvocationTargetException(e);
+        } catch (final BackingStoreException e) {
             throw new InvocationTargetException(e);
         } finally {
             monitor.done();

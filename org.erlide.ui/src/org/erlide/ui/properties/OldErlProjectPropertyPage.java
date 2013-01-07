@@ -113,7 +113,6 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
                 ProjectPreferencesConstants.NUKE_OUTPUT_ON_CLEAN,
                 "When cleaning, delete the whole output directories (is faster)",
                 fieldEditorParent));
-
     }
 
     @Override
@@ -123,7 +122,7 @@ public class OldErlProjectPropertyPage extends FieldEditorOverlayPage {
         detectButton = new Button(parent, SWT.PUSH);
         detectButton.setText("Detect directories");
         Dialog.applyDialogFont(detectButton);
-        final GridData data = new GridData(GridData.HORIZONTAL_ALIGN_FILL);
+        final GridData data = new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING);
         final Point minButtonSize = detectButton.computeSize(SWT.DEFAULT,
                 SWT.DEFAULT, true);
         data.widthHint = Math.max(widthHint, minButtonSize.x);

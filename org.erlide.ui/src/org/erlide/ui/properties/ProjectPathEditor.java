@@ -98,6 +98,8 @@ public class ProjectPathEditor extends PathEditor {
                     // JavaPlugin.log(e);
                     // }
                     return new StatusInfo();
+                } else if (selection[0] instanceof IProject) {
+                    return new StatusInfo();
                 } else {
                     return new StatusInfo(IStatus.ERROR, "");
                 }

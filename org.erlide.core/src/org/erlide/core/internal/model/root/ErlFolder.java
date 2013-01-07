@@ -205,4 +205,9 @@ public class ErlFolder extends Openable implements IErlFolder {
             }
         }
     }
+
+    @Override
+    public String getFilePath() {
+        return getResource().getLocation().toPortableString();
+    }
 }

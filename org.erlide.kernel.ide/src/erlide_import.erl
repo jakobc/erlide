@@ -26,17 +26,19 @@ import(Prefix0, L) ->
                  _ ->
                      Prefix0++"/"
              end,
-	import(Prefix, M, new_empty(), new_empty(), new_empty(), none, new_empty()).
+    import(Prefix, M, new_empty(), new_empty(), new_empty(), none, new_empty()).
 
 
 recu_dir(Dir) ->
-    case filelib:list_dir(Dir) of
-        {ok, L} -> [Dir ++ "/" ++ recu_dir(F) || F <- L];
-        _ -> Dir
+    case file:list_dir(Dir) of
+        {ok, L} ->
+            [Dir | lists:append([recu_dir(Dir++F) || F <- L])];
+        _ ->
+            []
     end.
 
 detect(Prefix, Dirs) ->
-    import(Prefix, [recu_dir(D) || D <- Dirs]).
+    import(Prefix, lists:append([recu_dir(Prefix++"/"++D) || D <- Dirs])).
 
 %%
 %% Local Functions
@@ -74,10 +76,17 @@ import(Prefix, [File | Rest], Files, SourceDirs, IncludeDirs, BeamDir, AllDirs0)
         ".yrl" ->
             import(Prefix, Rest, [File | Files], add_elem(remove_prefix(Prefix, Dir), SourceDirs), IncludeDirs, BeamDir, AllDirs);
         ".beam" ->
-            import(Prefix, Rest, Files, SourceDirs, IncludeDirs, remove_prefix(Prefix, Dir), AllDirs);
+            import(Prefix, Rest, Files, SourceDirs, IncludeDirs, replace_beamdir(BeamDir, remove_prefix(Prefix, Dir)), AllDirs);
         _ ->
             import(Prefix, Rest, [File | Files], SourceDirs, IncludeDirs, BeamDir, AllDirs)
     end.
+
+replace_beamdir([], New) ->
+    New;
+replace_beamdir(Old, New) when Old=="ebin"; New=="ebin" ->
+    "ebin";
+replace_beamdir(Old, _) ->
+    Old.
 
 new_empty() ->
     ordsets:new().
@@ -93,7 +102,12 @@ remove_prefix(Prefix, Dir) ->
         true ->
             string:substr(Dir, length(Prefix)+1);
         false ->
-            Dir
+            case Prefix==Dir++"/" of
+                true ->
+                    ".";
+                false ->
+                    Dir
+            end
     end.
 
 

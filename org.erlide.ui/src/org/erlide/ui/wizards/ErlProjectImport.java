@@ -43,7 +43,9 @@ public class ErlProjectImport {
         l = (OtpErlangList) t.elementAt(4);
         directories = (List<String>) erlangStringList2Collection(l,
                 new ArrayList<String>());
-        directories.add(0, ".");
+        if (!directories.contains(".")) {
+            directories.add(0, ".");
+        }
     }
 
     private static Collection<String> erlangStringList2Collection(

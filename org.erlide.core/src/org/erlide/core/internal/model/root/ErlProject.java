@@ -1003,4 +1003,9 @@ public class ErlProject extends Openable implements IErlProject {
     public IProject getWorkspaceProject() {
         return fProject;
     }
+
+    @Override
+    public String getFilePath() {
+        return fProject.getLocation().toPortableString();
+    }
 }
