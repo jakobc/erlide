@@ -71,7 +71,6 @@ import org.eclipse.ui.internal.console.IConsoleHelpContextIds;
 import org.eclipse.ui.part.Page;
 import org.eclipse.ui.texteditor.FindReplaceAction;
 import org.eclipse.ui.texteditor.IUpdate;
-import org.erlide.backend.BackendCore;
 import org.erlide.backend.BackendException;
 import org.erlide.backend.BackendHelper;
 import org.erlide.backend.console.IBackendShell;
@@ -147,8 +146,8 @@ public class ErlangConsolePage extends Page implements IAdaptable,
     boolean isInputComplete() {
         try {
             final String str = consoleInput.getText() + " ";
-            final OtpErlangObject o = BackendHelper.parseConsoleInput(
-                    BackendCore.getBackendManager().getIdeBackend(), str);
+            final BackendHelper helper = new BackendHelper();
+            final OtpErlangObject o = helper.parseConsoleInput(str);
             if (o instanceof OtpErlangList && ((OtpErlangList) o).arity() == 0) {
                 return false;
             }
@@ -477,7 +476,6 @@ public class ErlangConsolePage extends Page implements IAdaptable,
 
         fSelectionActions.add(ActionFactory.CUT.getId());
         fSelectionActions.add(ActionFactory.COPY.getId());
-        fSelectionActions.add(ActionFactory.PASTE.getId());
         fSelectionActions.add(ActionFactory.FIND.getId());
 
         actionBars.updateActionBars();
@@ -497,7 +495,6 @@ public class ErlangConsolePage extends Page implements IAdaptable,
 
         menuManager.add(fGlobalActions.get(ActionFactory.CUT.getId()));
         menuManager.add(fGlobalActions.get(ActionFactory.COPY.getId()));
-        menuManager.add(fGlobalActions.get(ActionFactory.PASTE.getId()));
         menuManager.add(fGlobalActions.get(ActionFactory.SELECT_ALL.getId()));
 
         menuManager.add(new Separator("FIND")); //$NON-NLS-1$
