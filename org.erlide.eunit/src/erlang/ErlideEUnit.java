@@ -3,10 +3,10 @@ package erlang;
 import java.util.Collection;
 import java.util.List;
 
-import org.erlide.backend.IBackend;
 import org.erlide.eunit.EUnitTestFunction;
 import org.erlide.jinterface.ErlLogger;
-import org.erlide.jinterface.rpc.RpcException;
+import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.rpc.RpcException;
 import org.erlide.utils.Util;
 
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 
 public final class ErlideEUnit {
 
-	public static List<EUnitTestFunction> findTests(final IBackend backend,
+	public static List<EUnitTestFunction> findTests(final IRpcSite backend,
 			final List<String> beams) {
 		OtpErlangObject res = null;
 		try {
@@ -40,7 +40,7 @@ public final class ErlideEUnit {
 		return null;
 	}
 
-	public static Collection<Integer> countTests(final IBackend backend,
+	public static Collection<Integer> countTests(final IRpcSite backend,
 			final List<OtpErlangObject> tuples) {
 		final List<Integer> result = Lists.newArrayListWithCapacity(tuples
 				.size());
@@ -63,7 +63,7 @@ public final class ErlideEUnit {
 		return result;
 	}
 
-	public static boolean runTests(final IBackend backend,
+	public static boolean runTests(final IRpcSite backend,
 			final OtpErlangList tests, final OtpErlangPid jpid) {
 		ErlLogger.debug("erlide_eunit:run_tests %s  (jpid %s", tests, jpid);
 		try {

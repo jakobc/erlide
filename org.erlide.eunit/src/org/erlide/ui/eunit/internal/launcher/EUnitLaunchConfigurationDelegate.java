@@ -42,6 +42,7 @@ import org.erlide.eunit.EUnitTestFunction;
 import org.erlide.jinterface.ErlLogger;
 import org.erlide.launch.ErlLaunchAttributes;
 import org.erlide.launch.ErlangLaunchDelegate;
+import org.erlide.runtime.IRpcSite;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -258,7 +259,7 @@ public class EUnitLaunchConfigurationDelegate extends ErlangLaunchDelegate {
 	}
 
 	private static Collection<Integer> countTestFunctions(
-			final IBackend backend,
+			final IRpcSite backend,
 			final Collection<EUnitTestFunction> testFunctions) {
 		final List<OtpErlangObject> tuples = Lists
 				.newArrayListWithCapacity(testFunctions.size());
