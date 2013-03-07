@@ -43,6 +43,7 @@ import org.erlide.model.SourcePathUtils;
 import org.erlide.model.erlang.IErlModule;
 import org.erlide.model.erlang.ModuleKind;
 import org.erlide.model.internal.erlang.ErlExternalReferenceEntryList;
+import org.erlide.model.internal.erlang.ErlExternalReferenceEntryListProxy;
 import org.erlide.model.internal.erlang.ErlOtpExternalReferenceEntryList;
 import org.erlide.model.internal.root.ErlModel.External;
 import org.erlide.model.root.ErlModelManager;
@@ -50,6 +51,7 @@ import org.erlide.model.root.IErlElement;
 import org.erlide.model.root.IErlElementLocator;
 import org.erlide.model.root.IErlElementVisitor;
 import org.erlide.model.root.IErlExternal;
+import org.erlide.model.root.IErlExternalRoot;
 import org.erlide.model.root.IErlFolder;
 import org.erlide.model.root.IErlModel;
 import org.erlide.model.root.IErlModelMarker;
@@ -116,7 +118,7 @@ public class ErlProject extends Openable implements IErlProject {
      * @see Openable
      */
     @Override
-    protected boolean buildStructure(final IProgressMonitor pm)
+    public boolean buildStructure(final IProgressMonitor pm)
             throws ErlModelException {
         final IResource r = getResource();
         // check whether the Erlang project can be opened
@@ -163,7 +165,14 @@ public class ErlProject extends Openable implements IErlProject {
     private void addOtpExternals(final List<IErlElement> children) {
         final String name = "OTP "
                 + getProperties().getRuntimeVersion().toString();
-        children.add(new ErlOtpExternalReferenceEntryList(this, name));
+        final IErlModel model = ErlModelManager.getErlangModel();
+        IErlExternalRoot external = model.getExternal(name);
+        if (external == null) {
+            external = new ErlOtpExternalReferenceEntryList(this, name);
+        }
+        model.addExternal(name, external);
+        children.add(new ErlExternalReferenceEntryListProxy(this, name,
+                external));
     }
 
     private void addExternals(final List<IErlElement> children) {
@@ -187,9 +196,17 @@ public class ErlProject extends Openable implements IErlProject {
         }
         if (externalIncludes.length() != 0 || externalModules.length() != 0
                 || !projectIncludes.isEmpty()) {
-            children.add(new ErlExternalReferenceEntryList(this, "Externals",
-                    "externals", externalIncludes, projectIncludes,
-                    externalModules));
+            final String key = externalIncludes + "|" + externalModules + "|"
+                    + projectIncludes;
+            final IErlModel model = ErlModelManager.getErlangModel();
+            IErlExternalRoot external = model.getExternal(key);
+            if (external == null) {
+                external = new ErlExternalReferenceEntryList(this, "Externals",
+                        externalIncludes, projectIncludes, externalModules);
+            }
+            model.addExternal(key, external);
+            children.add(new ErlExternalReferenceEntryListProxy(this,
+                    "Externals", external));
         }
     }
 

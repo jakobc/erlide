@@ -10,13 +10,15 @@ import org.erlide.model.ErlModelException;
 import org.erlide.model.IParent;
 import org.erlide.model.ModelPlugin;
 import org.erlide.model.internal.root.Openable;
+import org.erlide.model.root.IErlElement;
 import org.erlide.model.root.IErlExternal;
+import org.erlide.model.root.IErlExternalRoot;
 import org.erlide.model.services.search.ErlideOpen;
 import org.erlide.model.util.ModelUtils;
 import org.erlide.runtime.IRpcSite;
 
 public class ErlOtpExternalReferenceEntryList extends Openable implements
-        IErlExternal {
+        IErlExternalRoot {
 
     public ErlOtpExternalReferenceEntryList(final IParent parent,
             final String name) {
@@ -29,7 +31,7 @@ public class ErlOtpExternalReferenceEntryList extends Openable implements
     }
 
     @Override
-    protected boolean buildStructure(final IProgressMonitor pm)
+    public boolean buildStructure(final IProgressMonitor pm)
             throws ErlModelException {
         final IRpcSite backend = ModelPlugin.getDefault().getBackend(
                 ModelUtils.getProject(this).getName());
@@ -116,5 +118,10 @@ public class ErlOtpExternalReferenceEntryList extends Openable implements
     @Override
     public boolean hasIncludes() {
         return true;
+    }
+
+    @Override
+    public List<IErlElement> internalGetChildren() {
+        return super.internalGetChildren();
     }
 }

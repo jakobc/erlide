@@ -16,6 +16,7 @@ import org.erlide.model.internal.root.ErlModelCache;
 import org.erlide.model.internal.root.Openable;
 import org.erlide.model.root.ErlModelManager;
 import org.erlide.model.root.IErlExternal;
+import org.erlide.model.root.IErlExternalRoot;
 import org.erlide.model.root.IErlModel;
 import org.erlide.model.root.IErlProject;
 import org.erlide.model.services.search.ErlideOpen;
@@ -27,18 +28,15 @@ import com.ericsson.otp.erlang.OtpErlangList;
 import com.google.common.collect.Maps;
 
 public class ErlExternalReferenceEntryList extends Openable implements
-        IErlExternal {
+        IErlExternalRoot {
 
     private final String externalIncludes, externalModules;
-    private final String externalName;
     private final List<String> projectIncludes;
 
     public ErlExternalReferenceEntryList(final IParent parent,
-            final String name, final String externalName,
-            final String externalIncludes, final List<String> projectIncludes,
-            final String externalModules) {
+            final String name, final String externalIncludes,
+            final List<String> projectIncludes, final String externalModules) {
         super(parent, name);
-        this.externalName = externalName;
         this.externalIncludes = externalIncludes;
         this.projectIncludes = projectIncludes;
         this.externalModules = externalModules;
@@ -50,7 +48,7 @@ public class ErlExternalReferenceEntryList extends Openable implements
     }
 
     @Override
-    protected boolean buildStructure(final IProgressMonitor pm)
+    public boolean buildStructure(final IProgressMonitor pm)
             throws ErlModelException {
         // TODO some code duplication within this function
         // ErlLogger.debug("ErlExternalReferenceEntryList.buildStructure %s",
@@ -174,10 +172,6 @@ public class ErlExternalReferenceEntryList extends Openable implements
         return getName();
     }
 
-    public String getExternalName() {
-        return externalName;
-    }
-
     public boolean hasModuleWithPath(final String path) {
         return false;
     }
@@ -199,6 +193,14 @@ public class ErlExternalReferenceEntryList extends Openable implements
     @Override
     public boolean hasIncludes() {
         return true;
+    }
+
+    @Override
+    public void dispose() {
+        ErlModelManager.getErlangModel().removeExternal(
+                externalIncludes + "|" + externalModules + "|"
+                        + projectIncludes);
+        super.dispose();
     }
 
 }

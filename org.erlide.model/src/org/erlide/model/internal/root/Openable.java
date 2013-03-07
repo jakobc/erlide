@@ -68,7 +68,7 @@ public abstract class Openable extends ErlElement implements IOpenable {
      * 
      * @param dirtyRegion
      */
-    protected abstract boolean buildStructure(IProgressMonitor pm)
+    public abstract boolean buildStructure(IProgressMonitor pm)
             throws ErlModelException;
 
     /*

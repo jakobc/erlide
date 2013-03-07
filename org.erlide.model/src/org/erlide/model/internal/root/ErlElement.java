@@ -409,7 +409,7 @@ public abstract class ErlElement extends PlatformObject implements IErlElement,
         }
     }
 
-    protected List<IErlElement> internalGetChildren() {
+    public List<IErlElement> internalGetChildren() {
         return fChildren;
     }
 
