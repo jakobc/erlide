@@ -78,7 +78,7 @@ public class DefaultErlangEngine implements IErlangEngine {
 
     @Override
     public OpenService getOpenService() {
-        return new ErlideOpen(backend);
+        return new ErlideOpen(backend, getStateDir());
     }
 
     @Override
