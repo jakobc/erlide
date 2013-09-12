@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Properties;
@@ -17,6 +16,7 @@ import org.eclipse.core.runtime.Platform;
 import org.erlide.cover.core.Activator;
 import org.erlide.cover.core.Logger;
 import org.erlide.cover.views.model.ICoverageObject;
+import org.erlide.util.ErlLogger;
 
 /**
  * Generates HTML collective reports
@@ -72,7 +72,7 @@ public class ReportGenerator {
 
             cssCode = sb.toString();
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             log.error(e);
         }
 
@@ -95,7 +95,7 @@ public class ReportGenerator {
 
             return writer.toString();
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return null;
         }
 
@@ -103,7 +103,7 @@ public class ReportGenerator {
 
     // obtain templates
     private String getTemplateFromJar(final boolean relative)
-            throws IOException, URISyntaxException {
+            throws IOException {
         URL bundleRoot;
         if (relative) {
             bundleRoot = Platform.getBundle(

@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.Collection;
 
 import org.eclipse.jface.viewers.TreeViewer;
-import org.erlide.core.model.root.ErlModelManager;
 import org.erlide.cover.core.Activator;
 import org.erlide.cover.core.Logger;
 import org.erlide.cover.core.MD5Checksum;
@@ -13,6 +12,8 @@ import org.erlide.cover.views.model.ICoverageObject;
 import org.erlide.cover.views.model.ModuleStats;
 import org.erlide.cover.views.model.StatsTreeModel;
 import org.erlide.cover.views.model.StatsTreeObject;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.util.ErlLogger;
 
 /**
  * Showing annotations from context menu for specified objects
@@ -79,7 +80,7 @@ public class ShowCoverageAction extends CoverageAction {
     // calculate md5
     private boolean ifMarkAnnotations(final ModuleStats module) {
         try {
-            final File file = new File(ErlModelManager.getErlangModel()
+            final File file = new File(ErlangEngine.getInstance().getModel()
                     .findModule(module.getLabel()).getFilePath());
 
             if (module.getMd5().equals(MD5Checksum.getMD5(file))) {
@@ -87,7 +88,7 @@ public class ShowCoverageAction extends CoverageAction {
             }
         } catch (final Exception e) {
             // TODO
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return false;
     }

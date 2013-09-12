@@ -10,7 +10,11 @@
  *******************************************************************************/
 package org.erlide.ui.actions;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IViewPart;
@@ -18,7 +22,7 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.eclipse.ui.actions.ActionContext;
 import org.eclipse.ui.actions.ActionGroup;
 import org.eclipse.ui.part.Page;
-import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.internal.search.ImplementorsSearchGroup;
 import org.erlide.ui.internal.search.ReferencesSearchGroup;
 
@@ -34,7 +38,7 @@ import org.erlide.ui.internal.search.ReferencesSearchGroup;
  */
 public class ErlangSearchActionGroup extends ActionGroup {
 
-    private ErlangEditor fEditor;
+    private AbstractErlangEditor fEditor;
 
     private final ReferencesSearchGroup fReferencesGroup;
 
@@ -76,8 +80,8 @@ public class ErlangSearchActionGroup extends ActionGroup {
      * @param editor
      *            the Erlang editor
      */
-    public ErlangSearchActionGroup(final ErlangEditor editor) {
-        Assert.isNotNull(editor);
+    public ErlangSearchActionGroup(final AbstractErlangEditor editor) {
+        assertThat(editor, is(not(nullValue())));
         fEditor = editor;
 
         fReferencesGroup = new ReferencesSearchGroup(fEditor);
@@ -187,4 +191,5 @@ public class ErlangSearchActionGroup extends ActionGroup {
 
         super.dispose();
     }
+
 }

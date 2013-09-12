@@ -26,18 +26,17 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PartInitException;
-import org.erlide.backend.IBackend;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.util.ModelUtils;
+import org.erlide.backend.debug.IErlangDebugNode;
+import org.erlide.backend.debug.model.ErlangDebugElement;
+import org.erlide.backend.debug.model.ErlangDebugTarget;
+import org.erlide.backend.debug.model.ErtsProcess;
 import org.erlide.debug.ui.utils.ModuleItemLabelProvider;
-import org.erlide.launch.ErlLaunchAttributes;
-import org.erlide.launch.debug.IErlangDebugNode;
-import org.erlide.launch.debug.model.ErlangDebugElement;
-import org.erlide.launch.debug.model.ErlangDebugTarget;
-import org.erlide.launch.debug.model.ErtsProcess;
-import org.erlide.runtime.ErlDebugFlags;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.runtime.api.ErlDebugFlags;
+import org.erlide.runtime.api.ErlRuntimeAttributes;
 import org.erlide.ui.editors.util.EditorUtility;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * A view with a checkbox tree of interpreted modules checking/unchecking
@@ -97,7 +96,7 @@ public class InterpretedModulesView extends AbstractDebugView implements
             try {
                 final EnumSet<ErlDebugFlags> debugFlags = ErlDebugFlags
                         .makeSet(launchConfiguration.getAttribute(
-                                ErlLaunchAttributes.DEBUG_FLAGS,
+                                ErlRuntimeAttributes.DEBUG_FLAGS,
                                 ErlDebugFlags
                                         .getFlag(ErlDebugFlags.DEFAULT_DEBUG_FLAGS)));
                 distributed = debugFlags
@@ -217,16 +216,15 @@ public class InterpretedModulesView extends AbstractDebugView implements
             return;
         }
         final String moduleWoExtension = module.getModuleName();
-        final IProject project = ModelUtils.getProject(module)
-                .getWorkspaceProject();
+        final IProject project = ErlangEngine.getInstance()
+                .getModelUtilService().getProject(module).getWorkspaceProject();
         final boolean interpret = checked;
-        final IBackend backend = erlangDebugTarget.getBackend();
 
         if (erlangDebugTarget.getInterpretedModules().contains(
                 moduleWoExtension) != interpret) {
             // FIXME this isn't correct!!!
-            backend.interpret(project, moduleWoExtension, distributed,
-                    interpret);
+            erlangDebugTarget.interpret(project, moduleWoExtension,
+                    distributed, interpret);
         }
         addRemove(module, checked);
     }

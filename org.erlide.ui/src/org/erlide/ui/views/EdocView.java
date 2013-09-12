@@ -10,22 +10,24 @@
  *******************************************************************************/
 package org.erlide.ui.views;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.jface.text.DefaultInformationControl;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
-import org.eclipse.jface.text.TextPresentation;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -51,7 +53,7 @@ import org.erlide.ui.internal.ErlBrowserInformationControlInput;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.internal.information.HandleEdocLinksLocationListener;
 import org.erlide.ui.internal.information.OpenDeclarationAction;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 import org.osgi.framework.Bundle;
 
 /**
@@ -67,17 +69,18 @@ public class EdocView extends AbstractInfoView {
      * 
      * @since 3.0
      */
-    private static final String DO_NOT_WARN_PREFERENCE_KEY = "EdocView.error.doNotWarn"; //$NON-NLS-1$
+    //    private static final String DO_NOT_WARN_PREFERENCE_KEY = "EdocView.error.doNotWarn"; //$NON-NLS-1$
 
-    private static final boolean WARNING_DIALOG_ENABLED = true;
+    // private static final boolean WARNING_DIALOG_ENABLED = true;
 
     private Browser fBrowser;
 
     /** The information presenter. */
-    private DefaultInformationControl.IInformationPresenterExtension fPresenter;
+    // private DefaultInformationControl.IInformationPresenterExtension
+    // fPresenter;
 
     /** The text presentation. */
-    private final TextPresentation fPresentation = new TextPresentation();
+    // private final TextPresentation fPresentation = new TextPresentation();
 
     /** The select all action */
     private SelectAllAction fSelectAllAction;
@@ -110,8 +113,8 @@ public class EdocView extends AbstractInfoView {
                 final SelectionProvider selectionProvider) {
             super("selectAll");
 
-            Assert.isNotNull(control);
-            Assert.isNotNull(selectionProvider);
+            assertThat(control, is(not(nullValue())));
+            assertThat(selectionProvider, is(not(nullValue())));
             fControl = control;
             fSelectionProvider = selectionProvider;
 
@@ -162,7 +165,7 @@ public class EdocView extends AbstractInfoView {
          *            the widget
          */
         public SelectionProvider(final Control control) {
-            Assert.isNotNull(control);
+            assertThat(control, is(not(nullValue())));
             fControl = control;
             if (fControl instanceof StyledText) {
                 ((StyledText) fControl)
@@ -280,11 +283,11 @@ public class EdocView extends AbstractInfoView {
         super.createActions();
         openDeclarationAction = new OpenDeclarationAction(this);
         openDeclarationAction.setEnabled(false);
+        // fSelectAllAction = new SelectAllAction(this, selectionProvider);
     }
 
     @Override
     public void menuAboutToShow(final IMenuManager menu) {
-        // TODO Auto-generated method stub
         super.menuAboutToShow(menu);
         menu.appendToGroup(IContextMenuConstants.GROUP_OPEN,
                 openDeclarationAction);
@@ -353,9 +356,9 @@ public class EdocView extends AbstractInfoView {
         if (info instanceof String) {
             edocHtml = (String) info;
         } else if (info instanceof ErlBrowserInformationControlInput) {
-            final ErlBrowserInformationControlInput input = (ErlBrowserInformationControlInput) info;
-            setInput(input);
-            edocHtml = input.getHtml();
+            final ErlBrowserInformationControlInput myInput = (ErlBrowserInformationControlInput) info;
+            setInput(myInput);
+            edocHtml = myInput.getHtml();
         }
         fBrowser.setText(edocHtml);
     }

@@ -44,17 +44,17 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.services.IDisposable;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.IOpenable;
-import org.erlide.core.model.IParent;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlModel;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.IErlModel;
+import org.erlide.engine.model.IOpenable;
+import org.erlide.engine.model.IParent;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.editors.erl.ErlangDocumentSetupParticipant;
 import org.erlide.ui.editors.erl.scanner.IErlangPartitions;
 import org.erlide.ui.internal.ErlideUIPlugin;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class ErlStructureCreator extends StructureCreator {
 
@@ -83,7 +83,7 @@ public class ErlStructureCreator extends StructureCreator {
     private final class RootErlNode extends ErlNode implements IDisposable {
         private Object fInput;
 
-        private RootErlNode(final IDocument document, final Object input) {
+        RootErlNode(final IDocument document, final Object input) {
             super(document);
             fInput = input;
         }
@@ -254,12 +254,13 @@ public class ErlStructureCreator extends StructureCreator {
 
     @Override
     protected IStructureComparator createStructureComparator(
-            final Object element, IDocument document,
+            final Object element, final IDocument document0,
             final ISharedDocumentAdapter sharedDocumentAdapter,
             final IProgressMonitor monitor) throws CoreException {
         IErlModule module = null;
         String s = "";
-        final IErlModel model = ErlModelManager.getErlangModel();
+        IDocument document = document0;
+        final IErlModel model = ErlangEngine.getInstance().getModel();
         if (element instanceof ResourceNode) {
             final ResourceNode rn = (ResourceNode) element;
             final IResource r = rn.getResource();
@@ -282,7 +283,14 @@ public class ErlStructureCreator extends StructureCreator {
             try {
                 final InputStream contents = ((IStreamContentAccessor) element)
                         .getContents();
-                s = readString(contents);
+                try {
+                    s = readString(contents);
+                } finally {
+                    try {
+                        contents.close();
+                    } catch (final IOException e) {
+                    }
+                }
                 document = new Document(s);
             } catch (final CoreException ex) {
             }

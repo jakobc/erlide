@@ -1,16 +1,17 @@
 package org.erlide.core.preferences;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.erlide.core.internal.model.root.ErlProjectLayout;
-import org.erlide.runtime.ErlUtils;
-import org.erlide.runtime.TermParserException;
+import org.erlide.engine.model.root.ErlProjectLayout;
+import org.erlide.util.erlang.ErlUtils;
+import org.erlide.util.erlang.TermParserException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;

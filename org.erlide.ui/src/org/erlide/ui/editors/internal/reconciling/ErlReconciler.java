@@ -20,9 +20,11 @@ import org.eclipse.jface.text.reconciler.DirtyRegion;
 import org.eclipse.jface.text.reconciler.IReconciler;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategyExtension;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.utils.ErlLogger;
+import org.eclipse.ui.texteditor.ITextEditor;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.util.ErlLogger;
 
 import com.google.common.collect.Lists;
 
@@ -54,13 +56,16 @@ public class ErlReconciler implements IReconciler {
     final boolean fChunkReconciler;
 
     List<ErlDirtyRegion> log = Lists.newLinkedList();
-    boolean logging = false;
+    boolean logging;
+    private Object fMutex;
 
     public ErlReconciler(final IErlReconcilingStrategy strategy,
             final boolean isIncremental, final boolean chunkReconciler,
-            final String path, final IErlModule module) {
+            final String path, final IErlModule module, final boolean logging,
+            final ITextEditor editor) {
 
         super();
+        this.logging = logging;
         Assert.isNotNull(strategy);
 
         setIsIncrementalReconciler(isIncremental);
@@ -68,7 +73,13 @@ public class ErlReconciler implements IReconciler {
         fStrategy = strategy;
         this.path = path;
         if (path != null) {
-            ErlModelManager.getErlangModel().putEdited(path, module);
+            ErlangEngine.getInstance().getModel().putEdited(path, module);
+        }
+        // https://bugs.eclipse.org/bugs/show_bug.cgi?id=63898
+        if (editor instanceof ErlangEditor) {
+            fMutex = ((ErlangEditor) editor).getReconcilerLock();
+        } else {
+            fMutex = new Object(); // Null Object
         }
     }
 
@@ -233,6 +244,7 @@ public class ErlReconciler implements IReconciler {
                     } else {
                         r = fDirtyRegionQueue.extractNextDirtyRegion();
                     }
+                    fDirtyRegionQueue.notifyAll();
                 }
                 fIsActive = true;
 
@@ -272,6 +284,8 @@ public class ErlReconciler implements IReconciler {
          */
         @Override
         public void documentChanged(final DocumentEvent e) {
+            // ErlLogger.debug("documentChanged %d %d %d", e.getOffset(),
+            // e.getLength(), e.getText().length());
             if (!fThread.isDirty() && fThread.isAlive()) {
                 if (!fIsAllowedToModifyDocument
                         && Thread.currentThread() == fThread) {
@@ -320,7 +334,7 @@ public class ErlReconciler implements IReconciler {
                     if (fDocument != null && fDocument.getLength() > 0) {
                         // final DocumentEvent e = new DocumentEvent(fDocument,
                         // 0,
-                        //								fDocument.getLength(), ""); //$NON-NLS-1$
+                        //                                fDocument.getLength(), ""); //$NON-NLS-1$
                         // createDirtyRegion(e);
                         fThread.reset();
                         fThread.suspendCallerWhileDirty();
@@ -504,10 +518,10 @@ public class ErlReconciler implements IReconciler {
             }
         }
 
-        final ErlReconcilerStrategy s = (ErlReconcilerStrategy) getReconcilingStrategy(IDocument.DEFAULT_CONTENT_TYPE);
+        final ErlReconcilingStrategy s = (ErlReconcilingStrategy) getReconcilingStrategy(IDocument.DEFAULT_CONTENT_TYPE);
         s.uninstall();
         if (path != null) {
-            ErlModelManager.getErlangModel().putEdited(path, null);
+            ErlangEngine.getInstance().getModel().putEdited(path, null);
         }
     }
 
@@ -675,18 +689,20 @@ public class ErlReconciler implements IReconciler {
      * only once during the life time of the reconciler.
      */
     protected void initialProcess() {
-        if (fStrategy instanceof IReconcilingStrategyExtension) {
-            final IReconcilingStrategyExtension extension = (IReconcilingStrategyExtension) fStrategy;
-            extension.initialReconcile();
-            if (logging) {
-                log.clear();
-                final ErlReconcilerStrategy erlReconcilerStrategy = (ErlReconcilerStrategy) fStrategy;
-                final IErlModule module = erlReconcilerStrategy.getModule();
-                final String scannerName = module.getScannerName();
-                final String erlFilename = module.getFilePath();
-                final ErlDirtyRegion erlDirtyRegion = new InitialScan(
-                        getDocument().get(), scannerName, erlFilename);
-                log.add(erlDirtyRegion);
+        synchronized (fMutex) {
+            if (fStrategy instanceof IReconcilingStrategyExtension) {
+                final IReconcilingStrategyExtension extension = (IReconcilingStrategyExtension) fStrategy;
+                extension.initialReconcile();
+                if (logging) {
+                    log.clear();
+                    final ErlReconcilingStrategy erlReconcilerStrategy = (ErlReconcilingStrategy) fStrategy;
+                    final IErlModule module = erlReconcilerStrategy.getModule();
+                    final String scannerName = module.getScannerName();
+                    final String erlFilename = module.getFilePath();
+                    final ErlDirtyRegion erlDirtyRegion = new InitialScan(
+                            getDocument().get(), scannerName, erlFilename);
+                    log.add(erlDirtyRegion);
+                }
             }
         }
     }
@@ -700,9 +716,11 @@ public class ErlReconciler implements IReconciler {
     }
 
     public void reset() {
+        ErlLogger.debug("reset");
         if (fIsIncrementalReconciler) {
             synchronized (fDirtyRegionQueue) {
                 fDirtyRegionQueue.purgeQueue();
+                fDirtyRegionQueue.notifyAll();
             }
             fThread.reset();
             initialProcess();
@@ -732,7 +750,7 @@ public class ErlReconciler implements IReconciler {
             out.close();
             log.clear();
         } catch (final IOException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
     }
 

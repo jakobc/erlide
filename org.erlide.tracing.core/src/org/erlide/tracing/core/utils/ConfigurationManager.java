@@ -15,7 +15,7 @@ import org.erlide.tracing.core.Activator;
 import org.erlide.tracing.core.TraceBackend;
 import org.erlide.tracing.core.mvc.model.TracePattern;
 import org.erlide.tracing.core.mvc.model.TracedNode;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * Class containing helper methods for managing nodes and trace patterns
@@ -207,9 +207,8 @@ public final class ConfigurationManager {
         final File file = location.toFile();
         if (file.exists() && file.isFile()) {
             return file.delete();
-        } else {
-            return false;
         }
+        return false;
     }
 
     private static String[] getConfigurationsList(final String dirName) {

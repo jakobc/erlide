@@ -13,11 +13,11 @@ package org.erlide.ui.internal.search;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IWorkbenchSite;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.services.search.ErlSearchScope;
-import org.erlide.core.services.search.LimitTo;
-import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.services.search.ErlSearchScope;
+import org.erlide.engine.services.search.LimitTo;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 
 /**
  * Wraps a <code>ErlangElementSearchActions</code> to find its results in the
@@ -50,7 +50,7 @@ public class WorkingSetFindAction extends FindAction {
      * Note: This constructor is for internal use only. Clients should not call
      * this constructor.
      */
-    public WorkingSetFindAction(final ErlangEditor editor,
+    public WorkingSetFindAction(final AbstractErlangEditor editor,
             final FindAction action, final String workingSetName) {
         super(editor);
         init(action, workingSetName);

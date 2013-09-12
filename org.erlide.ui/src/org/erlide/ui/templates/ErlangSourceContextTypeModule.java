@@ -1,9 +1,9 @@
 /*******************************************************************************
  * Copyright (c) 2004 Lukas Larsson and others.
- * All rights reserved. This program and the accompanying materials 
+ * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Lukas Larsson
  *******************************************************************************/
@@ -17,7 +17,7 @@ import org.erlide.ui.internal.ErlideUIPlugin;
 
 public class ErlangSourceContextTypeModule extends TemplateContextType {
 
-    private static ErlangSourceContextTypeModule fInstance;
+    private static final ErlangSourceContextTypeModule fInstance = new ErlangSourceContextTypeModule();
 
     /** This context's id */
     public static final String ERLANG_SOURCE_CONTEXT_TYPE_MODULE_ID = "org.erlide.ui.erlangsource.template.context.module"; //$NON-NLS-1$
@@ -28,7 +28,6 @@ public class ErlangSourceContextTypeModule extends TemplateContextType {
     public ErlangSourceContextTypeModule() {
         addGlobalResolvers();
         addModuleResolver();
-        fInstance = this;
     }
 
     private void addModuleResolver() {
@@ -57,9 +56,6 @@ public class ErlangSourceContextTypeModule extends TemplateContextType {
     }
 
     public static ErlangSourceContextTypeModule getDefault() {
-        if (fInstance == null) {
-            new ErlangSourceContextTypeModule();
-        }
         return fInstance;
     }
 

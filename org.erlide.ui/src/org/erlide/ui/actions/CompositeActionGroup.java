@@ -10,7 +10,11 @@
  *******************************************************************************/
 package org.erlide.ui.actions;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.actions.ActionContext;
@@ -28,8 +32,8 @@ public class CompositeActionGroup extends ActionGroup {
     }
 
     protected void setGroups(final ActionGroup[] groups) {
-        Assert.isTrue(fGroups == null);
-        Assert.isNotNull(groups);
+        assertThat(fGroups, is(nullValue()));
+        assertThat(groups, is(not(nullValue())));
         fGroups = groups;
     }
 

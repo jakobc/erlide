@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.erlide.test_support.popup.actions;
 
@@ -20,6 +20,7 @@ import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.part.FileEditorInput;
 import org.eclipse.ui.progress.UIJob;
+import org.erlide.util.ErlLogger;
 
 public class OpenResultsJob extends UIJob {
     private final IFile report;
@@ -56,7 +57,7 @@ public class OpenResultsJob extends UIJob {
         try {
             page.openEditor(new FileEditorInput(file), desc.getId());
         } catch (final PartInitException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
     }
 
@@ -84,10 +85,10 @@ public class OpenResultsJob extends UIJob {
                     browser.openURL(file.getRawLocationURI().toURL());
                 } catch (final MalformedURLException e) {
                     // should not happen
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 }
             } catch (final PartInitException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
             }
         }
     }

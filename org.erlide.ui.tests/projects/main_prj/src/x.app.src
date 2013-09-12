@@ -1,0 +1,6 @@
+{application, x,
+ [{description, "Channel allocator"}, 
+  {vsn, "1"},
+  {registered, []}
+ ]}.
+  

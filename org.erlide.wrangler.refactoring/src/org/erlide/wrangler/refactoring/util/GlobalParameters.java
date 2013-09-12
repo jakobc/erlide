@@ -22,11 +22,11 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.backend.BackendCore;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.runtime.rpc.RpcResult;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.exception.WranglerException;
 import org.erlide.wrangler.refactoring.selection.IErlSelection;
 import org.erlide.wrangler.refactoring.selection.internal.ErlMemberSelection;
@@ -59,22 +59,20 @@ public class GlobalParameters {
     public static boolean hasQuickCheck() {
         if (isQCchecked) {
             return hasQuickCheck;
-        } else {
-            final RpcResult res = BackendCore.getBackendManager()
-                    .getIdeBackend().getRpcSite()
-                    .call_noexception("code", "which", "a", "eqc");
-            if (!res.isOk()) {
-                return false;
-            }
-            if (res.getValue() instanceof OtpErlangString) {
-                hasQuickCheck = true;
-                isQCchecked = true;
-            } else {
-                isQCchecked = true;
-                hasQuickCheck = false;
-            }
-            return hasQuickCheck;
         }
+        final RpcResult res = ErlangEngine.getInstance().getBackend()
+                .call_noexception("code", "which", "a", "eqc");
+        if (!res.isOk()) {
+            return false;
+        }
+        if (res.getValue() instanceof OtpErlangString) {
+            hasQuickCheck = true;
+            isQCchecked = true;
+        } else {
+            isQCchecked = true;
+            hasQuickCheck = false;
+        }
+        return hasQuickCheck;
     }
 
     /**
@@ -142,8 +140,8 @@ public class GlobalParameters {
                             WranglerUtils.getDocument(file));
                 } else if (firstElement instanceof IFile) {
                     final IFile file = (IFile) firstElement;
-                    final IErlModule module = ErlModelManager.getErlangModel()
-                            .findModule(file);
+                    final IErlModule module = ErlangEngine.getInstance()
+                            .getModel().findModule(file);
                     wranglerSelection = new ErlModuleSelection(module, file);
                 } else {
                     wranglerSelection = null;
@@ -156,7 +154,7 @@ public class GlobalParameters {
 
             }
         } catch (final ClassCastException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
         /*
@@ -195,7 +193,7 @@ public class GlobalParameters {
             }
             return b;
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return true;
     }

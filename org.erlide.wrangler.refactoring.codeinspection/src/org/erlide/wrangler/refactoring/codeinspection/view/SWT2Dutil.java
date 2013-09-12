@@ -12,6 +12,7 @@ import java.awt.geom.Point2D;
 
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.erlide.util.ErlLogger;
 
 /**
  * Utility for Java2d transform
@@ -32,9 +33,9 @@ public class SWT2Dutil {
      * @return rectangle after transform with positive width and height
      */
     public static Rectangle transformRect(final AffineTransform af,
-            Rectangle src) {
+            final Rectangle src0) {
         final Rectangle dest = new Rectangle(0, 0, 0, 0);
-        src = absRect(src);
+        final Rectangle src = absRect(src0);
         Point p1 = new Point(src.x, src.y);
         p1 = transformPoint(af, p1);
         dest.x = p1.x;
@@ -55,9 +56,9 @@ public class SWT2Dutil {
      * @return rectangle after transform with positive width and height
      */
     public static Rectangle inverseTransformRect(final AffineTransform af,
-            Rectangle src) {
+            final Rectangle src0) {
         final Rectangle dest = new Rectangle(0, 0, 0, 0);
-        src = absRect(src);
+        final Rectangle src = absRect(src0);
         Point p1 = new Point(src.x, src.y);
         p1 = inverseTransformPoint(af, p1);
         dest.x = p1.x;
@@ -101,7 +102,7 @@ public class SWT2Dutil {
             return new Point((int) Math.floor(dest.getX()),
                     (int) Math.floor(dest.getY()));
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return new Point(0, 0);
         }
     }

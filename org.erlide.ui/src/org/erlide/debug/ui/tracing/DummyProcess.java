@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Vlad Dumitrescu
  *******************************************************************************/
@@ -14,7 +14,7 @@ import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.debug.core.model.IStreamsProxy;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class DummyProcess implements IProcess {
 
@@ -56,7 +56,7 @@ public class DummyProcess implements IProcess {
     }
 
     @Override
-    public Object getAdapter(@SuppressWarnings("rawtypes") final Class adapter) {
+    public Object getAdapter(final Class adapter) {
         ErlLogger.debug("--> adapt as " + adapter.getName());
         return null;
     }

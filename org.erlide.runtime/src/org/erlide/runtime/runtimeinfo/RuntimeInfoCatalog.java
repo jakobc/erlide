@@ -17,11 +17,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import com.ericsson.otp.erlang.RuntimeVersion;
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public final class RuntimeInfoCatalog {
+public final class RuntimeInfoCatalog implements IRuntimeInfoCatalog {
 
     public RuntimeInfo erlideRuntime;
     public final Map<String, RuntimeInfo> runtimes;
@@ -29,74 +30,93 @@ public final class RuntimeInfoCatalog {
 
     public RuntimeInfoCatalog() {
         runtimes = Maps.newHashMap();
-        erlideRuntime = null;
+        erlideRuntime = RuntimeInfo.NO_RUNTIME_INFO;
         defaultRuntimeName = null;
     }
 
+    @Override
     public synchronized Collection<RuntimeInfo> getRuntimes() {
         return Collections.unmodifiableCollection(runtimes.values());
     }
 
+    @Override
     public synchronized void setRuntimes(
             final Collection<RuntimeInfo> elements, final String dfltRuntime,
-            String ideRuntime) {
+            final String ideRuntime) {
         runtimes.clear();
-        if (elements.size() == 0) {
+        if (elements.isEmpty()) {
             initializeRuntimesList();
         }
 
         for (final RuntimeInfo rt : elements) {
-            runtimes.put(rt.getName(), rt);
+            addRuntime(rt);
         }
         defaultRuntimeName = dfltRuntime;
         if (defaultRuntimeName == null) {
             setDefaultRuntimes();
         }
-        if (ideRuntime == null) {
-            ideRuntime = defaultRuntimeName;
-        }
-        erlideRuntime = runtimes.get(ideRuntime);
+        erlideRuntime = runtimes.get(ideRuntime != null ? ideRuntime
+                : defaultRuntimeName);
         // Asserts.isNotNull(erlideRuntime);
     }
 
+    @Override
     public synchronized void addRuntime(final RuntimeInfo rt) {
-        if (!runtimes.containsKey(rt.getName())) {
+        if (rt.getVersion().isCompatible(OLDEST_SUPPORTED_VERSION)
+                && !runtimes.containsKey(rt.getName())) {
             runtimes.put(rt.getName(), rt);
         }
     }
 
+    @Override
     public synchronized Collection<String> getRuntimeNames() {
         return runtimes.keySet();
     }
 
+    @Override
     public boolean hasRuntimeWithName(final String name) {
         return runtimes.containsKey(name);
     }
 
-    public RuntimeInfo getRuntime(final String name) {
+    @SuppressWarnings("null")
+    @Override
+    public @NonNull
+    RuntimeInfo getRuntime(final String name) {
         final RuntimeInfo rt = runtimes.get(name);
-        return rt;
+        if (rt != null) {
+            return rt;
+        }
+        return RuntimeInfo.NO_RUNTIME_INFO;
     }
 
+    @Override
     public synchronized void removeRuntime(final String name) {
         runtimes.remove(name);
-        if (erlideRuntime.getName().equals(name)) {
-            erlideRuntime = runtimes.values().iterator().next();
-        }
-        if (defaultRuntimeName.equals(name)) {
-            defaultRuntimeName = runtimes.keySet().iterator().next();
+        if (!runtimes.isEmpty()) {
+            if (erlideRuntime.getName().equals(name)) {
+                erlideRuntime = runtimes.values().iterator().next();
+            }
+            if (defaultRuntimeName.equals(name)) {
+                defaultRuntimeName = runtimes.keySet().iterator().next();
+            }
+        } else {
+            erlideRuntime = RuntimeInfo.NO_RUNTIME_INFO;
+            defaultRuntimeName = null;
         }
     }
 
+    @Override
     public synchronized String getDefaultRuntimeName() {
         return defaultRuntimeName;
     }
 
+    @Override
     public synchronized void setDefaultRuntime(final String name) {
         defaultRuntimeName = name;
     }
 
-    private synchronized void setErlideRuntime(final RuntimeInfo runtime) {
+    private synchronized void setErlideRuntime(
+            final @NonNull RuntimeInfo runtime) {
         final RuntimeInfo old = erlideRuntime;
         if (old == null || !old.equals(runtime)) {
             erlideRuntime = runtime;
@@ -105,25 +125,31 @@ public final class RuntimeInfoCatalog {
         }
     }
 
-    public synchronized RuntimeInfo getErlideRuntime() {
+    @SuppressWarnings("null")
+    @Override
+    public synchronized @NonNull
+    RuntimeInfo getErlideRuntime() {
         return erlideRuntime;
     }
 
-    public synchronized RuntimeInfo getDefaultRuntime() {
+    @Override
+    public synchronized @NonNull
+    RuntimeInfo getDefaultRuntime() {
         return getRuntime(getDefaultRuntimeName());
     }
 
+    @Override
     public RuntimeInfo getRuntime(final RuntimeVersion runtimeVersion,
             final String runtimeName) {
         final List<RuntimeInfo> vsns = VersionLocator.locateVersion(
                 runtimeVersion, runtimes.values());
-        if (vsns.size() == 0) {
+        if (vsns.isEmpty()) {
             return null;
         } else if (vsns.size() == 1) {
             return vsns.get(0);
         } else {
             for (final RuntimeInfo ri : vsns) {
-                if (ri.getName().equals(runtimeName)) {
+                if (runtimeName == null || ri.getName().equals(runtimeName)) {
                     return ri;
                 }
             }
@@ -131,6 +157,7 @@ public final class RuntimeInfoCatalog {
         }
     }
 
+    @Override
     public List<String> getAllRuntimesVersions() {
         final Collection<RuntimeInfo> rs = getRuntimes();
         final List<String> myVersions = Lists.newArrayList();
@@ -158,6 +185,7 @@ public final class RuntimeInfoCatalog {
      * </ul>
      * 
      */
+    @Override
     public void initializeRuntimesList() {
         final Collection<RuntimeInfo> found = RuntimeFinder
                 .guessRuntimeLocations();
@@ -178,7 +206,7 @@ public final class RuntimeInfoCatalog {
                 return o2.getName().compareTo(o1.getName());
             }
         });
-        if (list.size() > 0) {
+        if (!list.isEmpty()) {
             final String firstName = list.get(0).getName();
             if (defaultRuntimeName == null) {
                 setDefaultRuntime(firstName);

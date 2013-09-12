@@ -8,7 +8,7 @@
      <extension
          point="org.eclipse.ui.editors">
       <editor
-            class="org.erlide.ui.editors.erl.ErlangEditor"
+            class="org.erlide.engine.ExecutableExtensionsFactory:org.erlide.ui.editors.erl.ErlangEditor"
             contributorClass="org.erlide.ui.editors.erl.ErlEditorActionBarContributor"
             default="true"
             extensions="erl,hrl"
@@ -17,6 +17,18 @@
             name="%ErlangEditor.label"
             symbolicFontName="org.eclipse.jface.textfont">
          <contentTypeBinding contentTypeId="org.erlide.core.content.erlang"/>
+      </editor>
+      <editor
+            class="org.erlide.ui.editors.scratchpad.ErlangScratchPad"
+            default="true"
+            extensions="erlScratchPad"
+            icon="icons/full/obj16/erlang_srcFile.png"
+            id="org.erlide.ui.editors.scratchpad.erlangScratchPad"
+            name="Erlang Scratch Pad"
+            symbolicFontName="org.eclipse.jface.textfont">
+         <contentTypeBinding
+               contentTypeId="org.erlide.core.content.erlang">
+         </contentTypeBinding>
       </editor>
    </extension>
    <extension
@@ -64,6 +76,13 @@
             icon="icons/full/obj16/erlang_NewModule.png"
             id="org.erlide.ui.wizards.ErlangSourceFile"
             name="Module">
+      </wizard>
+      <wizard
+            category="org.erlide.ui.wizards.newWizards"
+            class="org.erlide.ui.editors.scratchpad.NewErlangScratchPadWizard"
+            icon="icons/full/obj16/newproject.png"
+            id="org.erlide.ui.wizards.ErlangScratchpad"
+            name="Erlang Scratchpad">
       </wizard>
    </extension>
    <extension
@@ -136,12 +155,6 @@
       </page>
       <page
             category="org.erlide.ui.preferences"
-            class="org.erlide.ui.prefs.DialyzerPreferencePage"
-            id="org.erlide.ui.preferences.dialyzer"
-            name="Dialyzer">
-      </page>
-      <page
-            category="org.erlide.ui.preferences"
             class="org.erlide.ui.prefs.plugin.NavigationPreferencePage"
             id="org.erlide.ui.preferences.navigation"
             name="Navigation">
@@ -180,7 +193,7 @@
          point="org.eclipse.ui.views">
       <category
             id="org.erlide.views"
-            name="ErlIDE">
+            name="Erlang">
       </category>
       <view
             allowMultiple="false"
@@ -218,12 +231,6 @@
             name="Erlang Navigator">
       </view>
       <view
-            category="org.erlide.views"
-            class="org.erlide.ui.views.ErlLoggerView"
-            icon="icons/icons/sample.gif"
-            id="org.erlide.ui.views.ErlLoggerView"
-            name="Erlang Logger"/>
-      <view
             allowMultiple="false"
             category="org.erlide.views"
             class="org.erlide.ui.views.EpmdView"
@@ -241,7 +248,7 @@
       <view
             allowMultiple="false"
             category="org.erlide.views"
-            class="org.erlide.ui.views.CallHierarchyView"
+            class="org.erlide.engine.ExecutableExtensionsFactory:org.erlide.ui.views.CallHierarchyView"
             id="org.erlide.ui.callhierarchy"
             name="Call Hierarchy"
             restorable="true">
@@ -281,35 +288,21 @@
             class="org.erlide.ui.properties.OldErlProjectPropertyPage"
             id="org.erlide.core"
             name="Erlang">
-		<enabledWhen>
- 			<adapt type="org.eclipse.core.resources.IProject">
-		          <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
-		     </adapt>
+    <enabledWhen>
+       <adapt type="org.eclipse.core.resources.IProject">
+              <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
+         </adapt>
         </enabledWhen>
       </page>
       <page
             class="org.erlide.ui.prefs.CompilerPreferencePage"
             id="org.erlide.ui.properties.compilerPreferencePage"
             name="Erlang compiler">
-		<enabledWhen>
- 			<adapt type="org.eclipse.core.resources.IProject">
-		          <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
-		     </adapt>
+    <enabledWhen>
+       <adapt type="org.eclipse.core.resources.IProject">
+              <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
+         </adapt>
         </enabledWhen>
-      </page>
-      <page
-            class="org.erlide.ui.prefs.DialyzerPreferencePage"
-            id="org.erlide.ui.properties.dialyzerPreferencePage"
-            name="Erlang dialyzer">
-         <enabledWhen>
-            <adapt
-                  type="org.eclipse.core.resources.IProject">
-               <test
-                     property="org.eclipse.core.resources.projectNature"
-                     value="org.erlide.core.erlnature">
-               </test>
-            </adapt>
-         </enabledWhen>
       </page>
       <page
             class="org.erlide.ui.properties.EdocConfigurationPropertyPage"
@@ -329,10 +322,10 @@
             class="org.erlide.ui.properties.ErlProjectPropertyPage"
             id="org.erlide.ui.properties.myErlangProjectPropertyPage"
             name="new Erlang (work in progress)">
-		<enabledWhen>
- 			<adapt type="org.eclipse.core.resources.IProject">
-		          <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
-		     </adapt>
+    <enabledWhen>
+       <adapt type="org.eclipse.core.resources.IProject">
+              <test property="org.eclipse.core.resources.projectNature" value="org.erlide.core.erlnature"/>
+         </adapt>
         </enabledWhen>
       </page>
       <page
@@ -342,10 +335,10 @@
          <enabledWhen>
             <or>
                <instanceof
-                     value="org.erlide.launch.debug.IErlangBreakpoint">
+                     value="org.erlide.backend.debug.IErlangBreakpoint">
                </instanceof>
                <adapt
-                     type="org.erlide.launch.debug.IErlangBreakpoint">
+                     type="org.erlide.backend.debug.IErlangBreakpoint">
                </adapt>
             </or>
          </enabledWhen>
@@ -398,10 +391,9 @@
       <objectContribution
             adaptable="false"
             id="org.erlide.runtime.debug.ErlangBreakpointActions"
-            objectClass="org.erlide.launch.debug.ErlangLineBreakpoint">
+            objectClass="org.erlide.backend.debug.ErlangLineBreakpoint">
          <action
                class="org.erlide.debug.ui.actions.ErlangBreakpointPropertiesAction"
-               definitionId="org.erlide.ui.debug.breakpoint.properties"
                enablesFor="1"
                helpContextId="breakpoint_properties_action_context"
                id="org.eclipse.jdt.debug.ui.actions.ErlangBreakpointProperties"
@@ -459,7 +451,7 @@
           name="Debugging Trace"
           parentId="org.eclipse.debug.ui.debugging">
     </context>
- </extension>    
+ </extension>
  <extension
        point="org.erlide.ui.foldingStructureProviders">
     <provider
@@ -471,7 +463,7 @@
  <extension
        point="org.eclipse.debug.ui.launchConfigurationTypeImages">
     <launchConfigurationTypeImage
-          configTypeID="org.erlide.core.launch.erlangProcess"
+          configTypeID="org.erlide.backend.erlangProcess"
           icon="icons/erl/erlang-notext016.gif"
           id="org.erlide.ui.launch.launchConfigurationTypeImage.erlangNode"/>
  </extension>
@@ -491,7 +483,7 @@
             id="org.erlide.ui.actions.console.input"
             name="Erlang console 1"/>
       <command
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             description="Indent code"
             id="org.erlide.ui.actions.indent"
             name="Indent code"/>
@@ -502,7 +494,7 @@
             id="org.erlide.ui.actions.show.outline"
             name="Show outline"/>
       <command
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             description="Toggle Comment"
             id="org.erlide.ui.actions.togglecomment"
             name="Toggle Comment"/>
@@ -517,33 +509,33 @@
             id="org.erlide.debug.ui.commands.ToggleDebugTracing">
       </command> -->
       <command
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             description="Clear Cache"
             id="org.erlide.ui.actions.clearCache"
             name="Clear Cache">
       </command>
       <command
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             description="Call hierarchy"
             id="org.erlide.ui.actions.callhierarchy"
             name="Call hierarchy">
       </command>
       <category
-            id="org.erlide.ui.erlideCategory"
-            name="ErlIDE">
+            id="org.erlide.ui.erlangCategory"
+            name="Erlang">
       </category>
       <command
             categoryId="org.eclipse.ui.category.navigate"
             defaultHandler="org.erlide.ui.handlers.OpenModuleHandler"
             id="org.erlide.ui.open.module"
             name="Open Module">
-		    <commandParameter
+        <commandParameter
                id="filePath"
                name="module name...."
                typeId="org.eclipse.ui.ide.resourcePath"/>
        </command>
       <command
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             defaultHandler="org.erlide.ui.handlers.ReportProblemHandler"
             id="org.erlide.ui.command.reportProblem"
             name="Report problems">
@@ -554,13 +546,18 @@
             name="Send to console">
       </command>
       <command
+            description="Send to console with result"
+            id="org.erlide.ui.actions.sendToConsoleWithResult"
+            name="Send to console">
+      </command>
+      <command
             categoryId="org.eclipse.search.ui.category.search"
             description="Definitions in Workspace"
             id="org.erlide.ui.search.implementors.in.workspace"
             name="Definitions in Workspace">
       </command>
       <!--command   TODO reenable this when erl_tidy doesn't destroy formatting
-            categoryId="org.erlide.ui.erlideCategory"
+            categoryId="org.erlide.ui.erlangCategory"
             description="Clean Up..."
             id="org.erlide.ui.actions.cleanUp"
             name="Clean Up...">
@@ -618,29 +615,6 @@
                 id="org.eclipse.ui.commands.toggleState">
           </state>
        </command>
-       <command
-             categoryId="org.erlide.ui.commandCategories.dialyzer"
-             description="Run Dialyzer"
-             id="org.erlide.ui.commands.runDialyzer"
-             name="Run Dialyzer">
-       </command>
-       <command
-             categoryId="org.erlide.ui.commandCategories.dialyzer"
-             description="Remove Dialyzer Warnings"
-             id="org.erlide.ui.command.removeDialyzerWarnings"
-             name="Remove Dialyzer Warnings">
-       </command>
-       <command
-             categoryId="org.erlide.ui.commandCategories.dialyzer"
-             description="Check PLT"
-             id="org.erlide.ui.command.checkDialyzerPLTFile"
-             name="Check PLT">
-       </command>
-       <category
-             description="Dialyzer Commands"
-             id="org.erlide.ui.commandCategories.dialyzer"
-             name="Dialyzer Commands">
-       </category>
        <command
              description="Filter From Outline"
              id="org.erlide.ui.command.showOutlineFilterDialog"
@@ -767,31 +741,6 @@
        </toolbar>
     </menuContribution>
     <menuContribution
-          locationURI="popup:org.erlide.ui.views.navigator.view#PopupMenu?after=additions">
-       <command
-             commandId="org.erlide.ui.commands.runDialyzer"
-             style="push">
-       </command>
-       <command
-             commandId="org.erlide.ui.command.removeDialyzerWarnings"
-             style="push">
-       </command>
-    </menuContribution>
-    <menuContribution
-          locationURI="menu:project?after=additions">
-       <separator
-             name="org.erlide.ui.separator1">
-       </separator>
-       <command
-             commandId="org.erlide.ui.commands.runDialyzer"
-             style="push">
-       </command>
-       <command
-             commandId="org.erlide.ui.command.removeDialyzerWarnings"
-             style="push">
-       </command>
-    </menuContribution>
-    <menuContribution
           locationURI="menu:org.eclipse.ui.views.ContentOutline">
        <command
              commandId="org.erlide.ui.command.showOutlineFilterDialog"
@@ -909,6 +858,11 @@
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
             sequence="M1+Enter"/>
       <key
+            commandId="org.erlide.ui.actions.sendToConsoleWithResult"
+            contextId="org.erlide.ui.erlangEditorScope"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M1+M2+Enter"/>
+      <key
             commandId="org.erlide.ui.actions.show.outline"
             contextId="org.erlide.ui.erlangEditorScope"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
@@ -929,7 +883,7 @@
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
             sequence="M1+/"/>
       <key
-      		platform="gtk"
+          platform="gtk"
             commandId="org.erlide.ui.actions.togglecomment"
             contextId="org.erlide.ui.erlangEditorScope"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
@@ -978,10 +932,6 @@
       </key>
       <key
             commandId="org.erlide.ui.open.module"
-            sequence="M1+M2+M3+M"
-            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
-      <key
-            commandId="org.erlide.ui.open.module"
             sequence="M1+M2+M"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
 
@@ -1002,15 +952,7 @@
                    value="org.erlide.ui.editors.erl.ErlangEditor">
              </instanceof>
           </with>
-       </enabledWhen>                    
-    </handler>
-    <handler
-          class="org.erlide.ui.handlers.RunDialyzerHandler"
-          commandId="org.erlide.ui.commands.runDialyzer">
-    </handler>
-    <handler
-          class="org.erlide.ui.handlers.RemoveDialyzerWarningsHandler"
-          commandId="org.erlide.ui.command.removeDialyzerWarnings">
+       </enabledWhen>
     </handler>
     <handler
           class="org.erlide.ui.editors.erl.outline.ShowCustomOutlineFiltersDialogHandler"
@@ -1275,10 +1217,10 @@
                 allowsPlatformContributions="true"
                 id="org.erlide.ui.views.navigator.view#PopupMenu">
              <insertionPoint name="erlideMenu1"
-             				 separator="true"/>
+                      separator="true"/>
              <insertionPoint name="erlideMenu2"/>
              <insertionPoint name="group.new"
-             				separator="true"/>
+                     separator="true"/>
              <insertionPoint
                    name="group.open"
                    separator="true"/>
@@ -1422,20 +1364,20 @@
                   </test>
                </and>
                <instanceof
-                     value="org.erlide.core.model.root.IErlElement">
+                     value="org.erlide.engine.model.root.IErlElement">
                </instanceof>
                <instanceof
                      value="org.eclipse.core.resources.IFolder">
                </instanceof>
                <adapt
-                     type="org.erlide.core.model.erlang.IErlModule">
+                     type="org.erlide.engine.model.erlang.IErlModule">
                </adapt>
             </or>
          </triggerPoints>
          <possibleChildren>
             <or>
                <instanceof
-                     value="org.erlide.core.model.root.IErlElement">
+                     value="org.erlide.engine.model.root.IErlElement">
                </instanceof>
             </or>
          </possibleChildren>
@@ -1468,24 +1410,26 @@
          <triggerPoints>
             <or>
                <instanceof
-                     value="org.eclipse.core.resources.IProject">
+                     value="org.erlide.engine.model.root.IErlElement">
                </instanceof>
-               <instanceof
-                     value="org.erlide.core.model.root.IErlElement">
-               </instanceof>
+               <and>
+                  <instanceof
+                        value="org.eclipse.core.resources.IProject">
+                  </instanceof>
+                 <test
+                       property="org.eclipse.core.resources.projectNature"
+                       value="org.erlide.core.erlnature">
+                 </test>
+               </and>
             </or>
          </triggerPoints>
          <possibleChildren>
             <or>
                <instanceof
-                     value="org.erlide.core.model.root.IErlElement">
+                     value="org.erlide.engine.model.root.IErlElement">
                </instanceof>
             </or>
          </possibleChildren>
-               <actionProvider
-               class="org.erlide.ui.navigator.actions.ErlangFileActionProvider"
-               id="org.erlide.ui.navigator.actions.erlang.actions.OpenProvider">
-         </actionProvider>
          <commonSorter
                class="org.erlide.ui.navigator.ErlElementPositionSorter"
                id="org.erlide.ui.navigator.ErlElementPositionSorterId">
@@ -1520,6 +1464,11 @@
             </adapt>
          </enablement>
       </actionProvider>
+      <commonWizard
+            type="new"
+            wizardId="org.erlide.ui.wizards.ErlangScratchpad">
+         <enablement></enablement>
+      </commonWizard>
    </extension>
    <extension
          point="org.eclipse.ui.navigator.linkHelper">
@@ -1532,7 +1481,7 @@
                      type="org.eclipse.core.resources.IFile">
                </adapt>
                <instanceof
-                     value="org.erlide.core.model.erlang.IErlModule">
+                     value="org.erlide.engine.model.erlang.IErlModule">
                </instanceof>
             </or>
          </selectionEnablement>
@@ -1645,7 +1594,7 @@
             adaptableType="org.eclipse.ui.IEditorInput"
             class="org.erlide.ui.util.EditorInputToModuleAdapterFactory">
          <adapter
-               type="org.erlide.core.model.root.IErlElement">
+               type="org.erlide.engine.model.root.IErlElement">
          </adapter>
       </factory>
    </extension>
@@ -1653,14 +1602,8 @@
          point="org.eclipse.ui.perspectiveExtensions">
       <perspectiveExtension
             targetID="org.erlide.ui.perspectives.ErlangPerspective">
-		 <actionSet
+     <actionSet
                id="org.eclipse.debug.ui.breakpointActionSet">
-         </actionSet>
-         <actionSet
-               id="org.eclipse.jdt.debug.ui.JDTDebugActionSet">
-         </actionSet>
-         <actionSet
-               id="com.rational.clearcase.ActionSet">
          </actionSet>
       </perspectiveExtension>
       <perspectiveExtension
@@ -1703,7 +1646,7 @@
     <launchConfigurationTabGroup
           class="org.erlide.ui.launch.ErlangNodeTabGroup"
           id="org.erlide.ui.launch.launchConfigurationTabGroup.erlangNode"
-          type="org.erlide.core.launch.erlangProcess"/>
+          type="org.erlide.backend.erlangProcess"/>
  </extension>
  <extension
        point="org.eclipse.debug.ui.launchShortcuts">
@@ -1721,14 +1664,14 @@
                         ifEmpty="false"
                         operator="and">
                      <adapt
-                           type="org.erlide.core.model.root.IErlElement">
+                           type="org.erlide.engine.model.root.IErlElement">
                      </adapt>
                   </iterate>
                </with>
             </enablement>
          </contextualLaunch>
         <configurationType
-              id="org.erlide.core.launch.erlangProcess">
+              id="org.erlide.backend.erlangProcess">
         </configurationType>
     </shortcut>
  </extension>
@@ -1805,10 +1748,10 @@
             file="erlang_templates/module_templates.xml">
       </include>
       <include
-      		file="erlang_templates/module_element_templates.xml">
+          file="erlang_templates/module_element_templates.xml">
       </include>
       <contextType
-            class="org.erlide.ui.editors.erl.completion.ErlangContextType"
+            class="org.erlide.ui.templates.ErlangTemplateContextType"
             id="org.erlide.ui.editor.erlang"
             name="Erlang Code">
       </contextType>
@@ -1873,10 +1816,6 @@
    <extension
          point="org.eclipse.ui.editors.annotationTypes">
       <type
-            markerType="org.erlide.core.dialyzewarningmarker"
-            name="org.erlide.ui.dialyzewarningmarkertype">
-      </type>
-      <type
             name="org.erlide.ui.occurrences">
       </type>
       <type
@@ -1886,23 +1825,6 @@
    </extension>
    <extension
          point="org.eclipse.ui.editors.markerAnnotationSpecification">
-      <specification
-            annotationType="org.erlide.ui.dialyzewarningmarkertype"
-            colorPreferenceKey="dialyzewarningmarkerColor"
-            colorPreferenceValue="255,150,150"
-            highlightPreferenceKey="dialyzewarningmarkerHighlighting"
-            highlightPreferenceValue="false"
-            icon="icons/full/obj16/dialyzer_warning.gif"
-            includeOnPreferencePage="true"
-            label="Dialyzer Warning"
-            overviewRulerPreferenceKey="dialyzewarningmarkerInOverviewRuler"
-            overviewRulerPreferenceValue="true"
-            presentationLayer="3"
-            textPreferenceKey="dialyzewarningmarker"
-            textPreferenceValue="true"
-            verticalRulerPreferenceKey="dialyzewarningmarkerInVerticalRuler"
-            verticalRulerPreferenceValue="true">
-      </specification>
       <specification
             annotationType="org.erlide.ui.occurrences"
             colorPreferenceKey="occurrenceIndicationColor"
@@ -1965,12 +1887,6 @@
                type="org.erlide.ui.editors.erl.ErlangEditor">
          </context>
       </target>
-   </extension>
-   <extension
-         point="org.erlide.core.messageReporter">
-      <messageReporter
-            class="org.erlide.ui.UIMessageReporter">
-      </messageReporter>
    </extension>
    <extension
          point="org.eclipse.ui.elementFactories">
@@ -2039,5 +1955,12 @@
             class="org.erlide.ui.editors.erl.ErlangDocumentSetupParticipant"
             contentTypeId="org.erlide.core.content.erlang">
       </participant>
+   </extension>
+   <extension
+         point="org.eclipse.core.contenttype.contentTypes">
+      <file-association
+            content-type="org.erlide.core.content.erlang"
+            file-extensions="erlScratchPad">
+      </file-association>
    </extension>
 </plugin>

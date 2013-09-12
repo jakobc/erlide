@@ -25,9 +25,10 @@ import org.eclipse.swt.dnd.TransferData;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.navigator.CommonDropAdapter;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.navigator.dnd.INavigatorDropHandler;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.core.internal.MoveFunctionRefactoring;
 import org.erlide.wrangler.refactoring.exception.WranglerException;
 import org.erlide.wrangler.refactoring.ui.wizard.DefaultWranglerRefactoringWizard;
@@ -106,10 +107,8 @@ public class MoveFunctionDropHandler implements INavigatorDropHandler {
         try {
             op.run(shell, refactoring.getName());
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
-
-        System.out.print("hand");
 
         return Status.OK_STATUS;
     }

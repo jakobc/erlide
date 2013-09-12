@@ -6,11 +6,13 @@
  * http://www.eclipse.org/legal/epl-v10.html
  *
  * Contributors:
- *     Stephan Herrmann - initial API and implementation 
+ *     Stephan Herrmann - initial API and implementation
  *******************************************************************************/
 package org.eclipse.jdt.annotation;
 
-import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

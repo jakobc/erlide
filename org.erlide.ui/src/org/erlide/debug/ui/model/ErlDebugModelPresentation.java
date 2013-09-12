@@ -15,19 +15,18 @@ import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.part.FileEditorInput;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElementLocator;
-import org.erlide.core.model.util.ModelUtils;
-import org.erlide.launch.debug.ErlangLineBreakpoint;
-import org.erlide.launch.debug.model.ErlangDebugTarget;
-import org.erlide.launch.debug.model.ErlangProcess;
-import org.erlide.launch.debug.model.ErlangStackFrame;
-import org.erlide.launch.debug.model.ErlangUninterpretedStackFrame;
+import org.erlide.backend.debug.ErlangLineBreakpoint;
+import org.erlide.backend.debug.model.ErlangDebugTarget;
+import org.erlide.backend.debug.model.ErlangProcess;
+import org.erlide.backend.debug.model.ErlangStackFrame;
+import org.erlide.backend.debug.model.ErlangUninterpretedStackFrame;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElementLocator;
 import org.erlide.ui.ErlideUIDebugImages;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.util.EditorUtility;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * @author jakob
@@ -98,8 +97,7 @@ public class ErlDebugModelPresentation extends LabelProvider implements
     }
 
     private static String getErlangPositionText(final String module,
-            final int lineNumber, final String clauseHead)
-            throws DebugException {
+            final int lineNumber, final String clauseHead) {
         final StringBuilder sb = new StringBuilder();
         sb.append(module);
         if (lineNumber != -1) {
@@ -174,14 +172,17 @@ public class ErlDebugModelPresentation extends LabelProvider implements
         if (element instanceof LocalFileStorage) {
             final LocalFileStorage lfs = (LocalFileStorage) element;
             try {
-                final IErlElementLocator model = ErlModelManager
-                        .getErlangModel();
-                final IErlModule module = ModelUtils.findModule(model, null,
-                        null, lfs.getFullPath().toString(),
-                        IErlElementLocator.Scope.ALL_PROJECTS);
+                final IErlElementLocator model = ErlangEngine.getInstance()
+                        .getModel();
+                final IErlModule module = ErlangEngine
+                        .getInstance()
+                        .getModelFindService()
+                        .findModule(model, null, null,
+                                lfs.getFullPath().toString(),
+                                IErlElementLocator.Scope.ALL_PROJECTS);
                 return EditorUtility.getEditorInput(module);
             } catch (final CoreException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
             }
         }
         return null;

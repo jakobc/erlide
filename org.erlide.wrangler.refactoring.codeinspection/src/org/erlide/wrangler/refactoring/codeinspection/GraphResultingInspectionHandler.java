@@ -22,6 +22,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.PlatformUI;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.backend.internal.WranglerBackendManager;
 import org.erlide.wrangler.refactoring.exception.WranglerException;
 import org.erlide.wrangler.refactoring.selection.IErlSelection;
@@ -109,7 +110,7 @@ public class GraphResultingInspectionHandler extends AbstractHandler {
             }
 
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return event;
     }
@@ -138,32 +139,36 @@ public class GraphResultingInspectionHandler extends AbstractHandler {
         try {
             CodeInspectionViewsManager.hideView(
                     CodeInspectionViewsManager.GRAPH_VIEW, secondaryID);
-            final FileInputStream fis = new FileInputStream(tmpFile);
             final Boolean b = WranglerBackendManager.getRefactoringBackend()
                     .callSimpleInspection(functionName, signature, parameters);
             if (b) {
-                if (fis.available() > 0) {
+                final FileInputStream fis = new FileInputStream(tmpFile);
+                try {
+                    if (fis.available() > 0) {
 
-                    final Image img = GraphViz
-                            .load(fis, "png", new Point(0, 0));
-                    CodeInspectionViewsManager.showDotImage(img, viewtTitle,
-                            secondaryID, tmpFile);
-                } else {
-                    MessageDialog.openInformation(GlobalParameters.getEditor()
-                            .getSite().getShell(), viewtTitle, noResultMessage);
+                        final Image img = GraphViz.load(fis, "png", new Point(
+                                0, 0));
+                        CodeInspectionViewsManager.showDotImage(img,
+                                viewtTitle, secondaryID, tmpFile);
+                    } else {
+                        MessageDialog.openInformation(GlobalParameters
+                                .getEditor().getSite().getShell(), viewtTitle,
+                                noResultMessage);
+                    }
+                } finally {
+                    fis.close();
                 }
-
             } else {
                 MessageDialog.openError(GlobalParameters.getEditor().getSite()
                         .getShell(), "Internal error",
                         "Internal error occured. Please report it!");
             }
         } catch (final IOException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         } catch (final CoreException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }

@@ -51,11 +51,11 @@ import org.eclipse.ui.part.IPageSite;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.eclipse.ui.views.contentoutline.ContentOutlinePage;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.erlang.ISourceReference;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlModelChangeListener;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.IErlModelChangeListener;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.erlang.ISourceReference;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.ErlideImage;
 import org.erlide.ui.actions.ActionMessages;
 import org.erlide.ui.actions.CompositeActionGroup;
@@ -71,7 +71,7 @@ import org.erlide.ui.navigator.ErlElementSorter;
 import org.erlide.ui.prefs.PreferenceConstants;
 import org.erlide.ui.prefs.plugin.ErlEditorMessages;
 import org.erlide.ui.util.ErlModelUtils;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -130,7 +130,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
     public ErlangOutlinePage(final ErlangEditor editor) {
         // myDocProvider = documentProvider;
         fEditor = editor;
-        ErlModelManager.getErlangModel().addModelChangeListener(this);
+        ErlangEngine.getInstance().getModel().addModelChangeListener(this);
     }
 
     /**
@@ -319,7 +319,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
          * @see org.eclipse.core.runtime.IAdaptable#getAdapter(Class)
          */
         @Override
-        public Object getAdapter(@SuppressWarnings("rawtypes") final Class clas) {
+        public Object getAdapter(final Class clas) {
             if (clas == IWorkbenchAdapter.class) {
                 return this;
             }
@@ -349,7 +349,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
             fEditor.outlinePageClosed();
             fEditor = null;
         }
-        ErlModelManager.getErlangModel().removeModelChangeListener(this);
+        ErlangEngine.getInstance().getModel().removeModelChangeListener(this);
 
         super.dispose();
     }
@@ -386,7 +386,7 @@ public class ErlangOutlinePage extends ContentOutlinePage implements
 
     public static IEclipsePreferences getPrefsNode() {
         final String qualifier = ErlideUIPlugin.PLUGIN_ID;
-        final IScopeContext context = new InstanceScope();
+        final IScopeContext context = InstanceScope.INSTANCE;
         final IEclipsePreferences eclipsePreferences = context
                 .getNode(qualifier);
         return eclipsePreferences;

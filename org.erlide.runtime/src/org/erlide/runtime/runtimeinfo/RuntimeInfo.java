@@ -14,11 +14,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
-import com.ericsson.otp.erlang.RuntimeVersion;
+import org.eclipse.jdt.annotation.NonNull;
 
-public class RuntimeInfo {
+import com.google.common.collect.Lists;
+
+public final class RuntimeInfo {
 
     private final String name;
     private final String homeDir;
@@ -26,6 +27,54 @@ public class RuntimeInfo {
     private final Collection<String> codePath;
 
     private RuntimeVersion version_cached = null;
+
+    public static final RuntimeInfo NO_RUNTIME_INFO = new RuntimeInfo("");
+
+    public static class Builder {
+        private String name;
+        private String homeDir;
+        private String args;
+        private Collection<String> codePath;
+
+        public Builder() {
+            name = "";
+            homeDir = ".";
+            args = "";
+            codePath = Lists.newArrayList();
+        }
+
+        public Builder(@NonNull final RuntimeInfo info) {
+            name = info.getName();
+            homeDir = info.getOtpHome();
+            args = info.getArgs();
+            codePath = info.getCodePath();
+        }
+
+        @NonNull
+        public RuntimeInfo build() {
+            return new RuntimeInfo(name, homeDir, args, codePath);
+        }
+
+        public Builder withName(final String aName) {
+            name = aName;
+            return this;
+        }
+
+        public Builder withHomeDir(final String aHomeDir) {
+            homeDir = aHomeDir;
+            return this;
+        }
+
+        public Builder withArgs(final String someArgs) {
+            args = someArgs;
+            return this;
+        }
+
+        public Builder withCodePath(final Collection<String> aCodePath) {
+            codePath = aCodePath;
+            return this;
+        }
+    }
 
     public RuntimeInfo(final String name) {
         this(name, ".", "", new ArrayList<String>());
@@ -39,51 +88,30 @@ public class RuntimeInfo {
         this.codePath = Collections.unmodifiableCollection(codePath);
     }
 
-    public static RuntimeInfo copy(final RuntimeInfo o) {
-        if (o == null) {
-            return null;
-        }
-        final RuntimeInfo rt = new RuntimeInfo(o.name, o.homeDir, o.args,
-                o.codePath);
-        return rt;
+    public RuntimeInfo(@NonNull final RuntimeInfo o) {
+        this(o.name, o.homeDir, o.args, o.codePath);
     }
 
     public String getArgs() {
         return args;
     }
 
-    public RuntimeInfo setArgs(final String args) {
-        return new RuntimeInfo(name, homeDir, args, codePath);
-    }
-
     @Override
     public String toString() {
         return String.format("Runtime<%s (%s) %s [%s]>", getName(),
-                getOtpHome(), version_cached, getArgs());
+                getOtpHome(), getVersion(), getArgs());
     }
 
     public String getOtpHome() {
         return homeDir;
     }
 
-    public RuntimeInfo setOtpHome(final String otpHome) {
-        return new RuntimeInfo(name, otpHome, args, codePath);
-    }
-
     public String getName() {
         return name;
     }
 
-    public RuntimeInfo setName(final String name) {
-        return new RuntimeInfo(name, homeDir, args, codePath);
-    }
-
     public Collection<String> getCodePath() {
         return codePath;
-    }
-
-    public RuntimeInfo setCodePath(final List<String> path) {
-        return new RuntimeInfo(name, homeDir, args, path);
     }
 
     public static boolean validateLocation(final String path) {

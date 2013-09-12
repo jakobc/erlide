@@ -4,11 +4,12 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.util.ErlangFunction;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlFunction;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.util.ErlangFunction;
+import org.erlide.util.ErlLogger;
 
 /**
  * Coverage statistics per function.
@@ -50,14 +51,13 @@ public class FunctionStats extends StatsTreeObject {
         final String mName = ((StatsTreeObject) getParent()).getLabel();
         IErlModule m;
         try {
-            m = ErlModelManager.getErlangModel().findModule(mName);
+            m = ErlangEngine.getInstance().getModel().findModule(mName);
             final IErlFunction f = m.findFunction(new ErlangFunction(
                     getLabel(), getArity()));
 
             lineStart = f.getLineStart();
         } catch (final ErlModelException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
         return lineStart;

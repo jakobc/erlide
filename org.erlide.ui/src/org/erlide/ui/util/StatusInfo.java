@@ -10,7 +10,11 @@
  *******************************************************************************/
 package org.erlide.ui.util;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.core.runtime.IStatus;
 import org.erlide.core.ErlangCore;
 
@@ -103,7 +107,7 @@ public class StatusInfo implements IStatus {
      *            <code>null</code>
      */
     public void setError(final String errorMessage) {
-        Assert.isNotNull(errorMessage);
+        assertThat(errorMessage, is(not(nullValue())));
         fStatusMessage = errorMessage;
         fSeverity = IStatus.ERROR;
     }
@@ -116,7 +120,7 @@ public class StatusInfo implements IStatus {
      *            <code>null</code>
      */
     public void setWarning(final String warningMessage) {
-        Assert.isNotNull(warningMessage);
+        assertThat(warningMessage, is(not(nullValue())));
         fStatusMessage = warningMessage;
         fSeverity = IStatus.WARNING;
     }
@@ -129,7 +133,7 @@ public class StatusInfo implements IStatus {
      *            <code>null</code>
      */
     public void setInfo(final String infoMessage) {
-        Assert.isNotNull(infoMessage);
+        assertThat(infoMessage, is(not(nullValue())));
         fStatusMessage = infoMessage;
         fSeverity = IStatus.INFO;
     }

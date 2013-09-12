@@ -1,9 +1,9 @@
 /*******************************************************************************
  * Copyright (c) 2004 Lukas Larsson and others.
- * All rights reserved. This program and the accompanying materials 
+ * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Lukas Larsson
  *******************************************************************************/
@@ -11,6 +11,7 @@
 package org.erlide.ui.templates;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.jface.text.templates.TemplateContext;
 import org.eclipse.jface.text.templates.TemplateVariable;
@@ -18,7 +19,7 @@ import org.eclipse.jface.text.templates.TemplateVariableResolver;
 
 public class ModuleVariableResolver extends TemplateVariableResolver {
 
-    private static final ArrayList<ModuleVariableResolver> fInstances = new ArrayList<ModuleVariableResolver>();
+    private static final List<ModuleVariableResolver> fInstances = new ArrayList<ModuleVariableResolver>();
 
     private String fModule = "<module_name>";
 
@@ -29,7 +30,7 @@ public class ModuleVariableResolver extends TemplateVariableResolver {
 
     public static ModuleVariableResolver getDefault() {
         if (fInstances.isEmpty()) {
-            new ModuleVariableResolver();
+            fInstances.add(new ModuleVariableResolver());
         }
         return fInstances.get(0);
     }

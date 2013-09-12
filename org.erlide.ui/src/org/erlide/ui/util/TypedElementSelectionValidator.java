@@ -10,9 +10,13 @@
  *******************************************************************************/
 package org.erlide.ui.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.util.Collection;
 
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.ui.dialogs.ISelectionStatusValidator;
 
@@ -54,7 +58,7 @@ public class TypedElementSelectionValidator implements
     public TypedElementSelectionValidator(final Class<?>[] acceptedTypes,
             final boolean allowMultipleSelection,
             final Collection<?> rejectedElements) {
-        Assert.isNotNull(acceptedTypes);
+        assertThat(acceptedTypes, is(not(nullValue())));
         fAcceptedTypes = acceptedTypes;
         fAllowMultipleSelection = allowMultipleSelection;
         fRejectedElements = rejectedElements;

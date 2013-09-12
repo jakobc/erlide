@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="org.erlide.wrangler"
-      label="Wrangler Feature"
+      label="Erlide Wrangler support"
       version="0.10.3.qualifier"
       provider-name="UKC">
 
    <description>
       This feature provides the integration of the Wrangler refactoring
-tool.
+tool in Erlide.
    </description>
 
    <copyright>
@@ -25,32 +25,8 @@ is available from http://www.eclipse.org/legal/epl-v10.html
    </license>
 
    <url>
-      <discovery label="Graphviz update site" url="http://abstratt.com/update"/>
+      <discovery label="Graphviz update site" url="jar:http://repository-textuml.forge.cloudbees.com/snapshot/com/abstratt/mdd/com.abstratt.mdd.oss.repository/1.0/com.abstratt.mdd.oss.repository-1.0.zip!/"/>
    </url>
-
-   <requires>
-      <import plugin="org.eclipse.help"/>
-      <import plugin="org.eclipse.core.runtime" version="3.3.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.ltk.core.refactoring" version="3.3.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.ltk.ui.refactoring"/>
-      <import plugin="org.eclipse.core.resources"/>
-      <import plugin="org.eclipse.jface.text"/>
-      <import plugin="org.eclipse.ui"/>
-      <import plugin="org.eclipse.ui.workbench.texteditor"/>
-      <import plugin="org.eclipse.ui.ide"/>
-      <import plugin="org.erlide.runtime"/>
-      <import plugin="org.erlide.core"/>
-      <import plugin="org.erlide.ui"/>
-      <import plugin="org.eclipse.ui.navigator" version="3.3.102" match="greaterOrEqual"/>
-      <import plugin="org.erlide.wrangler.core" version="0.8.5" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.core.expressions" version="3.4.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.ui.editors" version="3.4.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.core.filesystem" version="1.0.0" match="greaterOrEqual"/>
-      <import plugin="org.eclipse.debug.core" version="3.5.0" match="greaterOrEqual"/>
-      <import plugin="org.erlide.libs" version="1.2.3" match="greaterOrEqual"/>
-      <import plugin="org.erlide.wrangler.refactoring" version="0.9.0" match="greaterOrEqual"/>
-      <import plugin="com.abstratt.graphviz.ui"/>
-   </requires>
 
    <plugin
          id="org.erlide.wrangler.help"

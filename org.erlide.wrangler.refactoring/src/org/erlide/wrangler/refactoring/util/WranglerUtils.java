@@ -37,13 +37,13 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlModel;
-import org.erlide.core.model.util.ModelUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.IErlModel;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.backend.ChangedFile;
 import org.erlide.wrangler.refactoring.selection.IErlMemberSelection;
 
@@ -80,7 +80,7 @@ public final class WranglerUtils {
             final int ret = offset - lineOffset < 0 ? 0 : offset - lineOffset;
             return ret + 1;
         } catch (final BadLocationException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return 0;
 
         }
@@ -141,7 +141,7 @@ public final class WranglerUtils {
             final String s = doc.get(range.getOffset(), range.getLength());
             return s;
         } catch (final BadLocationException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return "";
 
@@ -177,7 +177,7 @@ public final class WranglerUtils {
         try {
             findModulesRecursively(project, erlangFiles);
         } catch (final CoreException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return new ArrayList<IFile>();
         }
         return erlangFiles;
@@ -332,7 +332,8 @@ public final class WranglerUtils {
         int offset, length;
         offset = clause.getNameRange().getOffset();
         length = clause.getNameRange().getLength();
-        final IErlModule module = ModelUtils.getModule(clause);
+        final IErlModule module = ErlangEngine.getInstance()
+                .getModelUtilService().getModule(clause);
         final IEditorPart editor = openFile((IFile) module.getResource());
         highlightSelection(offset, length, (ITextEditor) editor);
 
@@ -358,7 +359,7 @@ public final class WranglerUtils {
             return IDE.openEditor(page, file);
             // return page.openEditor(new FileEditorInput(file), desc.getId());
         } catch (final PartInitException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return null;
 
@@ -422,9 +423,9 @@ public final class WranglerUtils {
                 out.close();
             }
         } catch (final CoreException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         } catch (final IOException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return "";
     }
@@ -456,15 +457,14 @@ public final class WranglerUtils {
 
         if (files.length > 0) {
             return files[0];// else
-        } else {
-            return root.getFile(path);
-            /*
-             * if (file != null) return file;
-             */
-            /*
-             * else throw new WranglerException("File not found!");
-             */
         }
+        return root.getFile(path);
+        /*
+         * if (file != null) return file;
+         */
+        /*
+         * else throw new WranglerException("File not found!");
+         */
     }
 
     /**
@@ -475,7 +475,7 @@ public final class WranglerUtils {
      */
     public static void notifyErlide(final List<ChangedFile> changedFiles) {
 
-        final IErlModel model = ErlModelManager.getErlangModel();
+        final IErlModel model = ErlangEngine.getInstance().getModel();
         for (final ChangedFile f : changedFiles) {
             IFile file;
             try {
@@ -490,7 +490,7 @@ public final class WranglerUtils {
                 model.notifyChange(m);
 
             } catch (final Exception e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
             }
         }
 

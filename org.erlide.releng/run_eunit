@@ -1,0 +1,13 @@
+#! /bin/bash -xe
+
+WORKSPACE=$1
+ERLANG_HOME=$2
+OUTPUT=$3
+
+mkdir -p $OUTPUT
+cd ${WORKSPACE}
+
+${ERLANG_HOME}/bin/erl -pa ${WORKSPACE}/org.erlide.kernel.builder/ebin -pa ${WORKSPACE}/org.erlide.kernel.debugger/ebin -pa ${WORKSPACE}/org.erlide.kernel.ide/ebin -pa ${WORKSPACE}/org.erlide.kernel.tests/ebin -pa ${WORKSPACE}/org.erlide.kernel.common/ebin -eval "eunit:test(kernel_tests, [{report,{eunit_surefire,[{dir,\"$OUTPUT\"}]}}]),init:stop()." -noshell
+
+mv $OUTPUT/TEST-kernel_tests.xml $OUTPUT/junit.xml
+ 

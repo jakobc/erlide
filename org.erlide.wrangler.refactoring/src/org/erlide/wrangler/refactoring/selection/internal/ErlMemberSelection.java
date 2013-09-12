@@ -12,11 +12,10 @@ package org.erlide.wrangler.refactoring.selection.internal;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.IDocument;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlMember;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlMember;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.wrangler.refactoring.util.ErlRange;
 import org.erlide.wrangler.refactoring.util.IErlRange;
 import org.erlide.wrangler.refactoring.util.WranglerUtils;
@@ -67,7 +66,7 @@ public class ErlMemberSelection extends AbstractErlMemberSelection {
         return element;
     }
 
-    protected int getStartCol() throws ErlModelException {
+    protected int getStartCol() {
         return WranglerUtils.calculateColumnFromOffset(member.getSourceRange()
                 .getOffset(), getStartLine() - 1, document);
 
@@ -85,14 +84,9 @@ public class ErlMemberSelection extends AbstractErlMemberSelection {
     @Override
     public IErlRange getSelectionRange() {
         IErlRange range;
-        try {
-            range = new ErlRange(getStartLine(), getStartCol(), getEndLine(),
-                    getEndCol(), member.getSourceRange().getOffset(), member
-                            .getSourceRange().getLength());
-        } catch (final ErlModelException e) {
-            e.printStackTrace();
-            return null;
-        }
+        range = new ErlRange(getStartLine(), getStartCol(), getEndLine(),
+                getEndCol(), member.getSourceRange().getOffset(), member
+                        .getSourceRange().getLength());
         return range;
     }
 
@@ -103,6 +97,7 @@ public class ErlMemberSelection extends AbstractErlMemberSelection {
 
     @Override
     public IErlModule getErlModule() {
-        return (IErlModule) ErlModelManager.getErlangModel().findElement(file);
+        return (IErlModule) ErlangEngine.getInstance().getModel()
+                .findElement(file);
     }
 }

@@ -66,16 +66,16 @@ import org.eclipse.ui.actions.WorkingSetFilterActionGroup;
 import org.eclipse.ui.dialogs.FilteredItemsSelectionDialog;
 import org.eclipse.ui.dialogs.SearchPattern;
 import org.eclipse.ui.statushandlers.StatusManager;
-import org.erlide.backend.BackendUtils;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElementLocator;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.util.PluginUtils;
-import org.erlide.core.model.util.ResourceUtil;
 import org.erlide.debug.ui.utils.ModuleItemLabelProvider;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.root.IErlElementLocator;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.util.CommonUtils;
+import org.erlide.engine.util.ResourceUtil;
+import org.erlide.engine.util.SourcePathUtils;
 import org.erlide.ui.internal.ErlideUIPlugin;
-import org.erlide.utils.CommonUtils;
-import org.erlide.utils.PreferencesUtils;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.PreferencesUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -339,7 +339,7 @@ public class FilteredModulesSelectionDialog extends
                 try {
                     fCollator = new RuleBasedCollator(newRules);
                 } catch (final ParseException e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                     fCollator = collator;
                 }
             }
@@ -484,7 +484,7 @@ public class FilteredModulesSelectionDialog extends
             this.progressMonitor = progressMonitor;
             final IResource[] resources = container.members();
             projects = new ArrayList<IResource>(Arrays.asList(resources));
-            extraLocations.addAll(BackendUtils.getExtraSourcePaths());
+            extraLocations.addAll(SourcePathUtils.getExtraSourcePaths());
             if (progressMonitor != null) {
                 progressMonitor.beginTask("Searching", projects.size());
             }
@@ -518,8 +518,8 @@ public class FilteredModulesSelectionDialog extends
             // couldn't we just assume all links in external files should be
             // matchable?
             if (project == resource && accessible) {
-                final IErlElementLocator model = ErlModelManager
-                        .getErlangModel();
+                final IErlElementLocator model = ErlangEngine.getInstance()
+                        .getModel();
                 final IErlProject erlProject = model.findProject(project);
                 if (erlProject != null) {
                     final String extMods = erlProject
@@ -547,8 +547,7 @@ public class FilteredModulesSelectionDialog extends
 
                                 String path;
                                 final IPath p = new Path(pref);
-                                final IPath v = PluginUtils.resolvePVMPath(pvm,
-                                        p);
+                                final IPath v = pvm.resolvePath(p);
                                 if (v.isAbsolute()) {
                                     path = v.toString();
                                 } else {
@@ -584,15 +583,15 @@ public class FilteredModulesSelectionDialog extends
         }
 
         private void addPaths(final IProject project) {
-            final IErlProject erlProject = ErlModelManager.getErlangModel()
-                    .getErlangProject(project);
+            final IErlProject erlProject = ErlangEngine.getInstance()
+                    .getModel().getErlangProject(project);
             if (erlProject != null) {
                 validPaths.addAll(getFullPaths(project,
                         erlProject.getIncludeDirs()));
                 validPaths.addAll(getFullPaths(project,
                         erlProject.getSourceDirs()));
                 final Collection<IPath> extras = Lists.newArrayList();
-                for (final IPath p : BackendUtils
+                for (final IPath p : SourcePathUtils
                         .getExtraSourcePathsForModel(project)) {
                     extras.add(p);
                 }
@@ -605,7 +604,7 @@ public class FilteredModulesSelectionDialog extends
             final HashSet<IPath> result = new HashSet<IPath>();
             for (final IPath path : sourcePaths) {
                 final String path_string = path.toString();
-                if (path_string.equals(".")) {
+                if (".".equals(path_string)) {
                     result.add(project.getFullPath());
                 } else {
                     result.add(project.getFolder(path).getFullPath());
@@ -656,7 +655,7 @@ public class FilteredModulesSelectionDialog extends
             super(new MatchAnySearchPattern());
             filterContainer = container;
             filterTypeMask = typeMask;
-            this.allow_Hrl = allowHrl;
+            allow_Hrl = allowHrl;
         }
 
         // /**

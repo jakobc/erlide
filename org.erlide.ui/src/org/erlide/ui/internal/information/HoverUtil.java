@@ -6,18 +6,19 @@ import java.net.URL;
 import java.util.Collection;
 
 import org.eclipse.swt.browser.LocationEvent;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlMember;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlMember;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.internal.ErlBrowserInformationControlInput;
 import org.erlide.ui.util.eclipse.text.HTMLPrinter;
-import org.erlide.utils.ErlLogger;
-import org.erlide.utils.ErlangFunctionCall;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.ErlangFunctionCall;
 
 public class HoverUtil {
 
     public static ErlangFunctionCall eventToErlangFunctionCall(
-            String moduleName, final LocationEvent event) {
+            final String moduleName0, final LocationEvent event) {
+        String moduleName = moduleName0;
         final String location = event.location;
         ErlLogger.debug("eventToErlangFunction %s", location);
         final int hashPos = location.lastIndexOf('#');
@@ -97,16 +98,21 @@ public class HoverUtil {
         final StringBuilder stringBuilder = new StringBuilder();
         for (final IErlMember member : comments) {
             try {
-                final String source = member.getSource();
-                stringBuilder.append(source);
+                final String source = "\n" + member.getSource();
+                stringBuilder.append(source.replaceAll("\n%%%", "\n")
+                        .replaceAll("\n%%", "\n").replaceAll("\n%", "\n")
+                        .substring(1)
+                        .replaceAll("\n( *([-=] *)+\n)+", "\n<hr/>\n")
+                        .replaceAll("^ *([-=] *)+\n", "\n")
+                        .replaceAll("\n *([-=] *)+$", "\n"));
                 if (!source.endsWith("\n")) {
                     stringBuilder.append('\n');
                 }
+                stringBuilder.append('\n');
             } catch (final ErlModelException e) {
                 ErlLogger.warn(e);
             }
         }
         return stringBuilder.toString().replace("\n", "<br/>");
     }
-
 }

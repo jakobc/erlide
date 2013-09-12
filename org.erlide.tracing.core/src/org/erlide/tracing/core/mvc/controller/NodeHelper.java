@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
-import org.erlide.backend.IBackendManager;
+import org.erlide.backend.api.IBackend;
+import org.erlide.backend.api.IBackendManager;
 import org.erlide.tracing.core.TraceBackend;
 
 /**
@@ -33,7 +33,7 @@ public class NodeHelper {
      */
     public static boolean isExternal(final String nodeName) {
         for (final IBackend backend : getBackends(false)) {
-            if (backend.getNodeName().equals(nodeName)) {
+            if (backend.getName().equals(nodeName)) {
                 return false;
             }
         }

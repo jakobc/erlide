@@ -10,15 +10,19 @@
  *******************************************************************************/
 package org.erlide.ui.jinterface;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.progress.UIJob;
-import org.erlide.backend.BackendException;
+import org.erlide.backend.api.BackendException;
 import org.erlide.runtime.rpc.IRpcFuture;
 import org.erlide.runtime.rpc.RpcException;
 import org.erlide.ui.internal.ErlideUIPlugin;
+import org.erlide.util.ErlLogger;
 
 public abstract class AsyncCaller<T> implements Runnable {
     long interval;
@@ -49,11 +53,13 @@ public abstract class AsyncCaller<T> implements Runnable {
                 @Override
                 public IStatus runInUIThread(final IProgressMonitor monitor) {
                     try {
-                        if (result.get(1) == null) {
+                        if (result.checkedGet(1, TimeUnit.MILLISECONDS) == null) {
                             schedule(interval);
                         }
                     } catch (final RpcException e) {
-                        e.printStackTrace();
+                        ErlLogger.error(e);
+                    } catch (final TimeoutException e) {
+                        ErlLogger.error(e);
                     }
                     handleResult(context, result);
                     if (monitor.isCanceled()) {
@@ -65,7 +71,7 @@ public abstract class AsyncCaller<T> implements Runnable {
             };
             job.schedule(interval);
         } catch (final BackendException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }

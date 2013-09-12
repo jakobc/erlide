@@ -1,9 +1,8 @@
 package org.erlide.wrangler.refactoring.core.internal;
 
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.util.ModelUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.root.IErlProject;
 import org.erlide.runtime.rpc.RpcResult;
 import org.erlide.wrangler.refactoring.backend.internal.WranglerBackendManager;
 
@@ -30,13 +29,17 @@ public class UserAdhocRefactoring {
     public boolean load() {
         String callbackPath;
         try {
-            if (ErlModelManager.getErlangModel().findModule(
-                    refac.getCallbackModule()) == null) {
+            if (ErlangEngine.getInstance().getModel()
+                    .findModule(refac.getCallbackModule()) == null) {
                 return false;
             }
 
-            final IErlProject project = ModelUtils.getProject(ErlModelManager
-                    .getErlangModel().findModule(refac.getCallbackModule()));
+            final IErlProject project = ErlangEngine
+                    .getInstance()
+                    .getModelUtilService()
+                    .getProject(
+                            ErlangEngine.getInstance().getModel()
+                                    .findModule(refac.getCallbackModule()));
             callbackPath = project.getWorkspaceProject().getLocation()
                     .append(project.getOutputLocation()).toString();
         } catch (final ErlModelException e) {

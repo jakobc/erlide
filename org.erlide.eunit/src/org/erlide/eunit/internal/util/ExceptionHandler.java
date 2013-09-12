@@ -19,7 +19,7 @@ import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.erlide.eunit.EUnitPlugin;
-import org.erlide.jinterface.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * The default exception handler shows an error dialog when one of its handle

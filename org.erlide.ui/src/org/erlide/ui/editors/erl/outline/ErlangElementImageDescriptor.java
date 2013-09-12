@@ -10,7 +10,12 @@
  *******************************************************************************/
 package org.erlide.ui.editors.erl.outline;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.jface.resource.CompositeImageDescriptor;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.ImageData;
@@ -59,11 +64,11 @@ public class ErlangElementImageDescriptor extends CompositeImageDescriptor {
     public ErlangElementImageDescriptor(final ImageDescriptor baseImage,
             final int flags, final Point size) {
         fBaseImage = baseImage;
-        Assert.isNotNull(fBaseImage);
+        assertThat(fBaseImage, is(not(nullValue())));
         fFlags = flags;
-        Assert.isTrue(fFlags >= 0);
+        assertThat(fFlags, is(greaterThanOrEqualTo(0)));
         fSize = size;
-        Assert.isNotNull(fSize);
+        assertThat(fSize, is(not(nullValue())));
     }
 
     /**
@@ -74,7 +79,7 @@ public class ErlangElementImageDescriptor extends CompositeImageDescriptor {
      *            the image descriptors adornments
      */
     public void setAdornments(final int adornments) {
-        Assert.isTrue(adornments >= 0);
+        assertThat(adornments, is(greaterThanOrEqualTo(0)));
         fFlags = adornments;
     }
 
@@ -96,8 +101,9 @@ public class ErlangElementImageDescriptor extends CompositeImageDescriptor {
      * @see ImageDescriptor#createImage()
      */
     public void setImageSize(final Point size) {
-        Assert.isNotNull(size);
-        Assert.isTrue(size.x >= 0 && size.y >= 0);
+        assertThat(size, is(not(nullValue())));
+        assertThat(size.x, is(greaterThanOrEqualTo(0)));
+        assertThat(size.y, is(greaterThanOrEqualTo(0)));
         fSize = size;
     }
 

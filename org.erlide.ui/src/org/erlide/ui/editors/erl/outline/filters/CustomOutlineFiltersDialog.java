@@ -1,12 +1,16 @@
 package org.erlide.ui.editors.erl.outline.filters;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.CheckStateChangedEvent;
@@ -33,7 +37,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.SelectionDialog;
 import org.erlide.ui.util.SWTUtil;
-import org.erlide.utils.ListsUtils;
+import org.erlide.util.ListsUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -74,9 +78,9 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
             final Collection<String> enabledFilterIds) {
 
         super(shell);
-        Assert.isNotNull(viewId);
-        Assert.isNotNull(patterns);
-        Assert.isNotNull(enabledFilterIds);
+        assertThat(viewId, is(not(nullValue())));
+        assertThat(patterns, is(not(nullValue())));
+        assertThat(enabledFilterIds, is(not(nullValue())));
 
         fViewId = viewId;
         fPatterns = Lists.newArrayList(patterns);
@@ -155,7 +159,7 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
         });
 
         // Filters provided by extension point
-        if (fBuiltInFilters.size() > 0) {
+        if (!fBuiltInFilters.isEmpty()) {
             createCheckBoxList(group);
         }
 
@@ -312,9 +316,8 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
             public String getText(final Object element) {
                 if (element instanceof FilterDescriptor) {
                     return ((FilterDescriptor) element).getName();
-                } else {
-                    return null;
                 }
+                return null;
             }
         };
     }
@@ -322,7 +325,6 @@ public class CustomOutlineFiltersDialog extends SelectionDialog {
     // ---------- result handling ----------
 
     @Override
-    @SuppressWarnings("rawtypes")
     protected void setResult(final List newResult) {
         super.setResult(newResult);
         if (fUserDefinedPatterns.getText().length() > 0) {

@@ -2,13 +2,14 @@ package org.erlide.cover.runtime.launch;
 
 import java.util.Collection;
 
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.cover.api.Configuration;
 import org.erlide.cover.api.CoverException;
 import org.erlide.cover.api.IConfiguration;
 import org.erlide.cover.core.Activator;
 import org.erlide.cover.core.Logger;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.util.ErlLogger;
 
 /**
  * Settings for performing coverage.
@@ -55,7 +56,7 @@ public class CoverLaunchSettings {
             try {
                 config.addModule(data.getModule().replace(".erl", ""));
             } catch (final ErlModelException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
                 throw new CoverException(e.getMessage());
             }
             break;
@@ -76,7 +77,7 @@ public class CoverLaunchSettings {
                     }
                 }
             } catch (final ErlModelException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
                 throw new CoverException(e.getMessage());
             }
             break;

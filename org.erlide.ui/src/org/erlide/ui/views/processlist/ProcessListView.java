@@ -24,7 +24,6 @@ import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
@@ -33,7 +32,6 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Table;
@@ -45,18 +43,21 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
-import org.erlide.backend.events.ErlangEventHandler;
-import org.erlide.runtime.IRpcSite;
+import org.erlide.backend.api.IBackend;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.runtime.api.IRpcSite;
+import org.erlide.runtime.events.ErlEvent;
+import org.erlide.runtime.events.ErlangEventHandler;
+import org.erlide.ui.util.DisplayUtils;
 import org.erlide.ui.views.BackendContentProvider;
 import org.erlide.ui.views.BackendLabelProvider;
-import org.osgi.service.event.Event;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.common.eventbus.Subscribe;
 
 /**
  * 
@@ -82,10 +83,10 @@ public class ProcessListView extends ViewPart {
     class ViewContentProvider implements IStructuredContentProvider {
 
         private final ProcessEventHandler handler = new ProcessEventHandler(
-                getBackend());
+                getBackend().getName());
 
         public ViewContentProvider() {
-            handler.register();
+            getBackend().getRuntime().registerEventListener(handler);
         }
 
         @Override
@@ -104,8 +105,9 @@ public class ProcessListView extends ViewPart {
                 return new OtpErlangObject[] {};
             }
 
-            final OtpErlangList r = ErlideProclist.getProcessList(backend);
-            if (r.arity() == 0) {
+            final OtpErlangList r = ErlangEngine.getInstance()
+                    .getProclistService().getProcessList(backend);
+            if (r == null || r.arity() == 0) {
                 return new OtpErlangObject[] {};
             }
             final OtpErlangObject[] ss = new OtpErlangObject[r.elements().length];
@@ -120,13 +122,16 @@ public class ProcessListView extends ViewPart {
 
         class ProcessEventHandler extends ErlangEventHandler {
 
-            public ProcessEventHandler(final IBackend backend) {
-                super("processlist", backend);
+            public ProcessEventHandler(final String backendName) {
+                super("processlist", backendName);
             }
 
-            @Override
-            public void handleEvent(final Event event) {
-                Display.getDefault().asyncExec(new Runnable() {
+            @Subscribe
+            public void handleEvent(final ErlEvent event) {
+                if (!event.getTopic().equals(getTopic())) {
+                    return;
+                }
+                DisplayUtils.asyncExec(new Runnable() {
                     @Override
                     public void run() {
                         if (!viewer.getControl().isDisposed()) {
@@ -232,16 +237,17 @@ public class ProcessListView extends ViewPart {
         t.setHeaderVisible(true);
 
         // TODO this is wrong - all backends should be inited
-        final IRpcSite ideBackend = BackendCore.getBackendManager()
-                .getIdeBackend().getRpcSite();
+        final IRpcSite ideBackend = ErlangEngine.getInstance().getBackend();
         if (ideBackend != null) {
-            ErlideProclist.processListInit(ideBackend);
+            ErlangEngine.getInstance().getProclistService()
+                    .processListInit(ideBackend);
         }
         BackendCore.getBackendManager().forEachBackend(
                 new Procedure1<IBackend>() {
                     @Override
                     public void apply(final IBackend b) {
-                        ErlideProclist.processListInit(b.getRpcSite());
+                        ErlangEngine.getInstance().getProclistService()
+                                .processListInit(b.getRpcSite());
                     }
                 });
 
@@ -316,8 +322,9 @@ public class ProcessListView extends ViewPart {
                 final OtpErlangPid pid = (OtpErlangPid) ((OtpErlangTuple) obj)
                         .elementAt(0);
 
-                final OtpErlangObject r = ErlideProclist.getProcessInfo(
-                        getBackend().getRpcSite(), pid);
+                final OtpErlangObject r = ErlangEngine.getInstance()
+                        .getProclistService()
+                        .getProcessInfo(getBackend().getRpcSite(), pid);
                 if (r instanceof OtpErlangList) {
                     final OtpErlangList l = (OtpErlangList) r;
                     final StringBuilder s = new StringBuilder();
@@ -361,13 +368,7 @@ public class ProcessListView extends ViewPart {
             final IBackend b = (IBackend) sel.getFirstElement();
             return b;
         }
-        final IBackend b = BackendCore.getBackendManager().getIdeBackend();
-        if (b != null) {
-            backends.setSelection(new StructuredSelection(b));
-            return b;
-        }
-        return null;
-
+        return BackendCore.getBackendManager().getIdeBackend();
     }
 
 }

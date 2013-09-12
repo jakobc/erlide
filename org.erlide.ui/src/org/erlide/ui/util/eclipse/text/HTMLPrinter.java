@@ -25,6 +25,7 @@ import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 import org.erlide.ui.internal.ErlideUIPlugin;
+import org.erlide.ui.util.DisplayUtils;
 import org.osgi.framework.Bundle;
 
 import com.google.common.base.Charsets;
@@ -36,7 +37,7 @@ import com.google.common.base.Charsets;
  * <code>org.eclipse.jface.internal.text.revisions</code>.
  * </p>
  */
-public class HTMLPrinter {
+public final class HTMLPrinter {
 
     static RGB BG_COLOR_RGB = new RGB(255, 255, 225);
     static RGB FG_COLOR_RGB = new RGB(0, 0, 0);
@@ -47,7 +48,7 @@ public class HTMLPrinter {
         final Display display = Display.getDefault();
         if (display != null && !display.isDisposed()) {
             try {
-                display.asyncExec(new Runnable() {
+                DisplayUtils.asyncExec(new Runnable() {
                     /*
                      * @see java.lang.Runnable#run()
                      */
@@ -94,11 +95,12 @@ public class HTMLPrinter {
         return buffer.toString();
     }
 
-    public static String convertToHTMLContent(String content) {
-        content = replace(content, '&', "&amp;"); //$NON-NLS-1$
-        content = replace(content, '"', "&quot;"); //$NON-NLS-1$
-        content = replace(content, '<', "&lt;"); //$NON-NLS-1$
-        return replace(content, '>', "&gt;"); //$NON-NLS-1$
+    public static String convertToHTMLContent(final String content) {
+        String result = content;
+        result = replace(result, '&', "&amp;"); //$NON-NLS-1$
+        result = replace(result, '"', "&quot;"); //$NON-NLS-1$
+        result = replace(result, '<', "&lt;"); //$NON-NLS-1$
+        return replace(result, '>', "&gt;"); //$NON-NLS-1$
     }
 
     public static String read(final Reader rd) {

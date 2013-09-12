@@ -32,7 +32,6 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.TreePath;
 import org.eclipse.jface.viewers.TreeSelection;
 import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleConstants;
 import org.eclipse.ui.console.IConsolePageParticipant;
@@ -51,7 +50,7 @@ import org.erlide.ui.console.actions.ConsoleRemoveLaunchAction;
 import org.erlide.ui.console.actions.ConsoleTerminateAction;
 import org.erlide.ui.console.actions.ShowStandardOutAction;
 import org.erlide.ui.console.actions.ShowWhenContentChangesAction;
-import org.erlide.ui.internal.ErlideUIPlugin;
+import org.erlide.ui.util.DisplayUtils;
 
 /**
  * Creates and manages process console specific actions
@@ -73,7 +72,7 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
     private IConsoleView fView;
 
     private EOFHandler fEOFHandler;
-    private final String fContextId = "org.eclipse.debug.ui.console"; //$NON-NLS-1$;
+    private final static String fContextId = "org.eclipse.debug.ui.console"; //$NON-NLS-1$;
     private IContextActivation fActivatedContext;
     private IHandlerActivation fActivatedHandler;
 
@@ -123,10 +122,6 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
 
         // create handler and submissions for EOF
         fEOFHandler = new EOFHandler();
-
-        // set global ref, used by the SendToConsole action
-        // FIXME global is bad, use project's page (keyed by backend?)
-        ErlideUIPlugin.getDefault().setConsolePage((ErlangConsolePage) fPage);
     }
 
     @Override
@@ -152,9 +147,6 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
             fStdOut = null;
         }
         fConsole = null;
-        if (ErlideUIPlugin.getDefault().getConsolePage() == fPage) {
-            ErlideUIPlugin.getDefault().setConsolePage(null);
-        }
     }
 
     /**
@@ -168,7 +160,7 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
     }
 
     @Override
-    public Object getAdapter(@SuppressWarnings("rawtypes") final Class required) {
+    public Object getAdapter(final Class required) {
         if (IShowInSource.class.equals(required)) {
             return this;
         }
@@ -225,7 +217,7 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
                         }
                     }
                 };
-                PlatformUI.getWorkbench().getDisplay().asyncExec(r);
+                DisplayUtils.asyncExec(r);
             }
         }
     }
@@ -246,7 +238,6 @@ public class ConsolePageParticipant implements IConsolePageParticipant,
         fActivatedContext = contextService.activateContext(fContextId);
         fActivatedHandler = handlerService.activateHandler(
                 "org.eclipse.debug.ui.commands.eof", fEOFHandler); //$NON-NLS-1$
-        ErlideUIPlugin.getDefault().setConsolePage((ErlangConsolePage) fPage);
     }
 
     @Override

@@ -11,6 +11,7 @@
 package org.erlide.ui.util;
 
 import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IMarkerDelta;
@@ -27,8 +28,7 @@ import org.eclipse.jface.text.source.AnnotationModelEvent;
 import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.text.source.IAnnotationModelListener;
 import org.eclipse.jface.text.source.IAnnotationModelListenerExtension;
-import org.eclipse.swt.widgets.Display;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * Listens to resource deltas and filters for marker changes of type
@@ -44,9 +44,9 @@ public class ProblemMarkerManager implements IResourceChangeListener,
      */
     private static class ProjectErrorVisitor implements IResourceDeltaVisitor {
 
-        private final HashSet<IResource> fChangedElements;
+        private final Set<IResource> fChangedElements;
 
-        public ProjectErrorVisitor(final HashSet<IResource> changedElements) {
+        public ProjectErrorVisitor(final Set<IResource> changedElements) {
             fChangedElements = changedElements;
         }
 
@@ -66,7 +66,8 @@ public class ProblemMarkerManager implements IResourceChangeListener,
         }
 
         private void checkInvalidate(final IResourceDelta delta,
-                IResource resource) {
+                final IResource resource0) {
+            IResource resource = resource0;
             final int kind = delta.getKind();
             if ((kind == IResourceDelta.REMOVED || kind == IResourceDelta.ADDED || kind == IResourceDelta.CHANGED)
                     && isErrorDelta(delta)) {
@@ -176,20 +177,17 @@ public class ProblemMarkerManager implements IResourceChangeListener,
 
     private void fireChanges(final IResource[] changes,
             final boolean isMarkerChange) {
-        final Display display = SWTUtil.getStandardDisplay();
-        if (display != null && !display.isDisposed()) {
-            display.asyncExec(new Runnable() {
-                @Override
-                @SuppressWarnings("synthetic-access")
-                public void run() {
-                    final Object[] listeners = fListeners.getListeners();
-                    for (int i = 0; i < listeners.length; i++) {
-                        final IProblemChangedListener curr = (IProblemChangedListener) listeners[i];
-                        curr.problemsChanged(changes, isMarkerChange);
-                    }
+        DisplayUtils.asyncExec(new Runnable() {
+            @Override
+            @SuppressWarnings("synthetic-access")
+            public void run() {
+                final Object[] listeners = fListeners.getListeners();
+                for (int i = 0; i < listeners.length; i++) {
+                    final IProblemChangedListener curr = (IProblemChangedListener) listeners[i];
+                    curr.problemsChanged(changes, isMarkerChange);
                 }
-            });
-        }
+            }
+        });
     }
 
 }

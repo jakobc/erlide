@@ -2,7 +2,6 @@ package org.erlide.ui.editors.erl.scanner;
 
 import java.util.List;
 
-import org.eclipse.jface.text.rules.BufferedRuleBasedScanner;
 import org.eclipse.jface.text.rules.IRule;
 import org.eclipse.jface.text.rules.IWordDetector;
 import org.eclipse.jface.text.rules.SingleLineRule;
@@ -13,17 +12,17 @@ import org.erlide.ui.util.IColorManager;
 
 import com.google.common.collect.Lists;
 
-public class ErlCommentScanner extends BufferedRuleBasedScanner {
+public class ErlCommentScanner extends ErlTokenScanner {
 
     public ErlCommentScanner(final IColorManager colorManager) {
-        super();
-        final Token defaultToken = ErlCodeScanner
+        super(colorManager);
+        final Token defaultToken = ErlTokenScanner
                 .getToken(TokenHighlight.COMMENT.getName());
         setDefaultReturnToken(defaultToken);
 
-        final Token edocTag = ErlCodeScanner.getToken(TokenHighlight.EDOC_TAG
+        final Token edocTag = ErlTokenScanner.getToken(TokenHighlight.EDOC_TAG
                 .getName());
-        final Token htmlTag = ErlCodeScanner.getToken(TokenHighlight.HTML_TAG
+        final Token htmlTag = ErlTokenScanner.getToken(TokenHighlight.HTML_TAG
                 .getName());
 
         final List<IRule> rulesList = Lists.newArrayList();

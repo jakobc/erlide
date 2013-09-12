@@ -8,11 +8,9 @@
 %%
 
 -export([modules/0, dump_module/1, create/3, destroy/1,
-	 all/0, stop/0, find/3, xdump/0]).
+         all/0, stop/0, find/3, xdump/0]).
 
--compile(export_all).
-
-%% internal exports 
+%% internal exports
 -export([loop/1]).
 -export([main_loop/1]).
 
@@ -26,7 +24,6 @@
 -define(SERVER, erlide_noparse).
 
 -include("erlide.hrl").
--include("erlide_scanner.hrl").
 
 -record(module, {name, erlide_path, model}).
 
@@ -79,9 +76,6 @@ main_loop(Modules) ->
             ?MODULE:main_loop(NewMods)
     end.
 
-update_state(ScannerName, Model) ->
-    server_cmd(update_state, {ScannerName, Model}).
-
 server_cmd(Command, Args) ->
     spawn_server(),
     ?SERVER ! {Command, self(), Args},
@@ -95,7 +89,8 @@ spawn_server() ->
         undefined ->
             Pid = spawn(fun() ->
                                 ?SAVE_CALLS,
-                                main_loop([]) 
+                                erlang:process_flag(min_heap_size, 64*1024),
+                                main_loop([])
                         end),
             erlang:register(?SERVER, Pid);
         _ ->

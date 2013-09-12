@@ -17,9 +17,9 @@ import javax.swing.text.Document;
 import javax.swing.text.EditorKit;
 import javax.swing.text.html.HTMLEditorKit;
 
-import org.erlide.utils.StringUtils;
+import org.erlide.util.StringUtils;
 
-public class UIStringUtils {
+public final class UIStringUtils {
 
     private UIStringUtils() {
     }
@@ -45,9 +45,8 @@ public class UIStringUtils {
                 }
             }
             return buf.toString();
-        } else {
-            return hoverInfo;// return initial
         }
+        return hoverInfo;// return initial
     }
 
     /**

@@ -31,8 +31,9 @@ import org.eclipse.ui.actions.ActionGroup;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.IPageSite;
 import org.eclipse.ui.part.IShowInTargetList;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.services.builder.MarkerUtils;
+import org.erlide.core.builder.MarkerUtils;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.util.EditorUtility;
 
@@ -58,7 +59,6 @@ public class ErlangSearchResultPage extends AbstractTextSearchViewPage {
             return 2;
         }
 
-        @SuppressWarnings("unchecked")
         @Override
         public int compare(final Viewer viewer, final Object e1, final Object e2) {
             final int cat1 = category(e1);
@@ -184,7 +184,7 @@ public class ErlangSearchResultPage extends AbstractTextSearchViewPage {
             final IEditorPart editor = EditorUtility.openInEditor(module);
             if (offset != 0) {
                 if (editor instanceof ErlangEditor) {
-                    final ErlangEditor ee = (ErlangEditor) editor;
+                    final AbstractErlangEditor ee = (AbstractErlangEditor) editor;
                     ee.selectAndReveal(offset, length);
                 } else if (editor != null) {
                     showWithMarker(editor, module, offset, length);

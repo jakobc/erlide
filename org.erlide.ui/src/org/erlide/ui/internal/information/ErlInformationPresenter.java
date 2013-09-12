@@ -24,7 +24,7 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Display;
 import org.erlide.ui.util.UIStringUtils;
 import org.erlide.ui.util.eclipse.text.LineBreakingReader;
-import org.erlide.utils.StringUtils;
+import org.erlide.util.StringUtils;
 
 /**
  * Based on HTMLTextPresenter
@@ -68,7 +68,7 @@ public class ErlInformationPresenter implements
      * so, in this function we remove the ones existing and add the ones
      * dependent on the platform
      */
-    private String correctLineDelimiters(String str) {
+    private String correctLineDelimiters(final String str) {
         final StringBuffer buf = new StringBuffer();
         for (String s : StringUtils.splitLines(str)) {
 
@@ -82,8 +82,7 @@ public class ErlInformationPresenter implements
                 buf.append(LINE_DELIM);
             }
         }
-        str = buf.toString();
-        return str;
+        return buf.toString();
     }
 
     /**
@@ -119,7 +118,6 @@ public class ErlInformationPresenter implements
         return str;
     }
 
-    @SuppressWarnings("unchecked")
     protected void adaptTextPresentation(final TextPresentation presentation,
             final int offset, final int insertLength) {
 
@@ -172,10 +170,7 @@ public class ErlInformationPresenter implements
         return (i == length ? line : line.substring(0, i)) + " "; //$NON-NLS-1$
     }
 
-    /*
-     * @see IHoverInformationPresenter#updatePresentation(Display display,
-     * String, TextPresentation, int, int)
-     */
+    @Deprecated
     @Override
     public String updatePresentation(final Display display,
             final String hoverInfo, final TextPresentation presentation,

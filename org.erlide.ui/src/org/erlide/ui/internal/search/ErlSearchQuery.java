@@ -10,13 +10,11 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.search.ui.ISearchQuery;
 import org.eclipse.search.ui.ISearchResult;
 import org.eclipse.search.ui.text.Match;
-import org.erlide.backend.BackendCore;
-import org.erlide.core.ErlangPlugin;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.services.search.ErlSearchScope;
-import org.erlide.core.services.search.ErlangSearchPattern;
-import org.erlide.core.services.search.ErlideSearchServer;
-import org.erlide.core.services.search.ModuleLineFunctionArityRef;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.services.search.ErlSearchScope;
+import org.erlide.engine.services.search.ErlangSearchPattern;
+import org.erlide.engine.services.search.ModuleLineFunctionArityRef;
 import org.erlide.runtime.rpc.IRpcResultCallback;
 import org.erlide.runtime.rpc.RpcException;
 import org.erlide.ui.internal.ErlideUIPlugin;
@@ -35,8 +33,8 @@ public class ErlSearchQuery implements ISearchQuery {
     private final Map<String, IErlModule> pathToModuleMap;
     private ErlangSearchResult fSearchResult;
 
-    private String stateDirCached = null;
     private final String scopeDescription;
+    private boolean stopped = false;
 
     public ErlSearchQuery(final ErlangSearchPattern pattern,
             final ErlSearchScope scope, final String scopeDescription) {
@@ -107,6 +105,7 @@ public class ErlSearchQuery implements ISearchQuery {
             @Override
             public void stop(final OtpErlangObject msg) {
                 monitor.done();
+                stopped = true;
                 synchronized (locker) {
                     locker.notifyAll();
                 }
@@ -131,9 +130,8 @@ public class ErlSearchQuery implements ISearchQuery {
                 monitor.worked(progress);
                 if (monitor.isCanceled()) {
                     try {
-                        ErlideSearchServer.cancelSearch(BackendCore
-                                .getBackendManager().getIdeBackend()
-                                .getRpcSite(), backgroundSearchPid);
+                        ErlangEngine.getInstance().getSearchServerService()
+                                .cancelSearch(backgroundSearchPid);
                     } catch (final RpcException e) {
                     }
                 }
@@ -141,17 +139,23 @@ public class ErlSearchQuery implements ISearchQuery {
 
         };
         try {
-            ErlideSearchServer.startFindRefs(BackendCore.getBackendManager()
-                    .getIdeBackend().getRpcSite(), pattern, scope,
-                    getStateDir(), callback, false);
+            final ErlSearchScope reducedScope = pattern.reduceScope(scope);
+            ErlangEngine
+                    .getInstance()
+                    .getSearchServerService()
+                    .startFindRefs(pattern, reducedScope,
+                            ErlangEngine.getInstance().getStateDir(), callback,
+                            false);
         } catch (final RpcException e) {
             return new Status(IStatus.ERROR, ErlideUIPlugin.PLUGIN_ID,
                     "Search error", e);
         }
-        synchronized (locker) {
-            try {
-                locker.wait();
-            } catch (final InterruptedException e) {
+        while (!stopped) {
+            synchronized (locker) {
+                try {
+                    locker.wait();
+                } catch (final InterruptedException e) {
+                }
             }
         }
         return Status.OK_STATUS;
@@ -171,14 +175,6 @@ public class ErlSearchQuery implements ISearchQuery {
         result.addAll(resultAdded);
         fSearchResult.setResult(result);
         fSearchResult.addMatches(l.toArray(new Match[l.size()]));
-    }
-
-    private String getStateDir() {
-        if (stateDirCached == null) {
-            stateDirCached = ErlangPlugin.getDefault().getStateLocation()
-                    .toString();
-        }
-        return stateDirCached;
     }
 
     public ErlangSearchPattern getPattern() {

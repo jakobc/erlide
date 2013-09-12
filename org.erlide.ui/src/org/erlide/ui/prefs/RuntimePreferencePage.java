@@ -63,9 +63,9 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.erlide.backend.BackendCore;
 import org.erlide.backend.runtimeinfo.RuntimeInfoPreferencesSerializer;
+import org.erlide.runtime.runtimeinfo.IRuntimeInfoCatalog;
 import org.erlide.runtime.runtimeinfo.RuntimeInfo;
-import org.erlide.runtime.runtimeinfo.RuntimeInfoCatalog;
-import org.erlide.runtime.runtimeinfo.RuntimeInfoManagerData;
+import org.erlide.runtime.runtimeinfo.RuntimeInfoCatalogData;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.SWTUtil;
 
@@ -84,7 +84,7 @@ public class RuntimePreferencePage extends PreferencePage implements
 
     private static final String RUNTIMES_PREFERENCE_PAGE = "RUNTIMES_PREFERENCE_PAGE";
 
-    private final RuntimeInfoCatalog catalog;
+    private final IRuntimeInfoCatalog catalog;
     private List<RuntimeInfo> runtimes;
     private RuntimeInfo defaultRuntime;
     private RuntimeInfo erlideRuntime;
@@ -408,7 +408,8 @@ public class RuntimePreferencePage extends PreferencePage implements
         if (vm == null) {
             return;
         }
-        final RuntimeInfo vm1 = vm.setName(vm.getName() + "_copy");
+        final RuntimeInfo vm1 = new RuntimeInfo.Builder(vm).withName(
+                vm.getName() + "_copy").build();
         final AddRuntimeDialog dialog = new AddRuntimeDialog(this, getShell(),
                 vm1);
         dialog.setTitle(RuntimePreferenceMessages.edit_title);
@@ -786,10 +787,13 @@ public class RuntimePreferencePage extends PreferencePage implements
         if (defaultRuntime == null) {
             defaultRuntime = (RuntimeInfo) fRuntimeList.getElementAt(0);
         }
+        if (erlideRuntime == null) {
+            erlideRuntime = defaultRuntime;
+        }
         catalog.setRuntimes(runtimes, defaultRuntime.getName(),
                 erlideRuntime.getName());
         final RuntimeInfoPreferencesSerializer serializer = new RuntimeInfoPreferencesSerializer();
-        serializer.store(new RuntimeInfoManagerData(runtimes, defaultRuntime
+        serializer.store(new RuntimeInfoCatalogData(runtimes, defaultRuntime
                 .getName(), erlideRuntime.getName()));
 
         // save column widths

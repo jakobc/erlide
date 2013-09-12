@@ -41,13 +41,13 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.Text;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.launch.ErlLaunchAttributes;
-import org.erlide.runtime.ErlDebugFlags;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.runtime.api.ErlDebugFlags;
+import org.erlide.runtime.api.ErlRuntimeAttributes;
 import org.erlide.ui.util.SWTUtil;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class ErlangMainTab extends AbstractLaunchConfigurationTab {
 
@@ -71,7 +71,8 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
 
         Collection<IErlProject> projects;
         try {
-            projects = ErlModelManager.getErlangModel().getErlangProjects();
+            projects = ErlangEngine.getInstance().getModel()
+                    .getErlangProjects();
             final List<String> ps = new ArrayList<String>();
             for (final IErlProject p : projects) {
                 ps.add(p.getName());
@@ -184,7 +185,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
                     }
                 }
             }
-            return ps.toArray(new String[0]);
+            return ps.toArray(new String[ps.size()]);
         }
 
         @Override
@@ -237,11 +238,11 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
 
     @Override
     public void setDefaults(final ILaunchConfigurationWorkingCopy config) {
-        config.setAttribute(ErlLaunchAttributes.PROJECTS, "");
-        config.setAttribute(ErlLaunchAttributes.MODULE, "");
-        config.setAttribute(ErlLaunchAttributes.FUNCTION, "");
-        config.setAttribute(ErlLaunchAttributes.ARGUMENTS, "");
-        config.setAttribute(ErlLaunchAttributes.DEBUG_FLAGS,
+        config.setAttribute(ErlRuntimeAttributes.PROJECTS, "");
+        config.setAttribute(ErlRuntimeAttributes.MODULE, "");
+        config.setAttribute(ErlRuntimeAttributes.FUNCTION, "");
+        config.setAttribute(ErlRuntimeAttributes.ARGUMENTS, "");
+        config.setAttribute(ErlRuntimeAttributes.DEBUG_FLAGS,
                 ErlDebugFlags.getFlag(ErlDebugFlags.DEFAULT_DEBUG_FLAGS));
     }
 
@@ -255,21 +256,21 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
     protected void initializeStart(final ILaunchConfiguration config) {
         try {
             final String attribute = config.getAttribute(
-                    ErlLaunchAttributes.MODULE, "");
+                    ErlRuntimeAttributes.MODULE, "");
             moduleText.setText(attribute);
         } catch (final CoreException e) {
             moduleText.setText("");
         }
         try {
             final String attribute = config.getAttribute(
-                    ErlLaunchAttributes.FUNCTION, "");
+                    ErlRuntimeAttributes.FUNCTION, "");
             funcText.setText(attribute);
         } catch (final CoreException e) {
             funcText.setText("");
         }
         try {
             final String attribute = config.getAttribute(
-                    ErlLaunchAttributes.ARGUMENTS, "");
+                    ErlRuntimeAttributes.ARGUMENTS, "");
             argsText.setText(attribute);
         } catch (final CoreException e) {
             argsText.setText("");
@@ -280,7 +281,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         projectsTable.setInput(config);
         String projs;
         try {
-            projs = config.getAttribute(ErlLaunchAttributes.PROJECTS, "");
+            projs = config.getAttribute(ErlRuntimeAttributes.PROJECTS, "");
         } catch (final CoreException e1) {
             projs = "";
         }
@@ -308,9 +309,9 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
     }
 
     protected void applyStart(final ILaunchConfigurationWorkingCopy config) {
-        config.setAttribute(ErlLaunchAttributes.MODULE, moduleText.getText());
-        config.setAttribute(ErlLaunchAttributes.FUNCTION, funcText.getText());
-        config.setAttribute(ErlLaunchAttributes.ARGUMENTS, argsText.getText());
+        config.setAttribute(ErlRuntimeAttributes.MODULE, moduleText.getText());
+        config.setAttribute(ErlRuntimeAttributes.FUNCTION, funcText.getText());
+        config.setAttribute(ErlRuntimeAttributes.ARGUMENTS, argsText.getText());
     }
 
     protected void applyProjects(final ILaunchConfigurationWorkingCopy config) {
@@ -322,7 +323,7 @@ public class ErlangMainTab extends AbstractLaunchConfigurationTab {
         if (projectNames.length() > 0) {
             projectNames.setLength(projectNames.length() - 1);
         }
-        config.setAttribute(ErlLaunchAttributes.PROJECTS,
+        config.setAttribute(ErlRuntimeAttributes.PROJECTS,
                 projectNames.toString());
     }
 

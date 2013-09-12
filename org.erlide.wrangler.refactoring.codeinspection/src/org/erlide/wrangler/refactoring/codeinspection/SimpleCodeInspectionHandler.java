@@ -15,21 +15,21 @@ import java.util.ArrayList;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.commands.IHandler;
 import org.eclipse.jface.dialogs.IInputValidator;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.FunctionRef;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElement.Kind;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.FunctionRef;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.runtime.rpc.RpcResult;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.backend.internal.WranglerBackendManager;
 import org.erlide.wrangler.refactoring.codeinspection.ui.InputDialogWithCheckbox;
 import org.erlide.wrangler.refactoring.exception.WranglerException;
@@ -50,8 +50,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  * @author Gyorgy Orosz
  * 
  */
-public class SimpleCodeInspectionHandler extends AbstractHandler implements
-        IHandler {
+public class SimpleCodeInspectionHandler extends AbstractHandler {
     protected final class IntegerInputValidator implements IInputValidator {
         @Override
         public String isValid(final String newText) {
@@ -170,7 +169,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
 
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }
@@ -222,7 +221,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
 
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }
@@ -268,7 +267,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
                         "Could not found any incomplete receive patterns!");
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
     }
 
@@ -342,7 +341,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
                         "Could not found any non tail recursive server!");
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }
@@ -353,7 +352,9 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
         final String function = ((OtpErlangAtom) fTuple.elementAt(1))
                 .atomValue();
         final int arity = ((OtpErlangLong) fTuple.elementAt(2)).intValue();
-        final IErlFunctionClause f = ErlModelManager.getErlangModel()
+        final IErlFunctionClause f = ErlangEngine
+                .getInstance()
+                .getModel()
                 .findFunction(
                         new FunctionRef(mod.getModuleName(), function, arity));
         return f;
@@ -403,16 +404,20 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
             if (!modules1.isEmpty()) {
                 CodeInspectionViewsManager.showErlElements(
                         "Modules which depends on "
-                                + wranglerSelection.getErlElement()
-                                        .getAncestorOfKind(Kind.MODULE)
+                                + wranglerSelection
+                                        .getErlElement()
+                                        .getAncestorOfKind(
+                                                ErlElementKind.MODULE)
                                         .getName(), modules1,
                         DEPENECIES_1_VIEW_ID);
             }
             if (!modules2.isEmpty()) {
                 CodeInspectionViewsManager.showErlElements(
                         "Modules, on which "
-                                + wranglerSelection.getErlElement()
-                                        .getAncestorOfKind(Kind.MODULE)
+                                + wranglerSelection
+                                        .getErlElement()
+                                        .getAncestorOfKind(
+                                                ErlElementKind.MODULE)
                                         .getName() + " depends", modules2,
                         DEPENECIES_2_VIEW_ID);
             } else {
@@ -421,7 +426,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
                                 "There is no large module with the specified parameter!");
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
     }
 
@@ -450,8 +455,8 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
             name = atom.atomValue();
         }
         final String[] modNameParts = name.split("/");
-        final IErlModule mod = ErlModelManager.getErlangModel().findModule(
-                modNameParts[modNameParts.length - 1]);
+        final IErlModule mod = ErlangEngine.getInstance().getModel()
+                .findModule(modNameParts[modNameParts.length - 1]);
         return mod;
     }
 
@@ -492,7 +497,7 @@ public class SimpleCodeInspectionHandler extends AbstractHandler implements
                 return;
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         if (!modules.isEmpty()) {
             CodeInspectionViewsManager.showErlElements("Large modules",

@@ -17,39 +17,42 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.contentassist.CompletionProposal;
 import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
+import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
+import org.eclipse.jface.text.contentassist.IContextInformation;
+import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.swt.graphics.Point;
 import org.erlide.backend.BackendCore;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlImport;
-import org.erlide.core.model.erlang.IErlMember;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.erlang.IErlPreprocessorDef;
-import org.erlide.core.model.erlang.IErlRecordDef;
-import org.erlide.core.model.erlang.IErlRecordField;
-import org.erlide.core.model.erlang.ISourceRange;
-import org.erlide.core.model.erlang.ISourceReference;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElement.Kind;
-import org.erlide.core.model.root.IErlElementLocator;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.util.ErlangFunction;
-import org.erlide.core.model.util.ModelUtils;
-import org.erlide.core.services.codeassist.ErlideContextAssist;
-import org.erlide.core.services.codeassist.ErlideContextAssist.RecordCompletion;
-import org.erlide.core.services.search.ErlideDoc;
-import org.erlide.runtime.IRpcSite;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlFunction;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.erlang.IErlImport;
+import org.erlide.engine.model.erlang.IErlMember;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.erlang.IErlPreprocessorDef;
+import org.erlide.engine.model.erlang.IErlRecordDef;
+import org.erlide.engine.model.erlang.IErlRecordField;
+import org.erlide.engine.model.erlang.ISourceRange;
+import org.erlide.engine.model.erlang.ISourceReference;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlElementLocator;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.services.codeassist.RecordCompletion;
+import org.erlide.engine.services.search.ModelFindService;
+import org.erlide.engine.services.search.OtpDocService;
+import org.erlide.engine.util.ErlangFunction;
+import org.erlide.runtime.api.IRpcSite;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.internal.information.HoverUtil;
 import org.erlide.ui.prefs.plugin.NavigationPreferencePage;
 import org.erlide.ui.templates.ErlTemplateCompletionProcessor;
 import org.erlide.ui.util.eclipse.text.HTMLPrinter;
-import org.erlide.utils.ErlLogger;
-import org.erlide.utils.StringUtils;
-import org.erlide.utils.Util;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.StringUtils;
+import org.erlide.util.Util;
+import org.erlide.util.event_tracer.ErlideEventTracer;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -57,10 +60,12 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public abstract class AbstractErlContentAssistProcessor {
+public abstract class AbstractErlContentAssistProcessor implements
+        IContentAssistProcessor {
 
     public static class CompletionNameComparer implements
             Comparator<ICompletionProposal> {
@@ -94,6 +99,7 @@ public abstract class AbstractErlContentAssistProcessor {
 
     protected final ISourceViewer sourceViewer;
     protected final IErlModule module;
+    protected final IErlProject project;
 
     protected enum Kinds {
         //@formatter:off
@@ -109,18 +115,24 @@ public abstract class AbstractErlContentAssistProcessor {
         ARITY_ONLY,
         UNEXPORTED_ONLY,
         INCLUDES,
-        INCLUDE_LIBS
+        INCLUDE_LIBS,
+        TYPES
         //@formatter:on
     }
 
     protected static final List<ICompletionProposal> EMPTY_COMPLETIONS = new ArrayList<ICompletionProposal>();
     protected final CompletionNameComparer completionNameComparer = new CompletionNameComparer();
     protected final ContentAssistant contentAssistant;
+    private IDocument oldDoc;
+    private String oldBefore;
+    private int oldSuggestions = -1;
 
     public AbstractErlContentAssistProcessor(final ISourceViewer sourceViewer,
-            final IErlModule module, final ContentAssistant contentAssistant) {
+            final IErlModule module, final IErlProject project,
+            final ContentAssistant contentAssistant) {
         this.sourceViewer = sourceViewer;
         this.module = module;
+        this.project = project;
         this.contentAssistant = contentAssistant;
     }
 
@@ -128,26 +140,26 @@ public abstract class AbstractErlContentAssistProcessor {
             final int offset, final String prefix, final Kinds kind)
             throws ErlModelException {
         final List<ICompletionProposal> result = Lists.newArrayList();
-        if (module != null) {
-            final IErlProject project = ModelUtils.getProject(module);
-            final boolean includes = kind == Kinds.INCLUDES
-                    || kind == Kinds.INCLUDE_LIBS;
-            final List<String> names = ModelUtils.findUnitsWithPrefix(prefix,
-                    project, kind != Kinds.INCLUDES, includes);
-            final OtpErlangObject res = ErlideDoc.getModules(backend, prefix,
-                    names, includes);
-            if (res instanceof OtpErlangList) {
-                final OtpErlangList resList = (OtpErlangList) res;
-                for (final OtpErlangObject o : resList) {
-                    if (o instanceof OtpErlangString) {
-                        final OtpErlangString s = (OtpErlangString) o;
-                        final String suffix = includes ? "" : ":";
-                        final String cpl = quoted(s.stringValue() + suffix,
-                                kind);
-                        final int prefixLength = prefix.length();
-                        result.add(new CompletionProposal(cpl, offset
-                                - prefixLength, prefixLength, cpl.length()));
-                    }
+        final boolean includes = kind == Kinds.INCLUDES
+                || kind == Kinds.INCLUDE_LIBS;
+        final List<String> names = ErlangEngine
+                .getInstance()
+                .getModelUtilService()
+                .findUnitsWithPrefix(prefix, project, kind != Kinds.INCLUDES,
+                        includes);
+        final OtpErlangObject res = ErlangEngine.getInstance()
+                .getService(OtpDocService.class)
+                .getModules(backend, prefix, names, includes);
+        if (res instanceof OtpErlangList) {
+            final OtpErlangList resList = (OtpErlangList) res;
+            for (final OtpErlangObject o : resList) {
+                if (o instanceof OtpErlangString) {
+                    final OtpErlangString s = (OtpErlangString) o;
+                    final String suffix = includes ? "" : ":";
+                    final String cpl = quoted(s.stringValue() + suffix, kind);
+                    final int prefixLength = prefix.length();
+                    result.add(new CompletionProposal(cpl, offset
+                            - prefixLength, prefixLength, cpl.length()));
                 }
             }
         }
@@ -156,127 +168,161 @@ public abstract class AbstractErlContentAssistProcessor {
 
     protected abstract String quoted(String string, Kinds kind);
 
+    @Override
     public ICompletionProposal[] computeCompletionProposals(
             final ITextViewer viewer, final int offset) {
-        if (module == null) {
-            return null;
-        }
+        final String id = Integer.toHexString(viewer.hashCode()) + "@" + offset;
         try {
-            final IDocument doc = viewer.getDocument();
-            String before = getBefore(viewer, doc, offset);
-            ErlLogger.debug("computeCompletionProposals before %s", before);
-            final int commaPos = before.lastIndexOf(',');
-            final int colonPos = before.lastIndexOf(':');
-            final int hashMarkPos = before.lastIndexOf('#');
-            final int dotPos = before.lastIndexOf('.');
-            final int parenPos = before.lastIndexOf('(');
-            final int leftBracketPos = before.lastIndexOf('{');
-            final int interrogationMarkPos = before.lastIndexOf('?');
-            final int arrowPos = before.lastIndexOf("->");
-            final String prefix = getPrefix(before);
-            List<String> fieldsSoFar = null;
-            List<ICompletionProposal> result;
-            Set<Kinds> flags = EnumSet.noneOf(Kinds.class);
-            int pos;
-            String moduleOrRecord = null;
-            final IErlProject erlProject = ModelUtils.getProject(module);
-            final IProject project = erlProject != null ? erlProject
-                    .getWorkspaceProject() : null;
-            IErlElement element = getElementAt(offset);
-            for (int i = 1; element == null && i <= 15; ++i) {
-                element = getElementAt(offset - i);
-            }
-            RecordCompletion rc = null;
-            if (hashMarkPos >= 0) {
-                rc = ErlideContextAssist.checkRecordCompletion(BackendCore
-                        .getBuildOrIdeBackend(project).getRpcSite(), before);
-            }
-            if (rc != null && rc.isNameWanted()) {
-                flags = EnumSet.of(Kinds.RECORD_DEFS);
-                pos = hashMarkPos;
-                before = rc.getPrefix();
-            } else if (rc != null && rc.isFieldWanted()) {
-                flags = EnumSet.of(Kinds.RECORD_FIELDS);
-                pos = hashMarkPos;
-                if (dotPos > hashMarkPos) {
-                    pos = dotPos;
-                } else if (leftBracketPos > hashMarkPos) {
-                    pos = leftBracketPos;
-                } else {
-                    assert false;
-                }
-                before = rc.getPrefix();
-                moduleOrRecord = rc.getName();
-                fieldsSoFar = rc.getFields();
-            } else if (colonPos > commaPos && colonPos > parenPos) {
-                moduleOrRecord = StringUtils.unquote(getPrefix(before
-                        .substring(0, colonPos)));
-                flags = EnumSet.of(Kinds.EXTERNAL_FUNCTIONS);
-                pos = colonPos;
-                before = before.substring(colonPos + 1);
-            } else if (interrogationMarkPos > hashMarkPos
-                    && interrogationMarkPos > commaPos
-                    && interrogationMarkPos > colonPos
-                    && interrogationMarkPos > arrowPos) {
-                flags = EnumSet.of(Kinds.MACRO_DEFS);
-                pos = interrogationMarkPos;
-                before = before.substring(interrogationMarkPos + 1);
-            } else {
-                pos = colonPos;
-                before = prefix;
-                ErlLogger.debug("element %s", element);
-                if (element != null) {
-                    switch (element.getKind()) {
-                    case EXPORT:
-                        flags = EnumSet.of(Kinds.DECLARED_FUNCTIONS,
-                                Kinds.ARITY_ONLY, Kinds.UNEXPORTED_ONLY);
-                        break;
-                    case IMPORT:
-                        final IErlImport i = (IErlImport) element;
-                        moduleOrRecord = i.getImportModule();
-                        flags = EnumSet.of(Kinds.EXTERNAL_FUNCTIONS,
-                                Kinds.ARITY_ONLY);
-                        break;
-                    case FUNCTION:
-                    case CLAUSE:
-                        flags = EnumSet.of(Kinds.MODULES);
-                        if (module != null) {
-                            flags = Sets.union(flags, EnumSet.of(
-                                    Kinds.VARIABLES, Kinds.DECLARED_FUNCTIONS,
-                                    Kinds.IMPORTED_FUNCTIONS,
-                                    Kinds.AUTO_IMPORTED_FUNCTIONS));
+            ErlideEventTracer.getInstance().traceOperationStart("completion",
+                    id);
+            try {
 
+                final IDocument doc = viewer.getDocument();
+                String before = getBefore(viewer, doc, offset);
+                // ErlLogger.debug("computeCompletionProposals before = %s %d %s",
+                // before, oldSuggestions, oldDoc);
+
+                if (Objects.equal(oldDoc, doc) && oldBefore != null
+                        && before.startsWith(oldBefore) && oldSuggestions == 0) {
+                    return getNoCompletion(offset);
+                }
+                oldDoc = doc;
+                oldBefore = before;
+
+                final int commaPos = before.lastIndexOf(',');
+                final int colonPos = before.lastIndexOf(':');
+                final boolean doubleColon = colonPos >= 0
+                        && before.charAt(colonPos - 1) == ':';
+                final int hashMarkPos = before.lastIndexOf('#');
+                final int dotPos = before.lastIndexOf('.');
+                final int parenPos = before.lastIndexOf('(');
+                final int leftBracketPos = before.lastIndexOf('{');
+                final int interrogationMarkPos = before.lastIndexOf('?');
+                final int arrowPos = before.lastIndexOf("->");
+                final String prefix = getPrefix(before);
+                List<String> fieldsSoFar = null;
+                List<ICompletionProposal> result;
+                Set<Kinds> flags = EnumSet.noneOf(Kinds.class);
+                int pos;
+                String moduleOrRecord = null;
+                IErlElement element = getElementAt(offset);
+                for (int i = 1; element == null && i <= 15; ++i) {
+                    element = getElementAt(offset - i);
+                }
+                RecordCompletion rc = null;
+                if (hashMarkPos >= 0) {
+                    final IProject workspaceProject = project != null ? project
+                            .getWorkspaceProject() : null;
+                    rc = ErlangEngine
+                            .getInstance()
+                            .getContextAssistService()
+                            .checkRecordCompletion(
+                                    BackendCore
+                                            .getBuildOrIdeBackend(workspaceProject),
+                                    before);
+                }
+                if (rc != null && rc.isNameWanted()) {
+                    flags = EnumSet.of(Kinds.RECORD_DEFS);
+                    pos = hashMarkPos;
+                    before = rc.getPrefix();
+                } else if (rc != null && rc.isFieldWanted()) {
+                    flags = EnumSet.of(Kinds.RECORD_FIELDS);
+                    pos = hashMarkPos;
+                    if (dotPos > hashMarkPos) {
+                        pos = dotPos;
+                    } else if (leftBracketPos > hashMarkPos) {
+                        pos = leftBracketPos;
+                    } else {
+                        assert false;
+                    }
+                    before = rc.getPrefix();
+                    moduleOrRecord = rc.getName();
+                    fieldsSoFar = rc.getFields();
+                } else if (colonPos > commaPos && colonPos > parenPos) {
+                    if (doubleColon) {
+                        flags = EnumSet.of(Kinds.TYPES);
+                        pos = colonPos;
+                        before = before.substring(colonPos + 1);
+                    } else {
+                        moduleOrRecord = StringUtils.unquote(getPrefix(before
+                                .substring(0, colonPos)));
+                        flags = EnumSet.of(Kinds.EXTERNAL_FUNCTIONS);
+                        pos = colonPos;
+                        before = before.substring(colonPos + 1);
+                    }
+                } else if (interrogationMarkPos > hashMarkPos
+                        && interrogationMarkPos > commaPos
+                        && interrogationMarkPos > colonPos
+                        && interrogationMarkPos > arrowPos) {
+                    flags = EnumSet.of(Kinds.MACRO_DEFS);
+                    pos = interrogationMarkPos;
+                    before = before.substring(interrogationMarkPos + 1);
+                } else {
+                    pos = colonPos;
+                    before = prefix;
+                    ErlLogger.debug("element %s", element);
+                    if (element != null) {
+                        switch (element.getKind()) {
+                        case EXPORT:
+                            flags = EnumSet.of(Kinds.DECLARED_FUNCTIONS,
+                                    Kinds.ARITY_ONLY, Kinds.UNEXPORTED_ONLY);
+                            break;
+                        case IMPORT:
+                            final IErlImport i = (IErlImport) element;
+                            moduleOrRecord = i.getImportModule();
+                            flags = EnumSet.of(Kinds.EXTERNAL_FUNCTIONS,
+                                    Kinds.ARITY_ONLY);
+                            break;
+                        case FUNCTION:
+                        case CLAUSE:
+                            flags = EnumSet.of(Kinds.MODULES);
+                            if (module != null) {
+                                flags = Sets.union(flags, EnumSet.of(
+                                        Kinds.VARIABLES,
+                                        Kinds.DECLARED_FUNCTIONS,
+                                        Kinds.IMPORTED_FUNCTIONS,
+                                        Kinds.AUTO_IMPORTED_FUNCTIONS));
+
+                            }
+                            break;
+                        case ATTRIBUTE:
+                            if (element.getName().equals("include")) {
+                                flags = EnumSet.of(Kinds.INCLUDES);
+                            } else if (element.getName().equals("include_lib")) {
+                                flags = EnumSet.of(Kinds.INCLUDE_LIBS);
+                            }
+                            break;
+                        default:
+                            break;
                         }
-                        break;
-                    case ATTRIBUTE:
-                        if (element.getName().equals("include")) {
-                            flags = EnumSet.of(Kinds.INCLUDES);
-                        } else if (element.getName().equals("include_lib")) {
-                            flags = EnumSet.of(Kinds.INCLUDE_LIBS);
+                    } else {
+                        if (doubleColon) {
+                            flags = EnumSet.of(Kinds.TYPES);
+                        } else {
+                            flags = EnumSet.of(Kinds.MODULES);
                         }
-                        break;
-                    default:
-                        break;
                     }
                 }
-            }
-            flags = filterFlags(flags);
-            result = addCompletions(flags, offset, before, moduleOrRecord, pos,
-                    fieldsSoFar, erlProject, project);
-            final ErlTemplateCompletionProcessor t = new ErlTemplateCompletionProcessor(
-                    doc, offset - before.length(), before.length());
-            result.addAll(Arrays.asList(t.computeCompletionProposals(viewer,
-                    offset)));
-            if (result.size() == 0) {
-                ErlLogger.debug("no results");
-                return getNoCompletion(offset);
-            } else {
+                flags = filterFlags(flags);
+                result = addCompletions(flags, offset, before, moduleOrRecord,
+                        pos, fieldsSoFar);
+                final ErlTemplateCompletionProcessor t = new ErlTemplateCompletionProcessor(
+                        doc, offset - before.length(), before.length());
+                result.addAll(Arrays.asList(t.computeCompletionProposals(
+                        viewer, offset)));
+                oldSuggestions = result.size();
+                if (result.isEmpty()) {
+                    ErlLogger.debug("no results");
+                    return getNoCompletion(offset);
+                }
                 ErlLogger.debug("%d results", result.size());
                 return result.toArray(new ICompletionProposal[result.size()]);
+            } catch (final Exception e) {
+                ErlLogger.warn(e);
+                return null;
             }
-        } catch (final Exception e) {
-            ErlLogger.warn(e);
-            return null;
+        } finally {
+            ErlideEventTracer.getInstance().traceOperationEnd("completion", id);
         }
     }
 
@@ -288,11 +334,12 @@ public abstract class AbstractErlContentAssistProcessor {
 
     private List<ICompletionProposal> addCompletions(final Set<Kinds> flags,
             final int offset, final String prefix, final String moduleOrRecord,
-            final int pos, final List<String> fieldsSoFar,
-            final IErlProject erlProject, final IProject project)
-            throws CoreException, OtpErlangRangeException, BadLocationException {
-        final IRpcSite backend = BackendCore.getBuildOrIdeBackend(project)
-                .getRpcSite();
+            final int pos, final List<String> fieldsSoFar)
+            throws CoreException, BadLocationException {
+        final IProject workspaceProject = project == null ? null : project
+                .getWorkspaceProject();
+        final IRpcSite backend = BackendCore
+                .getBuildOrIdeBackend(workspaceProject);
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
         if (flags.contains(Kinds.DECLARED_FUNCTIONS)) {
             addSorted(
@@ -326,7 +373,7 @@ public abstract class AbstractErlContentAssistProcessor {
             addSorted(
                     result,
                     getMacroOrRecordCompletions(offset, prefix,
-                            IErlElement.Kind.RECORD_DEF, erlProject, project));
+                            ErlElementKind.RECORD_DEF));
         }
         if (flags.contains(Kinds.RECORD_FIELDS)) {
             addSorted(
@@ -338,15 +385,19 @@ public abstract class AbstractErlContentAssistProcessor {
             addSorted(
                     result,
                     getMacroOrRecordCompletions(offset, prefix,
-                            IErlElement.Kind.MACRO_DEF, erlProject, project));
+                            ErlElementKind.MACRO_DEF));
         }
         if (flags.contains(Kinds.EXTERNAL_FUNCTIONS)) {
             addSorted(
                     result,
-                    getExternalCallCompletions(backend, erlProject,
-                            moduleOrRecord, offset, prefix,
-                            flags.contains(Kinds.ARITY_ONLY)));
+                    getExternalCallCompletions(backend, moduleOrRecord, offset,
+                            prefix, flags.contains(Kinds.ARITY_ONLY)));
         }
+        if (flags.contains(Kinds.TYPES)) {
+            addSorted(result,
+                    getTypeCompletions(backend, moduleOrRecord, offset, prefix));
+        }
+
         return result;
     }
 
@@ -394,7 +445,7 @@ public abstract class AbstractErlContentAssistProcessor {
         try {
             return module.getElementAt(offset);
         } catch (final ErlModelException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return null;
     }
@@ -426,7 +477,7 @@ public abstract class AbstractErlContentAssistProcessor {
     }
 
     List<ICompletionProposal> getVariables(final IRpcSite b, final int offset,
-            final String prefix) throws ErlModelException, BadLocationException {
+            final String prefix) throws BadLocationException {
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
         // get variables
         final IErlElement el = getElementAt(offset);
@@ -436,8 +487,8 @@ public abstract class AbstractErlContentAssistProcessor {
             final IDocument doc = sourceViewer.getDocument();
             final int prefixLength = prefix.length();
             final String src = doc.get(o, offset - o - prefixLength);
-            final Collection<String> vars = ErlideContextAssist.getVariables(b,
-                    src, prefix);
+            final Collection<String> vars = ErlangEngine.getInstance()
+                    .getContextAssistService().getVariables(src, prefix);
             for (final String var : vars) {
                 result.add(new CompletionProposal(var, offset - prefixLength,
                         prefixLength, var.length()));
@@ -447,15 +498,14 @@ public abstract class AbstractErlContentAssistProcessor {
     }
 
     List<ICompletionProposal> getMacroOrRecordCompletions(final int offset,
-            final String prefix, final Kind kind, final IErlProject erlProject,
-            final IProject project) {
+            final String prefix, final ErlElementKind kind) {
         if (module == null) {
             return EMPTY_COMPLETIONS;
         }
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
         try {
-            final List<IErlPreprocessorDef> defs = ModelUtils
-                    .getAllPreprocessorDefs(module, kind);
+            final List<IErlPreprocessorDef> defs = ErlangEngine.getInstance()
+                    .getModelUtilService().getAllPreprocessorDefs(module, kind);
             for (final IErlPreprocessorDef pd : defs) {
                 final String name = pd.getDefinedName();
                 addIfMatches(name, prefix, offset, result);
@@ -463,8 +513,9 @@ public abstract class AbstractErlContentAssistProcessor {
         } catch (final CoreException e) {
             ErlLogger.error(e);
         }
-        if (kind == Kind.MACRO_DEF) {
-            final String[] names = ModelUtils.getPredefinedMacroNames();
+        if (kind == ErlElementKind.MACRO_DEF) {
+            final String[] names = ErlangEngine.getInstance()
+                    .getModelUtilService().getPredefinedMacroNames();
             for (final String name : names) {
                 addIfMatches(name, prefix, offset, result);
             }
@@ -473,27 +524,29 @@ public abstract class AbstractErlContentAssistProcessor {
     }
 
     List<ICompletionProposal> getExternalCallCompletions(final IRpcSite b,
-            final IErlProject project, String moduleName, final int offset,
-            final String prefix, final boolean arityOnly)
-            throws OtpErlangRangeException, CoreException {
-        moduleName = ModelUtils.resolveMacroValue(moduleName, module);
+            final String moduleName0, final int offset, final String prefix,
+            final boolean arityOnly) throws CoreException {
+        final ModelFindService modelFindService = ErlangEngine.getInstance()
+                .getModelFindService();
+        final String moduleName = modelFindService.resolveMacroValue(
+                moduleName0, module);
         // we have an external call
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
-        final IErlProject erlProject = module == null ? null : ModelUtils
-                .getProject(module);
         final boolean checkAllProjects = NavigationPreferencePage
                 .getCheckAllProjects();
-        final IErlElementLocator model = ErlModelManager.getErlangModel();
-        final IErlModule theModule = ModelUtils.findModule(model, erlProject,
-                moduleName, null,
+        final IErlElementLocator model = ErlangEngine.getInstance().getModel();
+        final IErlModule theModule = modelFindService.findModule(model,
+                project, moduleName, null,
                 checkAllProjects ? IErlElementLocator.Scope.ALL_PROJECTS
                         : IErlElementLocator.Scope.REFERENCED_PROJECTS);
         if (theModule != null) {
-            if (ModelUtils.isOtpModule(theModule)) {
+            if (ErlangEngine.getInstance().getModelUtilService()
+                    .isOtpModule(theModule)) {
                 final String stateDir = ErlideUIPlugin.getDefault()
                         .getStateLocation().toString();
-                final OtpErlangObject res = ErlideDoc.getProposalsWithDoc(b,
-                        moduleName, prefix, stateDir);
+                final OtpErlangObject res = ErlangEngine.getInstance()
+                        .getService(OtpDocService.class)
+                        .getProposalsWithDoc(b, moduleName, prefix, stateDir);
                 addFunctionProposalsWithDoc(offset, prefix, result, res, null,
                         arityOnly);
             } else {
@@ -512,8 +565,11 @@ public abstract class AbstractErlContentAssistProcessor {
         }
         IErlPreprocessorDef pd;
         try {
-            pd = ModelUtils.findPreprocessorDef(module, recordName,
-                    Kind.RECORD_DEF);
+            pd = ErlangEngine
+                    .getInstance()
+                    .getModelFindService()
+                    .findPreprocessorDef(module, recordName,
+                            ErlElementKind.RECORD_DEF);
         } catch (final CoreException e) {
             return EMPTY_COMPLETIONS;
         }
@@ -545,10 +601,12 @@ public abstract class AbstractErlContentAssistProcessor {
 
     List<ICompletionProposal> getAutoImportedFunctions(final IRpcSite backend,
             final int offset, final String prefix) {
-        final String stateDir = ErlideUIPlugin.getDefault().getStateLocation()
-                .toString();
-        final OtpErlangObject res = ErlideDoc.getProposalsWithDoc(backend,
-                "<auto_imported>", prefix, stateDir);
+        final String stateDir = ErlangEngine.getInstance().getStateDir();
+        final OtpErlangObject res = ErlangEngine
+                .getInstance()
+                .getService(OtpDocService.class)
+                .getProposalsWithDoc(backend, "<auto_imported>", prefix,
+                        stateDir);
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
         addFunctionProposalsWithDoc(offset, prefix, result, res, null, false);
         return result;
@@ -556,14 +614,41 @@ public abstract class AbstractErlContentAssistProcessor {
 
     List<ICompletionProposal> getImportedFunctions(final IRpcSite backend,
             final int offset, final String prefix) {
-        final String stateDir = ErlideUIPlugin.getDefault().getStateLocation()
-                .toString();
+        final String stateDir = ErlangEngine.getInstance().getStateDir();
         final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
         for (final IErlImport imp : module.getImports()) {
-            final OtpErlangObject res = ErlideDoc.getProposalsWithDoc(backend,
-                    imp.getImportModule(), prefix, stateDir);
+            final OtpErlangObject res = ErlangEngine
+                    .getInstance()
+                    .getService(OtpDocService.class)
+                    .getProposalsWithDoc(backend, imp.getImportModule(),
+                            prefix, stateDir);
             addFunctionProposalsWithDoc(offset, prefix, result, res, imp, false);
         }
+        return result;
+    }
+
+    List<ICompletionProposal> getTypeCompletions(final IRpcSite backend,
+            final String moduleOrRecord, final int offset, final String prefix) {
+        final List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
+        for (final String builtin : getBuiltinTypeCompletions()) {
+            if (builtin.startsWith(prefix.trim())) {
+                result.add(new CompletionProposal(builtin, offset
+                        - prefix.length(), prefix.length(), builtin.length()));
+            }
+        }
+        // TODO provide types completions from workspace
+        return result;
+    }
+
+    List<String> getBuiltinTypeCompletions() {
+        final List<String> result = Lists.newArrayList("any()", "binary()",
+                "bitstring()", "boolean()", "byte()", "char()", "float()",
+                "fun()", "integer()", "iolist()", "list()",
+                "maybe_improper_list()", "mfa()", "module()", "neg_integer()",
+                "no_return()", "node()", "non_neg_integer()", "none()",
+                "nonempty_list()", "number()", "pid()", "port()",
+                "pos_integer()", "reference()", "term()", "timeout()",
+                "tuple()");
         return result;
     }
 
@@ -584,7 +669,7 @@ public abstract class AbstractErlContentAssistProcessor {
                 }
             }
         } catch (final ErlModelException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return result;
     }
@@ -639,7 +724,7 @@ public abstract class AbstractErlContentAssistProcessor {
             final String docStr, final String funWithParameters,
             final List<Point> offsetsAndLengths) {
         int cursorPosition = funWithParameters.length();
-        if (offsetsAndLengths.size() > 0) {
+        if (!offsetsAndLengths.isEmpty()) {
             cursorPosition = offsetsAndLengths.get(0).x;
         }
 
@@ -737,8 +822,8 @@ public abstract class AbstractErlContentAssistProcessor {
             String funWithParameters = arityOnly ? funWithArity
                     : getNameWithParameters(function.name, parameterNames);
             funWithParameters = funWithParameters.substring(prefix.length());
-            final String htmlComment = comments != null ? HTMLPrinter
-                    .asHtml(HoverUtil.getDocumentationString(comments)) : "";
+            final String htmlComment = comments == null ? "" : HTMLPrinter
+                    .asHtml(HoverUtil.getDocumentationString(comments));
             addFunctionCompletion(offset, result, funWithArity, htmlComment,
                     funWithParameters, offsetsAndLengths);
         }
@@ -759,7 +844,8 @@ public abstract class AbstractErlContentAssistProcessor {
     }
 
     private void addOffsetsAndLengths(final List<String> parameterNames,
-            int replacementOffset, final List<Point> result) {
+            final int replacementOffset0, final List<Point> result) {
+        int replacementOffset = replacementOffset0;
         for (final String par : parameterNames) {
             result.add(new Point(replacementOffset, par.length()));
             replacementOffset += par.length() + 2;
@@ -779,4 +865,26 @@ public abstract class AbstractErlContentAssistProcessor {
             }
         }
     }
+
+    @Override
+    public IContextInformation[] computeContextInformation(
+            final ITextViewer viewer, final int offset) {
+        return null;
+    }
+
+    @Override
+    public char[] getContextInformationAutoActivationCharacters() {
+        return null;
+    }
+
+    @Override
+    public String getErrorMessage() {
+        return null;
+    }
+
+    @Override
+    public IContextInformationValidator getContextInformationValidator() {
+        return null;
+    }
+
 }

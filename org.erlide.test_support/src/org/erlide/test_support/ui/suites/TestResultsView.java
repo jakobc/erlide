@@ -14,18 +14,18 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
-import org.erlide.runtime.Bindings;
-import org.erlide.runtime.ErlUtils;
-import org.erlide.runtime.TermParserException;
 import org.erlide.test_support.ui.suites.TestCaseData.FailReason;
 import org.erlide.test_support.ui.suites.TestCaseData.FailStackItem;
+import org.erlide.ui.util.DisplayUtils;
 import org.erlide.ui.util.ErlModelUtils;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.erlang.Bindings;
+import org.erlide.util.erlang.ErlUtils;
+import org.erlide.util.erlang.TermParserException;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangException;
@@ -119,7 +119,7 @@ public class TestResultsView extends ViewPart {
     }
 
     public void notifyEvent(final OtpErlangObject msg) {
-        Display.getDefault().asyncExec(new Runnable() {
+        DisplayUtils.asyncExec(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -127,10 +127,9 @@ public class TestResultsView extends ViewPart {
                     treeViewer.refresh();
                     control.update();
                 } catch (final TermParserException e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 } catch (final OtpErlangException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 }
             }
 
@@ -219,9 +218,8 @@ public class TestResultsView extends ViewPart {
             final String tcase = b.getAtom("C");
             if (tcase.length() == 0) {
                 return "suite " + suite;
-            } else {
-                return "suite " + suite + "; case " + tcase;
             }
+            return "suite " + suite + "; case " + tcase;
         } catch (final TermParserException e) {
         } catch (final OtpErlangException e) {
         }

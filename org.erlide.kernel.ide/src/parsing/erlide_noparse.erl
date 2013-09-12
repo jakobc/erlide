@@ -9,7 +9,7 @@
 %%
 
 %% called from Java
--export([initial_parse/5, reparse/2, remove_cache_files/2]).
+-export([initial_parse/6, reparse/2, remove_cache_files/2]).
 
 %% called from Erlang
 -export([get_module_refs/4]).
@@ -20,12 +20,11 @@
 
 %% -define(DEBUG, 1).
 
--define(CACHE_VERSION, 29).
+-define(CACHE_VERSION, 30).
 -define(SERVER, erlide_noparse).
 
 -include("erlide.hrl").
 -include("erlide_noparse.hrl").
--include("erlide_scanner.hrl").
 -include("erlide_scanner_server.hrl").
 -include("erlide_search.hrl").
 
@@ -33,17 +32,19 @@
 %% API Functions
 %%
 
--spec initial_parse(atom(), string(), string(), boolean(), boolean()) ->
+-spec initial_parse(atom(), string(), string(), string(), boolean(), boolean()) ->
           {ok, #model{}, cached | renewing | dont_use_cache, [#ref{}]}
               | {error, term(), term()}.
 
-initial_parse(ScannerName, ModuleFileName, StateDir, UseCache,
+initial_parse(ScannerName, ModuleFileName, InitialText, StateDir, UseCache,
               UpdateSearchServer) ->
     try
+        ?D({ScannerName, ModuleFileName, UseCache, UpdateSearchServer}),
         BaseName = filename:join(StateDir, atom_to_list(ScannerName)),
         RefsFileName = BaseName ++ ".refs",
         RenewFun = fun(_F) ->
-                           Tokens = get_tokens(ScannerName, ModuleFileName, StateDir),
+                           Tokens = get_tokens(ScannerName, ModuleFileName,
+                                               InitialText, StateDir),
                            {Model, Refs} =
                                do_parse(ScannerName, RefsFileName, Tokens, StateDir,
                                         UpdateSearchServer),
@@ -64,7 +65,7 @@ initial_parse(ScannerName, ModuleFileName, StateDir, UseCache,
               | {error, term(), term()}.
 reparse(ScannerName, UpdateSearchServer) ->
     try
-        Tokens = erlide_scanner_server:getTokens(ScannerName),
+        Tokens = erlide_scanner:get_tokens(ScannerName),
         {Model, _Refs} = do_parse(ScannerName, "", Tokens, "", UpdateSearchServer),
         {ok, Model}
     catch
@@ -83,8 +84,14 @@ get_module_refs(ScannerName, ModulePath, StateDir, UpdateSearchServer) ->
         {ok, Binary} ->
             binary_to_term(Binary);
         _ ->
-            {ok, _, _, Refs} = initial_parse(ScannerName, ModulePath, StateDir,
-                                             true, UpdateSearchServer),
+            InitialText = case file:read_file(ModulePath) of
+                              {ok, InitialTextBin} ->
+                                  binary_to_list(InitialTextBin);
+                              _ ->
+                                  ""
+                          end,
+            {ok, _, _, Refs} = initial_parse(ScannerName, ModulePath, InitialText,
+                                             StateDir, true, UpdateSearchServer),
             Refs
     end.
 
@@ -103,21 +110,21 @@ remove_cache_files(ScannerName, StateDir) ->
 %% Internal functions
 %%
 
-get_tokens(ScannerName, ModuleFileName, StateDir) ->
+get_tokens(ScannerName, ModuleFileName, InitialText, StateDir) ->
     case whereis(ScannerName) of
         undefined ->
-            {ok, InitialTextBin} = file:read_file(ModuleFileName),
-            InitialText = binary_to_list(InitialTextBin),
             {{_Cached, Module}, _Text} = erlide_scanner:initial_scan(ScannerName, ModuleFileName, InitialText, StateDir, true),
-            erlide_scanner:get_all_tokens(Module);
+            erlide_scan_model:get_all_tokens(Module);
         _ ->
-      erlide_scanner_server:getTokens(ScannerName)
+            erlide_scanner:get_tokens(ScannerName)
     end.
 
 do_parse(ScannerName, RefsFileName, Tokens, StateDir, UpdateSearchServer) ->
     {Forms, Comments, References} = erlide_np:parse(Tokens),
+    ?D(Forms),
     Model = #model{forms=Forms, comments=Comments},
     CompactModel = erlide_np_util:compact_model(Model),
+    ?D(CompactModel),
     case StateDir of
         "" -> ok;
         _ ->

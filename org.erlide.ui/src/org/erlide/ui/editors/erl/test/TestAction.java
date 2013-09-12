@@ -15,10 +15,15 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.TextEditorAction;
-import org.erlide.core.internal.model.erlang.ErlideScanner;
-import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.services.parsing.InternalScanner;
 import org.erlide.ui.editors.erl.ErlangEditor;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.Util;
+
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  * @author jakob
@@ -46,14 +51,30 @@ public class TestAction extends TextEditorAction {
                     .getDocument(textEditor.getEditorInput());
             final String text = document.get();
             final String scannerName = module.getScannerName();
-            final String s = ErlideScanner.checkAll(scannerName, text);
+            // XXX implementation detail - how to do it better?
+            final InternalScanner internalScanner = (InternalScanner) ErlangEngine
+                    .getInstance().getSimpleScannerService();
+            final OtpErlangObject checkAll = internalScanner.checkAll(
+                    scannerName, text, true);
+            String s;
+            if (checkAll instanceof OtpErlangTuple) {
+                final OtpErlangTuple t = (OtpErlangTuple) checkAll;
+                s = Util.stringValue(t.elementAt(0));
+                final OtpErlangObject o1 = t.elementAt(1);
+                final OtpErlangObject o2 = t.elementAt(2);
+                dumpText(o1.toString(), "/tmp/scannerTokens.txt");
+                dumpText(o2.toString(), "/tmp/rescanTokens.txt");
+            } else {
+                s = Util.stringValue(checkAll);
+            }
             ErlLogger.debug("%s", s);
-            final String scannerText = ErlideScanner.getText(scannerName);
+            final String scannerText = ErlangEngine.getInstance()
+                    .getScannerProviderService().get(scannerName).getText();
             dumpText(scannerText, "/tmp/scanner.txt");
             dumpText(text, "/tmp/editor.txt");
             if (textEditor instanceof ErlangEditor) {
                 final ErlangEditor editor = (ErlangEditor) textEditor;
-                ErlideScanner.dumpLog(editor.getModule().getScannerName(),
+                internalScanner.dumpLog(editor.getModule().getScannerName(),
                         "/tmp/x.scanner.log");
                 editor.dumpReconcilerLog("/tmp/x.reconciler.log");
             }
@@ -69,7 +90,7 @@ public class TestAction extends TextEditorAction {
             deps = module.getAllDependentModules();
             ErlLogger.debug(deps.toString());
         } catch (final CoreException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }
@@ -81,7 +102,7 @@ public class TestAction extends TextEditorAction {
             out.write(text.getBytes());
             out.close();
         } catch (final IOException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
     }
 }

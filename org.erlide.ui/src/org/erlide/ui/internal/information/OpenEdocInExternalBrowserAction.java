@@ -12,15 +12,14 @@ package org.erlide.ui.internal.information;
 
 import java.net.URL;
 
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchSite;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlElement;
 import org.erlide.ui.actions.ActionMessages;
 import org.erlide.ui.actions.SelectionDispatchAction;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.internal.ErlBrowserInformationControlInput;
 
@@ -36,7 +35,7 @@ import org.erlide.ui.internal.ErlBrowserInformationControlInput;
  */
 public class OpenEdocInExternalBrowserAction extends SelectionDispatchAction {
 
-    private ErlangEditor editor;
+    private AbstractErlangEditor editor;
 
     private Shell fShell;
 
@@ -192,19 +191,19 @@ public class OpenEdocInExternalBrowserAction extends SelectionDispatchAction {
         return false;
     }
 
-    private static void showMessage(final Shell shell, final String message,
-            final boolean isError) {
-        Display.getDefault().asyncExec(new Runnable() {
-            @Override
-            public void run() {
-                if (isError) {
-                    MessageDialog.openError(shell, getTitle(), message);
-                } else {
-                    MessageDialog.openInformation(shell, getTitle(), message);
-                }
-            }
-        });
-    }
+    // private static void showMessage(final Shell shell, final String message,
+    // final boolean isError) {
+    // DisplayUtils.asyncExec(new Runnable() {
+    // @Override
+    // public void run() {
+    // if (isError) {
+    // MessageDialog.openError(shell, getTitle(), message);
+    // } else {
+    // MessageDialog.openInformation(shell, getTitle(), message);
+    // }
+    // }
+    // });
+    // }
 
     private static String getTitle() {
         return ActionMessages.OpenEdocInExternalBrowser_title;

@@ -22,7 +22,7 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.StatusInfo;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -66,7 +66,7 @@ public abstract class ErlidePreferencePage extends PreferencePage {
     protected static List<Boolean> getBooleanPreferences(final List<String> p) {
         final List<Boolean> l = new ArrayList<Boolean>(p.size());
         for (final String i : p) {
-            l.add(!i.equals("0") && !i.equals("false")); //$NON-NLS-1$ //$NON-NLS-2$
+            l.add(!"0".equals(i) && !"false".equals(i)); //$NON-NLS-1$ //$NON-NLS-2$
         }
         return l;
     }
@@ -236,7 +236,8 @@ public abstract class ErlidePreferencePage extends PreferencePage {
         updateStatus(status);
     }
 
-    protected void updateStatus(IStatus status) {
+    protected void updateStatus(final IStatus status0) {
+        IStatus status = status0;
         if (!status.matches(IStatus.ERROR)) {
             for (final Text text : fNumberFields) {
                 final IStatus s = validatePositiveNumber(text.getText());

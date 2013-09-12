@@ -16,17 +16,18 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.statushandlers.StatusManager;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.util.ErlangFunction;
 import org.erlide.cover.core.Logger;
 import org.erlide.cover.ui.Activator;
 import org.erlide.cover.views.model.FunctionStats;
 import org.erlide.cover.views.model.ModuleStats;
 import org.erlide.cover.views.model.StatsTreeObject;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlFunction;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.util.ErlangFunction;
 import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.util.ErlLogger;
 
 /**
  * Action for opening items in the editor.
@@ -86,7 +87,7 @@ public class OpenItemAction extends Action {
 
             IErlModule module;
             try {
-                module = ErlModelManager.getErlangModel()
+                module = ErlangEngine.getInstance().getModel()
                         .findModule(moduleName);
 
                 final IErlFunction f = module.findFunction(new ErlangFunction(
@@ -95,7 +96,7 @@ public class OpenItemAction extends Action {
                 editor.setSelection(f);
 
             } catch (final ErlModelException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
             }
 
         } else {
@@ -109,7 +110,7 @@ public class OpenItemAction extends Action {
 
         IErlModule module;
         try {
-            module = ErlModelManager.getErlangModel().findModule(name);
+            module = ErlangEngine.getInstance().getModel().findModule(name);
         } catch (final ErlModelException e1) {
             e1.printStackTrace();
             return null;
@@ -132,7 +133,7 @@ public class OpenItemAction extends Action {
             return p;
 
         } catch (final PartInitException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return null;
         }
 

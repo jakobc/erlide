@@ -20,10 +20,8 @@ import org.erlide.ui.internal.ErlideUIPlugin;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class FilterDescriptor implements Comparable<Object>,
+public final class FilterDescriptor implements Comparable<Object>,
         IPluginContribution {
-
-    private static String PATTERN_FILTER_ID_PREFIX = "_patternFilterId_"; //$NON-NLS-1$
 
     private static final String EXTENSION_POINT_NAME = "erlangElementFilters"; //$NON-NLS-1$
 
@@ -246,9 +244,8 @@ public class FilterDescriptor implements Comparable<Object>,
         if (o instanceof FilterDescriptor) {
             return Collator.getInstance().compare(getName(),
                     ((FilterDescriptor) o).getName());
-        } else {
-            return -1;
         }
+        return -1;
     }
 
     @Override

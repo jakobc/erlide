@@ -11,10 +11,16 @@
  *******************************************************************************/
 package org.erlide.ui.editors.erl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.util.HashSet;
 import java.util.Set;
 
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentExtension3;
@@ -52,8 +58,8 @@ public class ErlangPairMatcher implements ICharacterPairMatcher {
      *            the partitioning to match within
      */
     public ErlangPairMatcher(final String[] strings, final String partitioning) {
-        Assert.isLegal(strings.length % 2 == 0);
-        Assert.isNotNull(partitioning);
+        assertThat(strings.length % 2, is(0));
+        assertThat(partitioning, is(not(nullValue())));
         fPairs = new StringPairs(strings);
         fPartitioning = partitioning;
     }
@@ -309,7 +315,8 @@ public class ErlangPairMatcher implements ICharacterPairMatcher {
          */
         private ITypedRegion getPartition(final int pos) {
             if (fCachedPartition == null || !contains(fCachedPartition, pos)) {
-                Assert.isTrue(pos >= 0 && pos <= fDocument.getLength());
+                assertThat(pos, is(greaterThanOrEqualTo(0)));
+                assertThat(pos, is(lessThanOrEqualTo(fDocument.getLength())));
                 try {
                     fCachedPartition = TextUtilities.getPartition(fDocument,
                             fPartitioning, pos, false);
@@ -414,7 +421,6 @@ public class ErlangPairMatcher implements ICharacterPairMatcher {
                     return getStartString(i);
                 }
             }
-            Assert.isTrue(false);
             return "";
         }
 

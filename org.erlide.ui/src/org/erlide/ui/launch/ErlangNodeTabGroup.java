@@ -41,6 +41,6 @@ public class ErlangNodeTabGroup extends AbstractLaunchConfigurationTabGroup {
                 .newArrayList(createMyTabs(dialog, mode));
         tabs.add(new EnvironmentTab());
         tabs.add(new CommonTab());
-        setTabs(tabs.toArray(new ILaunchConfigurationTab[0]));
+        setTabs(tabs.toArray(new ILaunchConfigurationTab[tabs.size()]));
     }
 }

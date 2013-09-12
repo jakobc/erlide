@@ -17,6 +17,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 import org.eclipse.swt.widgets.Shell;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.backend.IRefactoringRpcMessage;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage.GenFunReturnParameterName;
@@ -184,7 +185,7 @@ public class GeneraliseFunctionRefactoring extends
 
             return ret;
         } catch (final OtpErlangException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return null;
         }
     }
@@ -226,15 +227,13 @@ public class GeneraliseFunctionRefactoring extends
                             funDefPos, exp, GlobalParameters.getTabWidth(),
                             new OtpErlangBoolean(sideEffect), getSelectedPos(),
                             logCmd);
-                } else {
-                    return WranglerBackendManager.getRefactoringBackend().call(
-                            "gen_fun_1_eclipse", "xsxxxxxxxix",
-                            new OtpErlangBoolean(sideEffect),
-                            sel.getFilePath(), parName, funName, arity,
-                            funDefPos, exp, getSelectedPos(),
-                            sel.getSearchPath(),
-                            GlobalParameters.getTabWidth(), logCmd);
                 }
+                return WranglerBackendManager.getRefactoringBackend().call(
+                        "gen_fun_1_eclipse", "xsxxxxxxxix",
+                        new OtpErlangBoolean(sideEffect), sel.getFilePath(),
+                        parName, funName, arity, funDefPos, exp,
+                        getSelectedPos(), sel.getSearchPath(),
+                        GlobalParameters.getTabWidth(), logCmd);
             } else if (state == State.more_than_one_clause) {
                 if (onlyInClause) {
                     return WranglerBackendManager.getRefactoringBackend().call(
@@ -242,14 +241,12 @@ public class GeneraliseFunctionRefactoring extends
                             sel.getFilePath(), parName, funName, arity,
                             funDefPos, exp, GlobalParameters.getTabWidth(),
                             sideEffectPar, getSelectedPos(), logCmd);
-                } else {
-                    return WranglerBackendManager.getRefactoringBackend().call(
-                            "gen_fun_1_eclipse", "xsxxxxxxxix", sideEffectPar,
-                            sel.getFilePath(), parName, funName, arity,
-                            funDefPos, exp, getSelectedPos(),
-                            sel.getSearchPath(),
-                            GlobalParameters.getTabWidth(), logCmd);
                 }
+                return WranglerBackendManager.getRefactoringBackend().call(
+                        "gen_fun_1_eclipse", "xsxxxxxxxix", sideEffectPar,
+                        sel.getFilePath(), parName, funName, arity, funDefPos,
+                        exp, getSelectedPos(), sel.getSearchPath(),
+                        GlobalParameters.getTabWidth(), logCmd);
             }
         }
 
@@ -265,10 +262,9 @@ public class GeneraliseFunctionRefactoring extends
         if (theMessage.isSuccessful()) {
             changedFiles = theMessage.getRefactoringChangeset();
             return new RefactoringStatus();
-        } else {
-            return RefactoringStatus.createFatalErrorStatus(theMessage
-                    .getMessageString());
         }
+        return RefactoringStatus.createFatalErrorStatus(theMessage
+                .getMessageString());
     }
 
     @Override
@@ -320,7 +316,7 @@ public class GeneraliseFunctionRefactoring extends
      * OtpErlangObject[] positionArray = positions.elements(); for
      * (OtpErlangObject o : positionArray) { try { ret.put(new ErlRange(new
      * Range((OtpErlangTuple) o), doc), (OtpErlangTuple) o); } catch
-     * (OtpErlangRangeException e) { e.printStackTrace(); } }
+     * (OtpErlangRangeException e) { ErlLogger.error(e); } }
      * 
      * return ret; }
      * 

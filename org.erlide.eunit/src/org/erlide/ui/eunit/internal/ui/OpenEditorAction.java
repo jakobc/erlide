@@ -15,82 +15,82 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlProject;
 import org.erlide.ui.util.ErlModelUtils;
 
 /**
  * Abstract Action for opening an erlang editor.
  */
 public abstract class OpenEditorAction extends Action {
-	protected String fModuleName;
-	protected TestRunnerViewPart fTestRunner;
+    protected String fModuleName;
+    protected TestRunnerViewPart fTestRunner;
 
-	// private final boolean fActivate;
+    // private final boolean fActivate;
 
-	protected OpenEditorAction(final TestRunnerViewPart testRunner,
-			final String testClassName) {
-		this(testRunner, testClassName, true);
-	}
+    protected OpenEditorAction(final TestRunnerViewPart testRunner,
+            final String testClassName) {
+        this(testRunner, testClassName, true);
+    }
 
-	public OpenEditorAction(final TestRunnerViewPart testRunner,
-			final String moduleName, final boolean activate) {
-		super("&Go to File");
-		fModuleName = moduleName;
-		fTestRunner = testRunner;
-		// fActivate = activate;
-	}
+    public OpenEditorAction(final TestRunnerViewPart testRunner,
+            final String moduleName, final boolean activate) {
+        super("&Go to File");
+        fModuleName = moduleName;
+        fTestRunner = testRunner;
+        // fActivate = activate;
+    }
 
-	/*
-	 * @see IAction#run()
-	 */
-	@Override
-	public void run() {
-		final IErlModule module = findModule(getLaunchedProject(), fModuleName);
-		if (module == null) {
-			MessageDialog.openError(getShell(), "Cannot Open Editor",
-					"Test class not found in selected project");
-			return;
-		}
-		try {
-			final ITextEditor editor = (ITextEditor) ErlModelUtils
-					.openElement(module);
-			reveal(editor);
-		} catch (final PartInitException e) {
-			e.printStackTrace();
-		}
-	}
+    /*
+     * @see IAction#run()
+     */
+    @Override
+    public void run() {
+        final IErlModule module = findModule(getLaunchedProject(), fModuleName);
+        if (module == null) {
+            MessageDialog.openError(getShell(), "Cannot Open Editor",
+                    "Test class not found in selected project");
+            return;
+        }
+        try {
+            final ITextEditor editor = (ITextEditor) ErlModelUtils
+                    .openElement(module);
+            reveal(editor);
+        } catch (final PartInitException e) {
+            e.printStackTrace();
+        }
+    }
 
-	protected Shell getShell() {
-		return fTestRunner.getSite().getShell();
-	}
+    protected Shell getShell() {
+        return fTestRunner.getSite().getShell();
+    }
 
-	/**
-	 * @return the erlang project, or <code>null</code>
-	 */
-	protected IErlProject getLaunchedProject() {
-		return fTestRunner.getLaunchedProject();
-	}
+    /**
+     * @return the erlang project, or <code>null</code>
+     */
+    protected IErlProject getLaunchedProject() {
+        return fTestRunner.getLaunchedProject();
+    }
 
-	protected String getClassName() {
-		return fModuleName;
-	}
+    protected String getClassName() {
+        return fModuleName;
+    }
 
-	protected abstract void reveal(ITextEditor editor);
+    protected abstract void reveal(ITextEditor editor);
 
-	protected final IErlModule findModule(final IErlProject project,
-			final String name) {
-		try {
-			IErlModule module = project.getModule(name);
-			if (module == null) {
-				module = ErlModelManager.getErlangModel().findModule(name);
-			}
-			return module;
-		} catch (final ErlModelException e) {
-			return null;
-		}
-	}
+    protected final IErlModule findModule(final IErlProject project,
+            final String name) {
+        try {
+            IErlModule module = project.getModule(name);
+            if (module == null) {
+                module = ErlangEngine.getInstance().getModel().findModule(name);
+            }
+            return module;
+        } catch (final ErlModelException e) {
+            return null;
+        }
+    }
 
 }

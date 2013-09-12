@@ -1,14 +1,14 @@
 package org.erlide.core.preferences;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.erlide.core.ErlangCore;
-import org.erlide.core.internal.model.root.OldErlangProjectProperties;
-import org.erlide.core.internal.model.root.ProjectPreferencesConstants;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.model.root.IErlangProjectProperties;
+import org.erlide.engine.model.root.OldErlangProjectProperties;
+import org.erlide.engine.model.root.ProjectPreferencesConstants;
 import org.erlide.test.support.ErlideTestUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -40,10 +40,10 @@ public class ProjectPropertiesTest {
 
         final IProject project = erlProject.getWorkspaceProject();
         final IEclipsePreferences node = new ProjectScope(project)
-                .getNode(ErlangCore.PLUGIN_ID);
+                .getNode("org.erlide.core");
         node.put(ProjectPreferencesConstants.OUTPUT_DIR, expected);
 
-        final OldErlangProjectProperties pp = new OldErlangProjectProperties(
+        final IErlangProjectProperties pp = new OldErlangProjectProperties(
                 project);
         final String actual = pp.getOutputDir().toPortableString();
 
@@ -56,10 +56,10 @@ public class ProjectPropertiesTest {
 
         final IProject project = erlProject.getWorkspaceProject();
         final IEclipsePreferences node = new ProjectScope(project)
-                .getNode(ErlangCore.PLUGIN_ID);
+                .getNode("org.erlide.core");
         node.put(ProjectPreferencesConstants.INCLUDE_DIRS, expected);
 
-        final OldErlangProjectProperties pp = new OldErlangProjectProperties(
+        final IErlangProjectProperties pp = new OldErlangProjectProperties(
                 project);
         final String actual = pp.getIncludeDirs().toString();
 
@@ -77,10 +77,10 @@ public class ProjectPropertiesTest {
 
         final IProject project = erlProject.getWorkspaceProject();
         final IEclipsePreferences node = new ProjectScope(project)
-                .getNode(ErlangCore.PLUGIN_ID);
+                .getNode("org.erlide.core");
         node.put(ProjectPreferencesConstants.SOURCE_DIRS, expected);
 
-        final OldErlangProjectProperties pp = new OldErlangProjectProperties(
+        final IErlangProjectProperties pp = new OldErlangProjectProperties(
                 project);
         final String actual = pp.getSourceDirs().toString();
 

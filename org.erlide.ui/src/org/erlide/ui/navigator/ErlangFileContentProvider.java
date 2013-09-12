@@ -11,20 +11,24 @@ import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.StructuredViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.ui.navigator.SaveablesProvider;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.IOpenable;
-import org.erlide.core.model.IParent;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlModel;
-import org.erlide.core.model.root.IErlModelChangeListener;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.utils.ErlLogger;
+import org.eclipse.ui.progress.UIJob;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.IErlModel;
+import org.erlide.engine.model.IErlModelChangeListener;
+import org.erlide.engine.model.IOpenable;
+import org.erlide.engine.model.IParent;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.util.ErlLogger;
 
 public class ErlangFileContentProvider implements ITreeContentProvider,
         IResourceChangeListener, IResourceDeltaVisitor,
@@ -44,7 +48,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
     public ErlangFileContentProvider() {
         ResourcesPlugin.getWorkspace().addResourceChangeListener(this,
                 IResourceChangeEvent.POST_CHANGE);
-        final IErlModel mdl = ErlModelManager.getErlangModel();
+        final IErlModel mdl = ErlangEngine.getInstance().getModel();
         mdl.addModelChangeListener(this);
     }
 
@@ -52,11 +56,12 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
      * Return the model elements for a *.erl IFile or NO_CHILDREN for otherwise.
      */
     @Override
-    public Object[] getChildren(Object parentElement) {
+    public Object[] getChildren(final Object parentElement0) {
+        Object parentElement = parentElement0;
         try {
             if (parentElement instanceof IFile) {
-                parentElement = ErlModelManager.getErlangModel().findModule(
-                        (IFile) parentElement);
+                parentElement = ErlangEngine.getInstance().getModel()
+                        .findModule((IFile) parentElement);
             }
             if (parentElement instanceof IOpenable) {
                 final IOpenable openable = (IOpenable) parentElement;
@@ -114,7 +119,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
     @Override
     public void dispose() {
         ResourcesPlugin.getWorkspace().removeResourceChangeListener(this);
-        ErlModelManager.getErlangModel().removeModelChangeListener(this);
+        ErlangEngine.getInstance().getModel().removeModelChangeListener(this);
     }
 
     @Override
@@ -122,6 +127,8 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
             final Object newInput) {
         if (theViewer instanceof StructuredViewer) {
             viewer = (StructuredViewer) theViewer;
+        } else {
+            viewer = null;
         }
     }
 
@@ -161,17 +168,21 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
         // Commented out because it may cause problems with too many updates.
         // TODO Investigate further!
 
-        // final String title = "Update Erlang Model in CommonViewer: "
-        // + file.getName();
-        // new UIJob(title) {
-        // @Override
-        // public IStatus runInUIThread(final IProgressMonitor monitor) {
-        // if (viewer != null && !viewer.getControl().isDisposed()) {
-        // viewer.update(file, null);
-        // }
-        // return Status.OK_STATUS;
-        // }
-        // }.schedule();
+        final String title = "Update Erlang Model in CommonViewer: "
+                + file.getName();
+        if (viewer == null) {
+            return;
+        }
+        new UIJob(title) {
+            @Override
+            public IStatus runInUIThread(final IProgressMonitor monitor) {
+                if (viewer != null && !viewer.getControl().isDisposed()) {
+                    viewer.refresh(file);
+                    // viewer.update(file, null);
+                }
+                return Status.OK_STATUS;
+            }
+        }.schedule();
     }
 
     @Override
@@ -186,7 +197,7 @@ public class ErlangFileContentProvider implements ITreeContentProvider,
     }
 
     @Override
-    public Object getAdapter(@SuppressWarnings("rawtypes") final Class required) {
+    public Object getAdapter(final Class required) {
         if (SaveablesProvider.class.equals(required)) {
             // TODO return something useful
             return null;

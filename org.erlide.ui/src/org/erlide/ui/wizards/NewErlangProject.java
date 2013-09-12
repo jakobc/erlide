@@ -36,15 +36,14 @@ import org.eclipse.ui.WorkbenchException;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.internal.model.root.OldErlangProjectProperties;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.root.IOldErlangProjectProperties;
-import org.erlide.core.model.util.PluginUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.model.root.IErlangProjectProperties;
+import org.erlide.engine.model.root.OldErlangProjectProperties;
 import org.erlide.ui.ErlideUIConstants;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.perspectives.ErlangPerspective;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 import org.osgi.service.prefs.BackingStoreException;
 
 /**
@@ -155,7 +154,7 @@ public class NewErlangProject extends Wizard implements INewWizard {
      * @return
      */
     private boolean validateFinish() {
-        final IOldErlangProjectProperties prefs = buildPage.getPrefs();
+        final IErlangProjectProperties prefs = buildPage.getPrefs();
         if (prefs.getOutputDirs().isEmpty()) {
             reportError(ErlideUIPlugin
                     .getResourceString("wizard.errors.buildpath"));
@@ -176,7 +175,6 @@ public class NewErlangProject extends Wizard implements INewWizard {
      * @param monitor
      *            reports progress on this object
      */
-    @SuppressWarnings("serial")
     protected void createProject(final IProgressMonitor monitor) {
         monitor.beginTask(ErlideUIPlugin
                 .getResourceString("wizards.messages.creatingproject"), 50);
@@ -208,6 +206,11 @@ public class NewErlangProject extends Wizard implements INewWizard {
             final OldErlangProjectProperties bprefs = buildPage.getPrefs();
 
             buildPaths(monitor, root, project, new ArrayList<IPath>() {
+                /**
+                 * 
+                 */
+                private static final long serialVersionUID = 8086313054669539150L;
+
                 {
                     addAll(bprefs.getOutputDirs());
                 }
@@ -215,8 +218,8 @@ public class NewErlangProject extends Wizard implements INewWizard {
             buildPaths(monitor, root, project, bprefs.getSourceDirs());
             buildPaths(monitor, root, project, bprefs.getIncludeDirs());
 
-            final IErlProject erlProject = ErlModelManager.getErlangModel()
-                    .getErlangProject(project);
+            final IErlProject erlProject = ErlangEngine.getInstance()
+                    .getModel().getErlangProject(project);
             erlProject.setAllProperties(bprefs);
 
             // TODO add code path to backend
@@ -274,11 +277,14 @@ public class NewErlangProject extends Wizard implements INewWizard {
      */
     private void reportError(final Exception x) {
         ErlLogger.error(x);
-        ErrorDialog.openError(getShell(), ErlideUIPlugin
-                .getResourceString("wizards.errors.projecterrordesc"),
+        ErrorDialog.openError(
+                getShell(),
+                ErlideUIPlugin
+                        .getResourceString("wizards.errors.projecterrordesc"),
                 ErlideUIPlugin
                         .getResourceString("wizards.errors.projecterrortitle"),
-                PluginUtils.makeStatus(x));
+                new Status(IStatus.ERROR, ErlideUIPlugin.PLUGIN_ID, 0, x
+                        .getMessage(), x));
     }
 
     /**

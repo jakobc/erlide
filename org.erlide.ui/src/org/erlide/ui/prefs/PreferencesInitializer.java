@@ -9,16 +9,21 @@
  *******************************************************************************/
 package org.erlide.ui.prefs;
 
-import static org.erlide.ui.prefs.PreferenceConstants.*;
+import static org.erlide.ui.prefs.PreferenceConstants.DEFAULT_PRINT_MARGIN;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_FOLDING_CLAUSES;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_FOLDING_COMMENTS;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_FOLDING_ENABLED;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_FOLDING_HEADER_COMMENTS;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_FOLDING_PROVIDER;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_MATCHING_BRACKETS;
+import static org.erlide.ui.prefs.PreferenceConstants.EDITOR_MATCHING_BRACKETS_COLOR;
+import static org.erlide.ui.prefs.PreferenceConstants.PRINT_MARGIN;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.eclipse.core.runtime.preferences.DefaultScope;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.swt.graphics.RGB;
 import org.erlide.ui.internal.ErlideUIPlugin;
-import org.erlide.ui.prefs.plugin.ColoringPreferencePage;
 
 /**
  * 
@@ -28,13 +33,6 @@ public class PreferencesInitializer extends AbstractPreferenceInitializer {
 
     @Override
     public void initializeDefaultPreferences() {
-        final String qualifier = ColoringPreferencePage.COLORS_QUALIFIER;
-        for (final TokenHighlight ht : TokenHighlight.values()) {
-            final IEclipsePreferences node = new DefaultScope()
-                    .getNode(qualifier + ht.getName());
-            ht.getDefaultData().store(node);
-        }
-
         final IPreferenceStore store = ErlideUIPlugin.getDefault()
                 .getPreferenceStore();
 

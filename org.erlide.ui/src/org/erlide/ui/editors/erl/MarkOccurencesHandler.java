@@ -32,26 +32,21 @@ import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.ui.texteditor.IDocumentProvider;
-import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.util.ModelUtils;
-import org.erlide.core.services.search.ErlSearchScope;
-import org.erlide.core.services.search.ErlangSearchPattern;
-import org.erlide.core.services.search.ErlideOpen;
-import org.erlide.core.services.search.ErlideSearchServer;
-import org.erlide.core.services.search.LimitTo;
-import org.erlide.core.services.search.ModuleLineFunctionArityRef;
-import org.erlide.core.services.search.OpenResult;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.services.search.ErlSearchScope;
+import org.erlide.engine.services.search.ErlangSearchPattern;
+import org.erlide.engine.services.search.LimitTo;
+import org.erlide.engine.services.search.ModuleLineFunctionArityRef;
+import org.erlide.engine.services.search.OpenResult;
 import org.erlide.runtime.rpc.RpcException;
 import org.erlide.runtime.rpc.RpcTimeoutException;
 import org.erlide.ui.editors.erl.ErlangEditor.ActivationListener;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.internal.search.ErlangSearchElement;
 import org.erlide.ui.internal.search.SearchUtil;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
@@ -95,8 +90,6 @@ public class MarkOccurencesHandler {
 
         private void findRefs(final IErlModule theModule,
                 final ITextSelection aSelection, final boolean hasChanged) {
-            final IBackend ideBackend = BackendCore.getBackendManager()
-                    .getIdeBackend();
             fRefs = null;
 
             if (fCanceled) {
@@ -104,13 +97,21 @@ public class MarkOccurencesHandler {
             }
             try {
                 final int offset = aSelection.getOffset();
-                final OpenResult res = ErlideOpen.open(ideBackend.getRpcSite(),
-                        theModule, offset,
-                        ModelUtils.getImportsAsList(theModule), "",
-                        ErlModelManager.getErlangModel().getPathVars());
+                final OpenResult res = ErlangEngine
+                        .getInstance()
+                        .getOpenService()
+                        .open(theModule.getScannerName(),
+                                offset,
+                                ErlangEngine.getInstance()
+                                        .getModelUtilService()
+                                        .getImportsAsList(theModule),
+                                "",
+                                ErlangEngine.getInstance().getModel()
+                                        .getPathVars());
                 final ErlangSearchPattern pattern = SearchUtil
                         .getSearchPatternFromOpenResultAndLimitTo(theModule,
                                 offset, res, LimitTo.ALL_OCCURRENCES, false);
+                ErlLogger.debug("open %s", res);
                 if (fCanceled) {
                     return;
                 }
@@ -121,19 +122,21 @@ public class MarkOccurencesHandler {
                             .newArrayList();
                     // TODO: run in background? for large files, this can take
                     // seconds
-                    final OtpErlangObject refs = ErlideSearchServer.findRefs(
-                            ideBackend.getRpcSite(), pattern, scope,
-                            erlangEditor.getStateDir(), true);
+                    final OtpErlangObject refs = ErlangEngine
+                            .getInstance()
+                            .getSearchServerService()
+                            .findRefs(pattern, scope,
+                                    ErlangEngine.getInstance().getStateDir(),
+                                    true);
                     if (refs != null) {
                         SearchUtil.addSearchResult(findRefs, refs);
                         fRefs = erlangEditor.markOccurencesHandler
                                 .getErlangRefs(theModule, findRefs);
+                        ErlLogger.debug("refs %s", refs);
                     }
                 }
             } catch (final RpcTimeoutException e) {
-                if (!ideBackend.isStopped()) {
-                    ErlLogger.warn(e);
-                }
+                ErlLogger.warn(e);
             } catch (final RpcException e) {
                 ErlLogger.debug(e);
             } catch (final ErlModelException e) {

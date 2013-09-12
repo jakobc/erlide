@@ -18,9 +18,9 @@ import com.google.common.base.Charsets;
 public class ErlangContentDescriber implements ITextContentDescriber {
     private static final QualifiedName[] SUPPORTED_OPTIONS = new QualifiedName[] { IContentDescription.CHARSET };
     private static final Pattern LATIN1 = Pattern.compile(
-            "%+ +coding: *latin-1", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
+            "%+[ *-]+coding: *latin-1", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
     private static final Pattern UTF8 = Pattern.compile(
-            "%+ +coding: *UTF-8", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
+            "%+[ *-]+coding: *utf-8", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
     private static final String CHARSET = "ErlangContentDescriber.charset"; //$NON-NLS-1$
     private static final String RESULT = "ErlangContentDescriber.processed"; //$NON-NLS-1$
 
@@ -71,11 +71,11 @@ public class ErlangContentDescriber implements ITextContentDescriber {
 
     private void fillContentProperties(final String charset,
             final IContentDescription description,
-            final Map<String, Object> properties) throws IOException {
+            final Map<String, Object> properties) {
         if (charset != null) {
             properties.put(CHARSET, charset);
         }
-        properties.put(RESULT, new Boolean(true));
+        properties.put(RESULT, Boolean.TRUE);
     }
 
     private int internalDescribe(final IContentDescription description,
@@ -151,8 +151,8 @@ public class ErlangContentDescriber implements ITextContentDescriber {
      * @param line
      * @return null if nothing found yet; String if found
      */
-    private String getDeclaration(String line) {
-        line = line.trim();
+    private String getDeclaration(final String line0) {
+        final String line = line0.trim();
         Matcher matcher = LATIN1.matcher(line);
         if (matcher.matches()) {
             return "latin1";

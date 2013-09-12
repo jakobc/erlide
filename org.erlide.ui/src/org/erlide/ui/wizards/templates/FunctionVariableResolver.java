@@ -12,6 +12,7 @@ package org.erlide.ui.wizards.templates;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
@@ -22,16 +23,15 @@ import org.eclipse.jface.text.templates.TemplateContext;
 import org.eclipse.jface.text.templates.TemplateException;
 import org.eclipse.jface.text.templates.TemplateVariable;
 import org.eclipse.jface.text.templates.TemplateVariableResolver;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class FunctionVariableResolver extends TemplateVariableResolver {
 
-    protected ArrayList<Object[]> functions = new ArrayList<Object[]>();
+    protected List<Object[]> functions = new ArrayList<Object[]>();
 
     @Override
     public void resolve(final TemplateVariable variable,
             final TemplateContext context) {
-        @SuppressWarnings("unchecked")
         final Iterator<TemplateVariableResolver> it = ErlangSourceContextTypeLayout
                 .getDefault().resolvers();
         FunctionNameVariableResolver name_var = null;

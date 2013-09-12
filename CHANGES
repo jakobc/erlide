@@ -1,3 +1,152 @@
+List of user visible changes between 0.23.2 and 0.24.0 (20130909)
+
+1a9610e Cache external OTP structure
+de373b0 1254 - macro definitions not found if space between name and comma
+  also: a lot of internal changes that make maintenance much easier
+  also: starting to create an API for the code-handling engine
+
+List of user visible changes between 0.23.1 and 0.23.2 (20130823)
+
+911efe6 1250 - io:format statements output is not ordered
+99e138e gh120: fix stack overflow when terminating debugged node
+626a7b7 don't report runtime down when shutting down
+6666ce0 gh117: fix stack overflow when terminating debugger
+c8f83b2 add product feature
+6eb14aa fix problem with dispatching events after shutdown
+65a5393 create crash report even for exit code = 1, just in case
+68daf34 make sure beam processes are killed when checking hostname compatibility
+
+List of user visible changes between 0.23.0 and 0.23.1 (20130620)
+
+72a1373 better looking local documentation in hover
+db5ffd7 add ErlideEventBus to allow communication between plugins.
+df1999c handle NPE when shutting down
+879d6f1 1240: run as erlang application can choose wrong node name type
+bcc630f improve RuntimeTab behaviour when not both long/short names can be used
+c260781 fix NPEs in ProjectPreferencesWizardPage
+2d55d21 Removed ErlExternalReferenceEntryListProxy, it complicates things and does not give a significant performance increase
+8d9a71d Make sure ErlProject is removed when Project is deleted
+399f480 update xtend libs to 2.4.1
+ce19e2e remove conflicting key binding C-A-S-M
+d80cd4c remove double 'open' and 'search' menu items
+0c5a598 remove backend.api project, is not needed
+7ecd995 fix for scanning $\n, was incrementing the row too
+5751955 update requirement for eclipse.help.ui plugin that has been upgraded to 4.0 in Kepler
+e071ad4 change default time for code assist activation to 50ms (from 100ms)
+8a5105e 1214 - completion: external includes are proposed as modules
+14b2e7b 1220 - hover: format internal docs and specs
+c823e72 improve documentation presentation (remove leading %%); part of 1220
+8fe7fe6 1215 - e4: refs to inexistent actions makes eclipse unusable
+
+List of user visible changes between 0.22.0 and 0.23.0 (20130516)
+
+e93f508 1208 - completion: optimize search for suggestions
+64be647 1210 - completion: propose builtin types
+68d56cf 1196 - distribute cache files in multiple directories: use same directory structure as in workspace
+b6d6e7c 1131 - long delay at startup; not sure this is enough
+961713a 1204 - use eclipse status dialog instead of custom one
+9f353d6 gh107: templates invalid
+abd2767 fix ctrl-space completion in console
+5ede309 console: fix completion docs and remove esc command
+0b577ec 1200 - searching - selecting record name in declaration searches for record field 
+9e065a0 rpcs fail faster now if backend is down (no timeout, just throw exception directly)
+641811d 1183 - update .app files with current info from the project
+405534a 1187 - search references: skip searching outside the module if the function is not exported 
+        1192 - search: the search window (ctrl-h) doesn't work for variables 
+
+List of user visible changes between 0.21.0 and 0.22.0 (20130418)
+
+72b096b throw exception if setting an illegal node name (instead of changing it quietly)
+28f5603 better fix for choosing long/short name: launch config decides
+d7dd23e remove unused libs
+458f282 gh44: fix problem with syntax highlight dialog
+a209fb7 allow running ide backend with short hostname (use -Derlide.shortname)
+61b8b9d add more debug printouts when memory gets low
+08611c4 dialyzer: fixes in DialyzerMarkerUtils
+f7eea44 mark occurences - sometimes wrong Was actually the cache directory that was different, sometimes core, sometimes model
+19b7af3 Reuse structure of externals and OTP using proxies in the model tree
+4b158fb 600 - Support .app file for project
+51fd126 console sends input with Enter only if at end of input. Otherwise Ctrl/Option-Enter works as before
+da20e23 improved startup time a bit
+5a8b6ac upgrade eclipse target to 3.7
+581af25 1180 - Error on running Cover run configuration.
+27affc3 move guava libs to libs project; upgrade xtend libs to 2.4.0
+09f9c87 1177: open runtime preferences dialog if no runtime is configured
+e87895a 1178 Sometimes cannot cancel http://assembla.com/spaces/erlide/tickets/1178-search---sometimes-cannot-cancel Tricky bug when setting up parameters to search
+d10848c Reuse structure of externals and OTP using proxies in the model tree
+
+List of user visible changes between 0.20.3 and 0.21.2 (20130322)
+
+6bd8763 add debug printout when opening stuff in navigator takes long time
+7fc2e0f 1006 - Syntax Coloring doesn't update open editors
+c4567f0 Make parsing and scanning works even for modules without path (e.g. tests and compare)
+45cb3b0 1168 - use ide backend for OTP libraries, if same version
+76fe5b0 813 - "externals" and "otp" folders on non-erlang projects
+a02c967 debug problems in 1163 1164
+57f9a11 update jinterface to R16
+e4840da fix issues reported by FindBugs
+31ebf65 update 3rd party libraries
+a933e59 Refresh gives double outline http://assembla.com/spaces/erlide/tickets/598-refresh-gives-double-outline
+
+List of user visible changes between 0.20.1 and 0.20.2 (20130311)
+
+50b6fa5 1165 - crash when starting and no runtime is found
+f4dd89b 1166: launching can fail, using wrong kind of node name
+
+List of user visible changes between 0.20.0 and 0.20.1 (20130307)
+
+34c8e45 1158: crash in ErlFolder.isOnPaths
+d553329 debug open_externals_tree timeout
+
+List of user visible changes between 0.19.0 and 0.20.0 (20130304)
+
+a47a10c fix another synchronization issue in reconciler
+b217b2e 1157: Erlang editor extremely slow entering <Enter>, ".", "," and ";" key presses
+a85f2de github 98: if ide backend has no docs, a crash prevents completions to show up
+a21e07c better fix for 1154
+0300463 1154: IErlElementLocator.findModule(String moduleName, String modulePath) cannot find module if modulePath starts with "c:" (on Windows)
+6609152 1153: ErlUtils.isAccessibleDir(IRpcSite backend, String localDir) deletes empty localDir
+39557cf project explorer: module model is not updated
+33e0adf Scratchpad working with latest pu
+17e9d08 github 97: renaming runtime can throw exception
+785679e Indent failed in catch with guards
+3310452 extract dialyzer plugins (note that dialyzer builder is now disabled)
+fdd6008 1145: editor can have two reconcilers running
+aac50b5 1143: Erlang application Run Configuration settings on Runtimes tab are blank after updating from 0.18 to 0.19
+461e67f 1142: builder: errors are shown for one file only when using "build automatically"
+
+List of user visible changes between 0.18.0 and 0.19.0 (20130208)
+
+f57ef2b remove "backend down" dialogs when stopping debugged runtime
+df39e7f filter out too old runtimes from the list
+8559348 merge model refactoring branch
+b40089d 1118: add preference to enable/disable scanning for TODO comments
+8434ac2 1138: selection of runtime by version always picks the latest
+da564ec 1137: NPE adding Erlang Runtime
+957d119 831: fix jinterface default cookie handling on Windows
+f170282 update jinterface to R16A
+badca63 1127: cyclicpath exception in navigator
+e726812 fix console to work with R16
+9e1c852 improve cold start times (not checking minor version of runtime all the time)
+1009e6d disable cheatsheet, content is malformed
+ff6c42c 1103: NPE when doing global search
+3d12816 145: Color preferences dialog: "enable" box is confusing
+
+List of user visible changes between 0.17.7 and 0.18.0 (20130121)
+
+3e0a09f 1122 completion: no suggestions after guard with macro
+f8f13c9 1123: scanner gets out of sync after completion
+2367244 Merge pull request #92 from vladdu/scanner: fix problem with eternal scanner processes eating up memory
+d38fb9b Merge pull request #91 from jakobc/noparse: separate scanner and parse functionality to make it easier to test
+0237deb 1116: indent fails for large blocks of test; increased timeout of this slow operation
+138c4d5 Fixed sync problem There was code between getting from reconciler queue and removing from it. If regions were added from another thread (e.g. from user typing), the scanner buffer and the editor buffer would diverge.
+1afb3f4 make BackendData part of API
+26766e4 rename jinterface plugin to "runtime"
+b64cedb create backend plugin and make jinterface plugin independent of eclipse
+8609afe fix NPE in new file wizard
+0750ca0 remove periodic dump of backend info; not needed anymore
+0539c9a 1114: console problem with dark colors.
+
 List of user visible changes between 0.17.6 and 0.17.7 (20121214)
 
 45d388b debug backends not being shut down

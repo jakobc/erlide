@@ -1,7 +1,7 @@
 package org.erlide.ui.util;
 
 import org.erlide.core.ErlangCore;
-import org.erlide.core.internal.model.erlang.PreferencesHelper;
+import org.erlide.engine.util.PreferencesHelper;
 
 public class PerformanceTuning {
 

@@ -1,0 +1,49 @@
+require File.join(File.dirname(__FILE__), 'erlide')
+
+task :default => [:'run-tests']
+
+desc "compile and run test"
+task :run_tests, [:tools_dir] do |t, args|
+  args.with_defaults(:tools_dir => "#{ENV['HOME']}/erlide_tools")
+  puts "Compile and run tests"
+
+  Erlide.run_ant "run.tests"
+end
+
+desc "create update site"
+task :build_p2, [:tools_dir] do |t, args|
+  args.with_defaults(:tools_dir => "#{ENV['HOME']}/erlide_tools")
+  puts "Building p2"
+
+  Erlide.run_ant "build.p2"
+end
+
+desc "create product"
+task :build_product, [:tools_dir] do |t, args|
+  args.with_defaults(:tools_dir => "#{ENV['HOME']}/erlide_tools")
+  puts "Building product"
+
+  Erlide.run_ant "build.product"
+end
+
+desc "upload update site to servers"
+task :publish_site, [:branch] do |t, args|
+  args.with_defaults(:branch => "pu")
+
+  output_base = ENV['output_base']
+  source_dir = Erlide.workspace_dir + "buildroot/buckminster.output/org.erlide.site_1.0.0-eclipse.feature/site.p2"
+
+  Erlide.publish_site source_dir, args.branch, output_base
+end
+
+desc "upload product to servers"
+task :publish_product do
+  puts "Publishing product"
+
+end
+
+desc "tag a release in git repo"
+task :tag_release do
+  puts "Creating release"
+
+end

@@ -17,8 +17,8 @@ import java.util.List;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlProject;
 import org.erlide.eunit.EUnitTestFunction;
 
 /**

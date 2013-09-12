@@ -35,8 +35,10 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.ImageRegistry;
+import org.eclipse.jface.resource.StringConverter;
 import org.eclipse.jface.text.templates.ContextTypeRegistry;
 import org.eclipse.jface.text.templates.persistence.TemplateStore;
 import org.eclipse.swt.graphics.Image;
@@ -54,26 +56,30 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.eclipse.wb.swt.SWTResourceManager;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
+import org.erlide.core.ConsoleMessageReporter;
 import org.erlide.core.ErlangStatus;
 import org.erlide.debug.ui.model.ErlangDebuggerBackendListener;
 import org.erlide.ui.ErlideImage;
 import org.erlide.ui.ErlideUIConstants;
+import org.erlide.ui.UIMessageReporter;
 import org.erlide.ui.console.ErlConsoleManager;
-import org.erlide.ui.console.ErlangConsolePage;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.erl.actions.ClearCacheAction;
-import org.erlide.ui.editors.erl.completion.ErlangContextType;
 import org.erlide.ui.internal.folding.ErlangFoldingStructureProviderRegistry;
+import org.erlide.ui.prefs.HighlightStyle;
+import org.erlide.ui.prefs.TokenHighlight;
 import org.erlide.ui.templates.ErlangSourceContextTypeModule;
 import org.erlide.ui.templates.ErlangSourceContextTypeModuleElement;
+import org.erlide.ui.templates.ErlangTemplateContextType;
 import org.erlide.ui.templates.ErlideContributionTemplateStore;
 import org.erlide.ui.util.BackendManagerPopup;
 import org.erlide.ui.util.IContextMenuConstants;
 import org.erlide.ui.util.ImageDescriptorRegistry;
+import org.erlide.ui.util.NoRuntimeHandler;
 import org.erlide.ui.util.ProblemMarkerManager;
-import org.erlide.utils.ErlLogger;
-import org.erlide.utils.SystemConfiguration;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.ErlideEventBus;
+import org.erlide.util.SystemConfiguration;
 import org.osgi.framework.BundleContext;
 
 import com.google.common.collect.Lists;
@@ -114,7 +120,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
 
     private ProblemMarkerManager fProblemMarkerManager = null;
 
-    private ErlConsoleManager erlConMan;
+    private ErlConsoleManager erlConsoleManager;
 
     /** Key to store custom templates. */
     private static final String CUSTOM_TEMPLATES_KEY = "org.erlide.ui.editor.customtemplates"; //$NON-NLS-1$
@@ -147,24 +153,19 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
         ErlLogger.debug("Starting UI " + Thread.currentThread());
         super.start(context);
 
+        ErlideEventBus.register(new NoRuntimeHandler());
+        ErlideEventBus.register(new ConsoleMessageReporter());
+        ErlideEventBus.register(new UIMessageReporter());
+
         if (SystemConfiguration.getInstance().isDeveloper()) {
             BackendManagerPopup.init();
         }
 
+        loadDefaultEditorColors();
+
         ErlLogger.debug("Started UI");
 
-        erlConMan = new ErlConsoleManager();
-        if (SystemConfiguration.getInstance().isDeveloper()) {
-            try {
-                final IBackend ideBackend = BackendCore.getBackendManager()
-                        .getIdeBackend();
-                if (!ideBackend.hasConsole()) {
-                    erlConMan.runtimeAdded(ideBackend);
-                }
-            } catch (final Exception e) {
-                ErlLogger.warn(e);
-            }
-        }
+        erlConsoleManager = new ErlConsoleManager();
 
         erlangDebuggerBackendListener = new ErlangDebuggerBackendListener();
         BackendCore.getBackendManager().addBackendListener(
@@ -173,8 +174,23 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
         startPeriodicCacheCleaner();
     }
 
+    private void loadDefaultEditorColors() {
+        final IPreferenceStore rootStore = getPreferenceStore();
+
+        for (final TokenHighlight th : TokenHighlight.values()) {
+            final HighlightStyle data = th.getDefaultStyle();
+            rootStore.setDefault(th.getColorKey(),
+                    StringConverter.asString(data.getColor()));
+            rootStore.setDefault(th.getStylesKey(), data.getStyles());
+        }
+    }
+
+    public ErlConsoleManager getErlConsoleManager() {
+        return erlConsoleManager;
+    }
+
     private void startPeriodicCacheCleaner() {
-        final Job job = new Job("erlide periodic cache cleaner") {
+        final Job cacheCleanerJob = new Job("erlide periodic cache cleaner") {
 
             @Override
             protected IStatus run(final IProgressMonitor monitor) {
@@ -215,9 +231,9 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
             }
 
         };
-        job.setPriority(Job.SHORT);
-        job.setSystem(true);
-        job.schedule(getTimeToMidnight());
+        cacheCleanerJob.setPriority(Job.SHORT);
+        cacheCleanerJob.setSystem(true);
+        cacheCleanerJob.schedule(getTimeToMidnight());
     }
 
     private long getTimeToMidnight() {
@@ -242,7 +258,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
      */
     @Override
     public void stop(final BundleContext context) throws Exception {
-        erlConMan.dispose();
+        erlConsoleManager.dispose();
         super.stop(context);
         BackendCore.getBackendManager().removeBackendListener(
                 erlangDebuggerBackendListener);
@@ -520,26 +536,16 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
 
     public static IEclipsePreferences getPrefsNode() {
         final String qualifier = ErlideUIPlugin.PLUGIN_ID;
-        final IScopeContext context = new InstanceScope();
+        final IScopeContext context = InstanceScope.INSTANCE;
         final IEclipsePreferences eclipsePreferences = context
                 .getNode(qualifier);
         return eclipsePreferences;
     }
 
-    private ErlangConsolePage fErlangConsolePage;
-
     private ContributionContextTypeRegistry fContextTypeRegistry;
     private ContributionTemplateStore fStore;
 
     private ErlangDebuggerBackendListener erlangDebuggerBackendListener;
-
-    public ErlangConsolePage getConsolePage() {
-        return fErlangConsolePage;
-    }
-
-    public void setConsolePage(final ErlangConsolePage erlangConsolePage) {
-        fErlangConsolePage = erlangConsolePage;
-    }
 
     public TemplateStore getTemplateStore() {
         // this is to avoid recursive call when fContextTypeRegistry is null
@@ -564,7 +570,7 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
             // create an configure the contexts available in the template editor
             fContextTypeRegistry = new ContributionContextTypeRegistry();
             fContextTypeRegistry
-                    .addContextType(ErlangContextType.ERLANG_CONTEXT_TYPE_ID);
+                    .addContextType(ErlangTemplateContextType.ERLANG_CONTEXT_TYPE_ID);
             fContextTypeRegistry
                     .addContextType(ErlangSourceContextTypeModule.ERLANG_SOURCE_CONTEXT_TYPE_MODULE_ID);
             fContextTypeRegistry
@@ -577,8 +583,9 @@ public class ErlideUIPlugin extends AbstractUIPlugin {
      * Utility method with conventions
      */
     public static void errorDialog(final Shell shell, final String title,
-            String message, final Throwable t) {
+            final String message0, final Throwable t) {
         IStatus status;
+        String message = message0;
         if (t instanceof CoreException) {
             status = ((CoreException) t).getStatus();
             // if the 'message' resource string and the IStatus' message are the

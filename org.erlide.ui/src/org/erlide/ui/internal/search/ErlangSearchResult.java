@@ -15,10 +15,11 @@ import org.eclipse.search.ui.text.Match;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.util.ResourceUtil;
-import org.erlide.core.services.search.LimitTo;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.services.search.LimitTo;
+import org.erlide.engine.util.ResourceUtil;
 import org.erlide.ui.ErlideImage;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.editors.erl.ErlangEditor;
 
 public class ErlangSearchResult extends AbstractTextSearchResult implements
@@ -137,7 +138,6 @@ public class ErlangSearchResult extends AbstractTextSearchResult implements
     @Override
     public Match[] computeContainedMatches(
             final AbstractTextSearchResult aResult, final IEditorPart editor) {
-        // TODO: copied from JavaSearchResult:
         final IEditorInput editorInput = editor.getEditorInput();
         if (editorInput instanceof IFileEditorInput) {
             final IFileEditorInput fileEditorInput = (IFileEditorInput) editorInput;
@@ -153,14 +153,13 @@ public class ErlangSearchResult extends AbstractTextSearchResult implements
         final IFile file = ResourceUtil
                 .getFileFromLocation(ese.getModuleName());
         if (editor instanceof ErlangEditor) {
-            final ErlangEditor erlangEditor = (ErlangEditor) editor;
+            final AbstractErlangEditor erlangEditor = (AbstractErlangEditor) editor;
             final IErlModule module = erlangEditor.getModule();
             if (module != null) {
                 if (file != null) {
                     return file.equals(module.getResource());
-                } else {
-                    return ese.getModuleName().equals(module.getFilePath());
                 }
+                return ese.getModuleName().equals(module.getFilePath());
             }
         }
         return false;

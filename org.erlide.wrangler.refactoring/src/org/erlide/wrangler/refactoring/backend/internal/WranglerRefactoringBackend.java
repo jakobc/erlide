@@ -10,9 +10,9 @@
  ******************************************************************************/
 package org.erlide.wrangler.refactoring.backend.internal;
 
-import org.erlide.runtime.IRpcSite;
+import org.erlide.runtime.api.IRpcSite;
 import org.erlide.runtime.rpc.RpcResult;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.backend.IRpcMessage;
 import org.erlide.wrangler.refactoring.backend.IWranglerBackend;
 
@@ -169,7 +169,7 @@ public class WranglerRefactoringBackend implements IWranglerBackend {
                         || b.atomValue().equals("ok");
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return false;
 

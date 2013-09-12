@@ -12,8 +12,8 @@ package org.erlide.ui.editors.erl.actions;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.action.Action;
-import org.erlide.core.services.cleanup.CleanUpProviders;
-import org.erlide.utils.ErlLogger;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.util.ErlLogger;
 
 /*******************************************************************************
  * <p>
@@ -49,7 +49,7 @@ public class CleanUpAction extends Action {
     @Override
     public void run() {
         try {
-            CleanUpProviders.createForIResource(resource).cleanUp();
+            ErlangEngine.getInstance().getCleanupProvider().cleanUp(resource);
         } catch (final Exception e) {
             ErlLogger.debug(e);
         }

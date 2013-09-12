@@ -4,20 +4,19 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.swt.browser.LocationEvent;
 import org.eclipse.swt.browser.LocationListener;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.BackendException;
-import org.erlide.backend.IBackendManager;
-import org.erlide.core.model.util.ModelUtils;
-import org.erlide.core.services.search.ErlideDoc;
-import org.erlide.core.services.search.OpenResult;
-import org.erlide.runtime.IRpcSite;
-import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.backend.api.IBackendManager;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.services.search.OpenResult;
+import org.erlide.engine.services.search.OtpDocService;
+import org.erlide.runtime.api.IRpcSite;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.internal.ErlBrowserInformationControlInput;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.util.eclipse.text.BrowserInformationControl;
 import org.erlide.ui.util.eclipse.text.BrowserInformationControlInput;
 import org.erlide.ui.views.EdocView;
-import org.erlide.utils.ErlangFunctionCall;
-import org.erlide.utils.Util;
+import org.erlide.util.ErlangFunctionCall;
+import org.erlide.util.Util;
 
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -51,7 +50,7 @@ public class HandleEdocLinksLocationListener implements LocationListener {
             input = edocView.getInput();
         }
         if (input != null) {
-            final ErlangEditor editor = input.getEditor();
+            final AbstractErlangEditor editor = input.getEditor();
             String moduleName = "";
             final Object inputElement = input.getInputElement();
             if (inputElement instanceof OpenResult) {
@@ -61,22 +60,18 @@ public class HandleEdocLinksLocationListener implements LocationListener {
             final ErlangFunctionCall functionCall = HoverUtil
                     .eventToErlangFunctionCall(moduleName, event);
             if (functionCall != null) {
-                final IProject project = ModelUtils.getProject(
-                        editor.getModule()).getWorkspaceProject();
+                final IProject project = ErlangEngine.getInstance()
+                        .getModelUtilService().getProject(editor.getModule())
+                        .getWorkspaceProject();
                 final IBackendManager backendManager = BackendCore
                         .getBackendManager();
-                IRpcSite backend = null;
-                try {
-                    backend = backendManager.getBuildBackend(project)
-                            .getRpcSite();
-                } catch (final BackendException e) {
-                }
-                if (backend == null) {
-                    backend = backendManager.getIdeBackend().getRpcSite();
-                }
+                final IRpcSite backend = backendManager
+                        .getBuildBackend(project).getRpcSite();
+
                 final String stateDir = ErlideUIPlugin.getDefault()
                         .getStateLocation().toString();
-                final OtpErlangTuple otpDoc = (OtpErlangTuple) ErlideDoc
+                final OtpErlangTuple otpDoc = (OtpErlangTuple) ErlangEngine
+                        .getInstance().getService(OtpDocService.class)
                         .getOtpDoc(backend, functionCall, stateDir);
                 if (Util.isOk(otpDoc)) {
                     final String docStr = Util.stringValue(otpDoc.elementAt(1));

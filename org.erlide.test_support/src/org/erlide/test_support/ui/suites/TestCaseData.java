@@ -2,12 +2,13 @@ package org.erlide.test_support.ui.suites;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-import org.erlide.runtime.Bindings;
-import org.erlide.runtime.ErlUtils;
-import org.erlide.runtime.TermParser;
-import org.erlide.runtime.TermParserException;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.erlang.Bindings;
+import org.erlide.util.erlang.ErlUtils;
+import org.erlide.util.erlang.TermParser;
+import org.erlide.util.erlang.TermParserException;
 
 import com.ericsson.otp.erlang.OtpErlangException;
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -87,7 +88,7 @@ public class TestCaseData {
         }
 
         public FailStackItem getFirstStackItem() {
-            if (items.size() == 0) {
+            if (items.isEmpty()) {
                 try {
                     return new FailStackItem(TermParser.getParser().parse(
                             "{unknown,unknown,0}"));
@@ -177,7 +178,7 @@ public class TestCaseData {
         failLocations = new FailLocations(locations);
     }
 
-    static final ArrayList<OtpErlangObject> NO_STACK = new ArrayList<OtpErlangObject>();
+    static final List<OtpErlangObject> NO_STACK = new ArrayList<OtpErlangObject>();
 
     private FailReason parseReason(final OtpErlangObject reason) {
         Bindings b;

@@ -3,7 +3,7 @@ package org.erlide.ui.util;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.eclipse.ui.IEditorInput;
-import org.erlide.core.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlElement;
 
 public class EditorInputToModuleAdapterFactory implements IAdapterFactory {
 
@@ -11,7 +11,6 @@ public class EditorInputToModuleAdapterFactory implements IAdapterFactory {
     private static final Class[] ADAPTER_LIST = new Class[] { IErlElement.class };
 
     @Override
-    @SuppressWarnings("rawtypes")
     public Object getAdapter(final Object adaptableObject,
             final Class adapterType) {
         if (adapterType == IErlElement.class
@@ -25,7 +24,6 @@ public class EditorInputToModuleAdapterFactory implements IAdapterFactory {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public Class[] getAdapterList() {
         return ADAPTER_LIST;
     }

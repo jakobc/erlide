@@ -1,7 +1,5 @@
 package org.erlide.ui.tests;
 
-import junit.framework.Assert;
-
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.IAutoIndentStrategy;
 import org.eclipse.jface.text.IDocument;
@@ -30,15 +28,15 @@ import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.erlang.IErlScanner;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.services.parsing.ScannerService;
 import org.erlide.test.support.ErlideTestUtils;
 import org.erlide.ui.editors.erl.completion.ErlContentAssistProcessor;
 import org.erlide.ui.editors.erl.completion.ErlStringContentAssistProcessor;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -357,8 +355,9 @@ public class ContentAssistTest {
         final MockSourceViewer sourceViewer = new MockSourceViewer(document,
                 offset);
         final IContentAssistProcessor p = stringContentAssistProcessor ? new ErlStringContentAssistProcessor(
-                sourceViewer, module, null) : new ErlContentAssistProcessor(
-                sourceViewer, module, null);
+                sourceViewer, module, project, null)
+                : new ErlContentAssistProcessor(sourceViewer, module, project,
+                        null);
         final ICompletionProposal[] completionProposals = p
                 .computeCompletionProposals(sourceViewer, offset);
         Assert.assertEquals(1, completionProposals.length);
@@ -389,21 +388,21 @@ public class ContentAssistTest {
 
     private void completionTestWithoutParsing(final String initialText,
             final int nTotalExpectedCompletions, final String completionChar,
-            final int nExpectedCompletions, final String expectedFirstCompletion)
-            throws ErlModelException {
+            final int nExpectedCompletions, final String expectedFirstCompletion) {
         // http://www.assembla.com/spaces/erlide/tickets/593-completion--don-t-work-records-with-quoted-names-
         final int offset = initialText.length();
         IDocument document = new StringDocument(initialText);
         final IErlModule module = ErlideTestUtils
                 .createModuleFromText(initialText);
-        final IErlScanner scanner = module.getScanner();
+        final ScannerService scanner = module.getScanner();
         try {
             final MockSourceViewer sourceViewer = new MockSourceViewer(
                     document, offset);
             final IContentAssistProcessor p = new ErlContentAssistProcessor(
-                    sourceViewer, module, null); // null is ok since we don't
-                                                 // call
-                                                 // setToPrefs
+                    sourceViewer, module, null, null); // null is ok since we
+                                                       // don't
+                                                       // call
+                                                       // setToPrefs
             ICompletionProposal[] completionProposals = p
                     .computeCompletionProposals(sourceViewer, offset);
             Assert.assertEquals(nTotalExpectedCompletions,

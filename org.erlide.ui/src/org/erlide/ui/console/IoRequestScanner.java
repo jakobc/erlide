@@ -10,12 +10,16 @@
  *******************************************************************************/
 package org.erlide.ui.console;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.rules.IPartitionTokenScanner;
 import org.eclipse.jface.text.rules.IToken;
-import org.erlide.backend.console.IBackendShell;
-import org.erlide.backend.console.IoRequest;
+import org.erlide.runtime.shell.IBackendShell;
+import org.erlide.runtime.shell.IoRequest;
 
 public class IoRequestScanner implements IPartitionTokenScanner {
 
@@ -26,7 +30,7 @@ public class IoRequestScanner implements IPartitionTokenScanner {
     private int crtLength;
 
     public IoRequestScanner(final IBackendShell model) {
-        Assert.isNotNull(model);
+        assertThat(model, is(not(nullValue())));
         this.model = model;
     }
 

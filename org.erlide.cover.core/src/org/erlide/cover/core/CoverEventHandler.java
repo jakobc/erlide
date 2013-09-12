@@ -3,10 +3,6 @@ package org.erlide.cover.core;
 import java.io.File;
 import java.util.Iterator;
 
-import org.erlide.backend.IBackend;
-import org.erlide.backend.events.ErlangEventHandler;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.util.ModelUtils;
 import org.erlide.cover.api.IConfiguration;
 import org.erlide.cover.views.model.FunctionStats;
 import org.erlide.cover.views.model.ICoverageObject;
@@ -16,12 +12,16 @@ import org.erlide.cover.views.model.ModuleStats;
 import org.erlide.cover.views.model.ObjectType;
 import org.erlide.cover.views.model.StatsTreeModel;
 import org.erlide.cover.views.model.StatsTreeObject;
-import org.osgi.service.event.Event;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.runtime.events.ErlEvent;
+import org.erlide.runtime.events.ErlangEventHandler;
+import org.erlide.util.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.common.eventbus.Subscribe;
 
 /**
  * Handler for coverage events
@@ -39,19 +39,21 @@ public class CoverEventHandler extends ErlangEventHandler {
     private final Logger log; // log
     private final CoverBackend coverBackend; // cover backend
 
-    public CoverEventHandler(final IBackend backend,
+    public CoverEventHandler(final String backendName,
             final CoverBackend coverBackend) {
-        super(EVENT_NAME, backend);
+        super(EVENT_NAME, backendName);
         this.coverBackend = coverBackend;
         log = Activator.getDefault();
     }
 
-    @Override
-    public void handleEvent(final Event event) {
+    @Subscribe
+    public void handleEvent(final ErlEvent event) {
+        if (!event.getTopic().equals(getTopic())) {
+            return;
+        }
         OtpErlangTuple tuple = null;
 
-        final OtpErlangObject data = (OtpErlangObject) event
-                .getProperty("DATA");
+        final OtpErlangObject data = event.getEvent();
         if (gotResults(data)) {
             for (final ICoverObserver obs : coverBackend.getListeners()) {
                 obs.eventOccured(new CoverEvent(CoverStatus.UPDATE));
@@ -110,11 +112,11 @@ public class CoverEventHandler extends ErlangEventHandler {
                 // calculate md5
 
                 try {
-                    final File file = new File(ErlModelManager.getErlangModel()
-                            .findModule(moduleName).getFilePath());
+                    final File file = new File(ErlangEngine.getInstance()
+                            .getModel().findModule(moduleName).getFilePath());
                     moduleStats.setMd5(MD5Checksum.getMD5(file));
                 } catch (final Exception e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 }
 
                 //
@@ -144,8 +146,9 @@ public class CoverEventHandler extends ErlangEventHandler {
         final IConfiguration config = CoveragePerformer.getPerformer()
                 .getConfig();
 
-        final String ppath = ModelUtils.getProject(config.getProject())
-                .getWorkspaceProject().getLocation().toString();
+        final String ppath = ErlangEngine.getInstance().getModelUtilService()
+                .getProject(config.getProject()).getWorkspaceProject()
+                .getLocation().toString();
         String mpath = config.getModule(moduleStats.getLabel()).getFilePath();
         mpath = mpath.substring(ppath.length());
         log.info(ppath);

@@ -28,11 +28,11 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.util.ModelUtils;
-import org.erlide.runtime.ErlUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
 import org.erlide.runtime.rpc.RpcResult;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.erlang.ErlUtils;
 import org.erlide.wrangler.refactoring.backend.RefactoringState;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage;
 import org.erlide.wrangler.refactoring.backend.internal.GenFunRefactoringMessage.GenFunReturnParameterName;
@@ -241,9 +241,12 @@ public class RefactoringHandler extends AbstractHandler {
         } else if (actionId
                 .equals("org.erlide.wrangler.refactoring.movefunction")) {
 
-            final IProject project = ModelUtils.getProject(
-                    GlobalParameters.getWranglerSelection().getErlElement())
-                    .getWorkspaceProject();
+            final IProject project = ErlangEngine
+                    .getInstance()
+                    .getModelUtilService()
+                    .getProject(
+                            GlobalParameters.getWranglerSelection()
+                                    .getErlElement()).getWorkspaceProject();
             final ArrayList<String> moduleList = WranglerUtils
                     .getModuleNames(project);
             final String moduleName = GlobalParameters.getWranglerSelection()
@@ -346,7 +349,7 @@ public class RefactoringHandler extends AbstractHandler {
                 try {
                     refactoring = runGenFunRefactoring(pages, activeShell);
                 } catch (final OtpErlangRangeException e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                     return null;
                 }
 
@@ -452,7 +455,7 @@ public class RefactoringHandler extends AbstractHandler {
                 refactoring.doAfterRefactoring();
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
         checkWarningMessages();
@@ -471,9 +474,8 @@ public class RefactoringHandler extends AbstractHandler {
                     public String isValid(final String newText) {
                         if (internalV.isValid(newText)) {
                             return null;
-                        } else {
-                            return "Please type a correct module name!";
                         }
+                        return "Please type a correct module name!";
                     }
                 });
     }
@@ -532,7 +534,7 @@ public class RefactoringHandler extends AbstractHandler {
                 ErlLogger.error("Wrangler logging error:" + res);
             }
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
     }
@@ -545,7 +547,7 @@ public class RefactoringHandler extends AbstractHandler {
             ret = ret.replaceAll("\\s+$", "");
             return ret;
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             return stringValue;
         }
     }

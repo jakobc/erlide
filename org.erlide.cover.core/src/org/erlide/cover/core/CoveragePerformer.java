@@ -6,13 +6,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.core.runtime.IPath;
-import org.erlide.core.model.erlang.IErlModule;
 import org.erlide.cover.api.CoverException;
 import org.erlide.cover.api.IConfiguration;
 import org.erlide.cover.api.ICoveragePerformer;
 import org.erlide.cover.constants.CoverConstants;
 import org.erlide.cover.views.model.StatsTreeModel;
+import org.erlide.engine.model.erlang.IErlModule;
 import org.erlide.runtime.rpc.RpcException;
+import org.erlide.util.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -75,9 +76,8 @@ public class CoveragePerformer implements ICoveragePerformer {
         if (coverNodes.isEmpty() || different) {
 
             coverNodes = nodes;
-            log.info(CoverBackend.getInstance().getBackend().getNodeName());
-            coverNodes.add(CoverBackend.getInstance().getBackend()
-                    .getNodeName());
+            log.info(CoverBackend.getInstance().getBackend().getName());
+            coverNodes.add(CoverBackend.getInstance().getBackend().getName());
 
             // TODO restarting
 
@@ -99,7 +99,7 @@ public class CoveragePerformer implements ICoveragePerformer {
                                 CoverConstants.FUN_START, "x", nodesList);
 
             } catch (final RpcException e) {
-                e.printStackTrace();
+                ErlLogger.error(e);
                 throw new CoverException(e.getMessage());
             }
 
@@ -167,7 +167,7 @@ public class CoveragePerformer implements ICoveragePerformer {
                             CoverConstants.FUN_PREP, "x", paths);
 
         } catch (final RpcException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             throw new CoverException(e.getMessage());
         }
     }
@@ -194,7 +194,7 @@ public class CoveragePerformer implements ICoveragePerformer {
                             CoverConstants.FUN_ANALYSE, "x", modules);
 
         } catch (final RpcException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
             throw new CoverException(e.getMessage());
         }
     }

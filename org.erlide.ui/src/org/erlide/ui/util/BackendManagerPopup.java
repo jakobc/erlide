@@ -15,11 +15,11 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
-import org.erlide.backend.IBackendListener;
-import org.erlide.utils.ErlLogger;
+import org.erlide.backend.api.IBackend;
+import org.erlide.backend.api.IBackendListener;
+import org.erlide.util.ErlLogger;
 
-public class BackendManagerPopup implements IBackendListener {
+public final class BackendManagerPopup implements IBackendListener {
 
     private static final IBackendListener fInstance = new BackendManagerPopup();
 
@@ -32,12 +32,8 @@ public class BackendManagerPopup implements IBackendListener {
 
     @Override
     public void runtimeAdded(final IBackend b) {
-        ErlLogger.debug("$$ added backend " + b);
-        ErlLogger.debug("$$ added backend " + b.getRuntimeInfo());
-        ErlLogger.debug("$$ added backend " + b.getRuntimeInfo().getName());
-        final IWorkbench workbench = PlatformUI.getWorkbench();
-        final Display display = workbench.getDisplay();
-        display.asyncExec(new Runnable() {
+        ErlLogger.debug("$$ added backend " + b.getName() + " " + b);
+        DisplayUtils.asyncExec(new Runnable() {
 
             @Override
             public void run() {
@@ -49,7 +45,7 @@ public class BackendManagerPopup implements IBackendListener {
 
     @Override
     public void runtimeRemoved(final IBackend b) {
-        ErlLogger.debug("$$ removed backend " + b.getRuntimeInfo().getName());
+        ErlLogger.debug("$$ removed backend " + b.getName());
         final IWorkbench workbench = PlatformUI.getWorkbench();
         final Display display = workbench.getDisplay();
         display.asyncExec(new Runnable() {

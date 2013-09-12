@@ -32,20 +32,19 @@ import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.internal.model.root.ErlElementDelta;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.IParent;
-import org.erlide.core.model.erlang.IErlComment;
-import org.erlide.core.model.erlang.IErlMember;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.erlang.ISourceRange;
-import org.erlide.core.model.erlang.ISourceReference;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElement.Kind;
-import org.erlide.core.model.root.IErlElementDelta;
-import org.erlide.core.model.root.IErlModel;
-import org.erlide.core.model.util.IElementChangedListener;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.IErlModel;
+import org.erlide.engine.model.IParent;
+import org.erlide.engine.model.erlang.IErlComment;
+import org.erlide.engine.model.erlang.IErlMember;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.erlang.ISourceRange;
+import org.erlide.engine.model.erlang.ISourceReference;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlElementDelta;
+import org.erlide.engine.util.IElementChangedListener;
 import org.erlide.ui.editors.erl.ErlangEditor;
 import org.erlide.ui.editors.erl.folding.IErlangFoldingStructureProvider;
 import org.erlide.ui.editors.erl.folding.IErlangFoldingStructureProviderExtension;
@@ -54,7 +53,7 @@ import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.prefs.PreferenceConstants;
 import org.erlide.ui.util.ErlModelUtils;
 import org.erlide.ui.util.PerformanceTuning;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class DefaultErlangFoldingStructureProvider implements
         IProjectionListener, IErlangFoldingStructureProvider,
@@ -442,8 +441,9 @@ public class DefaultErlangFoldingStructureProvider implements
             if (stateMatch(annotation) && !annotation.isComment()
                     && !annotation.isMarkedDeleted()) {
                 final IErlElement element = annotation.getElement();
-                final Kind kind = element.getKind();
-                return kind == Kind.FUNCTION || kind == Kind.CLAUSE;
+                final ErlElementKind kind = element.getKind();
+                return kind == ErlElementKind.FUNCTION
+                        || kind == ErlElementKind.CLAUSE;
             }
             return false;
         }
@@ -499,7 +499,7 @@ public class DefaultErlangFoldingStructureProvider implements
             fEditor = editor;
             fViewer = viewer;
             fViewer.addProjectionListener(this);
-            final IErlModel mdl = ErlModelManager.getErlangModel();
+            final IErlModel mdl = ErlangEngine.getInstance().getModel();
             mdl.addModelChangeListener(this);
         }
     }
@@ -511,7 +511,8 @@ public class DefaultErlangFoldingStructureProvider implements
             fViewer.removeProjectionListener(this);
             fViewer = null;
             fEditor = null;
-            ErlModelManager.getErlangModel().removeModelChangeListener(this);
+            ErlangEngine.getInstance().getModel()
+                    .removeModelChangeListener(this);
         }
     }
 
@@ -541,15 +542,17 @@ public class DefaultErlangFoldingStructureProvider implements
             } catch (final ErlModelException e1) {
             }
             if (structureKnown) {
-                final IErlElementDelta d = new ErlElementDelta(
-                        IErlElementDelta.CHANGED, IErlElementDelta.F_CONTENT,
-                        fModule);
+                final IErlElementDelta d = ErlangEngine
+                        .getInstance()
+                        .getModel()
+                        .createElementDelta(IErlElementDelta.CHANGED,
+                                IErlElementDelta.F_CONTENT, fModule);
                 processDelta(d);
             } else {
                 try {
                     fModule.open(null);
                 } catch (final ErlModelException e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 }
             }
         }
@@ -563,8 +566,8 @@ public class DefaultErlangFoldingStructureProvider implements
     public void projectionDisabled() {
         fCachedDocument = null;
         if (fElementListener != null) {
-            ErlModelManager.getErlangModel().removeElementChangedListener(
-                    fElementListener);
+            ErlangEngine.getInstance().getModel()
+                    .removeElementChangedListener(fElementListener);
             fElementListener = null;
         }
     }
@@ -644,11 +647,11 @@ public class DefaultErlangFoldingStructureProvider implements
         boolean createProjection = false;
         boolean collapse = false;
 
-        if (element.getKind() == IErlElement.Kind.CLAUSE
-                || element.getKind() == IErlElement.Kind.FUNCTION) {
+        if (element.getKind() == ErlElementKind.CLAUSE
+                || element.getKind() == ErlElementKind.FUNCTION) {
             collapse = fAllowCollapsing && fCollapseClauses;
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.COMMENT) {
+        } else if (element.getKind() == ErlElementKind.COMMENT) {
             final IErlComment c = (IErlComment) element;
             if (c.isHeader()) {
                 collapse = fAllowCollapsing && fCollapseHeaderComments;
@@ -656,15 +659,15 @@ public class DefaultErlangFoldingStructureProvider implements
                 collapse = fAllowCollapsing && fCollapseComments;
             }
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.ATTRIBUTE) {
+        } else if (element.getKind() == ErlElementKind.ATTRIBUTE) {
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.EXPORT) {
+        } else if (element.getKind() == ErlElementKind.EXPORT) {
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.RECORD_DEF) {
+        } else if (element.getKind() == ErlElementKind.RECORD_DEF) {
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.MACRO_DEF) {
+        } else if (element.getKind() == ErlElementKind.MACRO_DEF) {
             createProjection = true;
-        } else if (element.getKind() == IErlElement.Kind.TYPESPEC) {
+        } else if (element.getKind() == ErlElementKind.TYPESPEC) {
             collapse = fAllowCollapsing && fCollapseTypespecs;
             createProjection = true;
         }
@@ -1092,9 +1095,11 @@ public class DefaultErlangFoldingStructureProvider implements
             if (element instanceof IErlModule && element != fModule) {
                 return;
             }
-            final ErlElementDelta d = new ErlElementDelta(
-                    IErlElementDelta.CHANGED, IErlElementDelta.F_CONTENT,
-                    fModule);
+            final IErlElementDelta d = ErlangEngine
+                    .getInstance()
+                    .getModel()
+                    .createElementDelta(IErlElementDelta.CHANGED,
+                            IErlElementDelta.F_CONTENT, fModule);
             processDelta(d);
         } finally {
             fCachedDocument = null;

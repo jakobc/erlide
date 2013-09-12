@@ -21,12 +21,13 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.SubProgressMonitor;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.IBackend;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElementVisitor;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.backend.api.IBackend;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlElementVisitor;
+import org.erlide.engine.model.root.IErlProject;
 import org.erlide.eunit.EUnitTestFunction;
 
 import com.google.common.collect.Lists;
@@ -35,58 +36,58 @@ import erlang.ErlideEUnit;
 
 public class EUnitTestFinder implements IErlangTestFinder {
 
-	public List<EUnitTestFunction> findTestsInContainer(
-			final IErlProject project, final IErlElement parent,
-			IProgressMonitor pm) throws CoreException {
-		if (parent == null) { // XXX hmmm
-			throw new IllegalArgumentException();
-		}
-		if (pm == null) {
-			pm = new NullProgressMonitor();
-		}
-		final IProgressMonitor monitor = pm;
-		if (parent instanceof IErlElement) {
-			final IErlElement element = parent;
-			final List<IErlModule> modules = Lists.newArrayList();
-			element.accept(new IErlElementVisitor() {
+    public List<EUnitTestFunction> findTestsInContainer(
+            final IErlProject project, final IErlElement parent,
+            IProgressMonitor pm) throws CoreException {
+        if (parent == null) { // XXX hmmm
+            throw new IllegalArgumentException();
+        }
+        if (pm == null) {
+            pm = new NullProgressMonitor();
+        }
+        final IProgressMonitor monitor = pm;
+        if (parent instanceof IErlElement) {
+            final IErlElement element = parent;
+            final List<IErlModule> modules = Lists.newArrayList();
+            element.accept(new IErlElementVisitor() {
 
-				public boolean visit(final IErlElement element)
-						throws ErlModelException {
-					if (element instanceof IErlModule) {
-						final IErlModule module = (IErlModule) element;
-						modules.add(module);
-					}
-					return true;
-				}
-			}, EnumSet.of(IErlElement.AcceptFlags.LEAFS_ONLY),
-					IErlElement.Kind.MODULE);
-			return findTestsInModules(project, modules, new SubProgressMonitor(
-					monitor, 1));
-		}
-		return null;
-	}
+                public boolean visit(final IErlElement element)
+                        throws ErlModelException {
+                    if (element instanceof IErlModule) {
+                        final IErlModule module = (IErlModule) element;
+                        modules.add(module);
+                    }
+                    return true;
+                }
+            }, EnumSet.of(IErlElement.AcceptFlags.LEAFS_ONLY),
+                    ErlElementKind.MODULE);
+            return findTestsInModules(project, modules, new SubProgressMonitor(
+                    monitor, 1));
+        }
+        return null;
+    }
 
-	public List<EUnitTestFunction> findTestsInModules(
-			final IErlProject project, final List<IErlModule> modules,
-			final IProgressMonitor pm) throws CoreException {
-		try {
-			final IBackend backend = BackendCore.getBackendManager()
-					.getIdeBackend();
-			final List<String> beams = Lists.newArrayListWithCapacity(modules
-					.size());
-			final IFolder ebin = project.getWorkspaceProject().getFolder(
-					project.getOutputLocation());
-			for (final IErlModule module : modules) {
-				final String beamName = module.getModuleName() + ".beam";
-				final IResource beam = ebin.findMember(beamName);
-				if (beam != null) {
-					beams.add(beam.getLocation().toPortableString());
-				}
-			}
-			return ErlideEUnit.findTests(backend, beams);
-		} finally {
-			pm.done();
-		}
-	}
+    public List<EUnitTestFunction> findTestsInModules(
+            final IErlProject project, final List<IErlModule> modules,
+            final IProgressMonitor pm) throws CoreException {
+        try {
+            final IBackend backend = BackendCore.getBackendManager()
+                    .getIdeBackend();
+            final List<String> beams = Lists.newArrayListWithCapacity(modules
+                    .size());
+            final IFolder ebin = project.getWorkspaceProject().getFolder(
+                    project.getOutputLocation());
+            for (final IErlModule module : modules) {
+                final String beamName = module.getModuleName() + ".beam";
+                final IResource beam = ebin.findMember(beamName);
+                if (beam != null) {
+                    beams.add(beam.getLocation().toPortableString());
+                }
+            }
+            return ErlideEUnit.findTests(backend.getRpcSite(), beams);
+        } finally {
+            pm.done();
+        }
+    }
 
 }

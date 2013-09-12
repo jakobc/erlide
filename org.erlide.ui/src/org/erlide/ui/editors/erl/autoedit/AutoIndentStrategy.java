@@ -20,17 +20,15 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextUtilities;
 import org.eclipse.ui.editors.text.EditorsUI;
 import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
-import org.erlide.backend.BackendCore;
-import org.erlide.core.model.erlang.IErlMember;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.services.text.ErlideIndent;
-import org.erlide.core.services.text.IndentResult;
-import org.erlide.runtime.IRpcSite;
-import org.erlide.ui.editors.erl.ErlangEditor;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.IErlMember;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.services.text.IndentResult;
+import org.erlide.engine.services.text.IndentService;
+import org.erlide.ui.editors.erl.AbstractErlangEditor;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.prefs.plugin.IndentationPreferencePage;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 /**
  * The erlang auto indent strategy
@@ -41,11 +39,11 @@ import org.erlide.utils.ErlLogger;
 public class AutoIndentStrategy implements IAutoEditStrategy {
     // extends DefaultIndentLineAutoEditStrategy {
 
-    private final ErlangEditor fEditor;
+    private final AbstractErlangEditor editor;
 
-    public AutoIndentStrategy(final ErlangEditor editor) {
+    public AutoIndentStrategy(final AbstractErlangEditor editor) {
         super();
-        fEditor = editor;
+        this.editor = editor;
     }
 
     private void autoIndentAfterNewLine(final IDocument d,
@@ -59,12 +57,14 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
 
     protected void indentAfterNewLine(final IDocument d, final DocumentCommand c)
             throws BadLocationException {
+        if (editor == null) {
+            return;
+        }
         final int offset = c.offset;
         String txt = null;
-        if (fEditor != null) {
-            fEditor.reconcileNow();
-        }
-        final IErlMember member = getMemberNearOffset(offset);
+        editor.reconcileNow();
+        final IErlElement element = editor.getElementAt(offset, false);
+        final IErlMember member = (IErlMember) element;
         if (member != null) {
             final int start = member.getSourceRange().getOffset();
             if (offset >= start) {
@@ -79,16 +79,15 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
         final int lineLength = d.getLineLength(lineN);
         final String oldLine = d.get(offset, lineLength + lineOffset - offset);
         try {
-            final IRpcSite b = BackendCore.getBackendManager().getIdeBackend()
-                    .getRpcSite();
             final int tabw = getTabWidthFromPreferences();
 
             final Map<String, String> prefs = new TreeMap<String, String>();
             IndentationPreferencePage.addKeysAndPrefs(prefs);
             SmartTypingPreferencePage.addAutoNLKeysAndPrefs(prefs);
             final boolean useTabs = getUseTabsFromPreferences();
-            final IndentResult res = ErlideIndent.indentLine(b, oldLine, txt,
-                    c.text, tabw, useTabs, prefs);
+            final IndentResult res = ErlangEngine.getInstance()
+                    .getService(IndentService.class)
+                    .indentLine(oldLine, txt, c.text, tabw, useTabs, prefs);
 
             if (res.isAddNewLine()) {
                 c.text += "\n";
@@ -98,24 +97,6 @@ public class AutoIndentStrategy implements IAutoEditStrategy {
         } catch (final Exception e) {
             ErlLogger.warn(e);
         }
-    }
-
-    private IErlMember getMemberNearOffset(final int offset) {
-        if (fEditor == null) {
-            return null;
-        }
-        final IErlElement element = fEditor.getElementAt(offset, false);
-        IErlMember member = (IErlMember) element;
-        final IErlModule module = fEditor.getModule();
-        try {
-            if (member == null) {
-                member = (IErlMember) module.getChildren().get(
-                        module.getChildCount() - 1);
-            }
-        } catch (final Exception e1) {
-            // ignore
-        }
-        return member;
     }
 
     /**

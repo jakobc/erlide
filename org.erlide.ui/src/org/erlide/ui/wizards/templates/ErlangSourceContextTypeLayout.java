@@ -1,9 +1,9 @@
 /*******************************************************************************
  * Copyright (c) 2004 Lukas Larsson and others.
- * All rights reserved. This program and the accompanying materials 
+ * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Lukas Larsson
  *******************************************************************************/
@@ -12,16 +12,15 @@ package org.erlide.ui.wizards.templates;
 import org.eclipse.jface.text.templates.GlobalTemplateVariables;
 import org.eclipse.jface.text.templates.TemplateContextType;
 
-public class ErlangSourceContextTypeLayout extends TemplateContextType {
+public final class ErlangSourceContextTypeLayout extends TemplateContextType {
 
-    private static ErlangSourceContextTypeLayout fInstance;
+    private static ErlangSourceContextTypeLayout fInstance = new ErlangSourceContextTypeLayout();
 
     /**
      * Creates a new XML context type.
      */
-    public ErlangSourceContextTypeLayout() {
+    private ErlangSourceContextTypeLayout() {
         addGlobalResolvers();
-        fInstance = this;
     }
 
     private void addGlobalResolvers() {
@@ -36,9 +35,6 @@ public class ErlangSourceContextTypeLayout extends TemplateContextType {
     }
 
     public static ErlangSourceContextTypeLayout getDefault() {
-        if (fInstance == null) {
-            new ErlangSourceContextTypeLayout();
-        }
         return fInstance;
     }
 

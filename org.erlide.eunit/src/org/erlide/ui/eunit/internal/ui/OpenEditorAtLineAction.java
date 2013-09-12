@@ -16,42 +16,42 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlProject;
 
 /**
  * Open a test in the Java editor and reveal a given line
  */
 public class OpenEditorAtLineAction extends OpenEditorAction {
 
-	private final int fLineNumber;
+    private final int fLineNumber;
 
-	public OpenEditorAtLineAction(final TestRunnerViewPart testRunner,
-			final String moduleName, final int line) {
-		super(testRunner, moduleName);
-		// TODO PlatformUI.getWorkbench().getHelpSystem()
-		// .setHelp(this, IJUnitHelpContextIds.OPENEDITORATLINE_ACTION);
-		fLineNumber = line;
-	}
+    public OpenEditorAtLineAction(final TestRunnerViewPart testRunner,
+            final String moduleName, final int line) {
+        super(testRunner, moduleName);
+        // TODO PlatformUI.getWorkbench().getHelpSystem()
+        // .setHelp(this, IJUnitHelpContextIds.OPENEDITORATLINE_ACTION);
+        fLineNumber = line;
+    }
 
-	@Override
-	protected void reveal(final ITextEditor textEditor) {
-		if (fLineNumber >= 0) {
-			try {
-				final IDocument document = textEditor.getDocumentProvider()
-						.getDocument(textEditor.getEditorInput());
-				textEditor.selectAndReveal(
-						document.getLineOffset(fLineNumber - 1),
-						document.getLineLength(fLineNumber - 1));
-			} catch (final BadLocationException x) {
-				// marker refers to invalid text position -> do nothing
-			}
-		}
-	}
+    @Override
+    protected void reveal(final ITextEditor textEditor) {
+        if (fLineNumber >= 0) {
+            try {
+                final IDocument document = textEditor.getDocumentProvider()
+                        .getDocument(textEditor.getEditorInput());
+                textEditor.selectAndReveal(
+                        document.getLineOffset(fLineNumber - 1),
+                        document.getLineLength(fLineNumber - 1));
+            } catch (final BadLocationException x) {
+                // marker refers to invalid text position -> do nothing
+            }
+        }
+    }
 
-	protected IErlElement findElement(final IErlProject project,
-			final String moduleName) throws CoreException {
-		return findModule(project, moduleName);
-	}
+    protected IErlElement findElement(final IErlProject project,
+            final String moduleName) throws CoreException {
+        return findModule(project, moduleName);
+    }
 
 }

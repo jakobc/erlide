@@ -2,7 +2,7 @@
 %% Created: Mar 23, 2006
 %% Description: TODO: Add description to erlide_open
 -module(erlide_open).
--author(jakobce@gmail.com).
+-author('jakobce@gmail.com').
 
 %%
 %% Exported Functions
@@ -14,10 +14,10 @@
          get_external_module/2,
          get_external_module_tree/1,
          get_external_include/2,
-		 get_external_1/3,
-         get_lib_dirs/0,
-         get_lib_src_include/1,
-         get_lib_files/1
+         get_external_1/3,
+         get_otp_lib_src_includes/1,
+         get_lib_files/1,
+         get_includes_in_dir/1
         ]).
 
 %% TODO (JC) there are some code duplication in external modules (and includes) handling
@@ -30,16 +30,10 @@
 %%-define(IO_FORMAT_DEBUG, 1).
 
 -include("erlide.hrl").
--include("erlide_scanner.hrl").
+-include("erlide_open.hrl").
+-include("erlide_token.hrl").
 
--compile(export_all).
-
--record(open_context, {externalModules,
-                       externalIncludes,
-                       pathVars,
-                       extraSourcePaths,
-                       imports}).
-
+-define(CACHE_VERSION, 1).
 
 %%
 %% API Functions
@@ -50,7 +44,7 @@ open(Mod, Offset, #open_context{imports=Imports0}=Context) ->
     Imports = erlide_util:add_auto_imported(Imports0),
     try
         {TokensWComments, BeforeReversed} =
-            erlide_scanner_server:getTokenWindow(Mod, Offset, 45, 100),
+            erlide_scanner:get_token_window(Mod, Offset, 45, 100),
         ?D({TokensWComments, BeforeReversed}),
         try_open(Offset, TokensWComments, BeforeReversed,
                  Context#open_context{imports=Imports}),
@@ -79,21 +73,30 @@ open_info(S, #open_context{}=Context) when is_list(S); is_binary(S) ->
             {error, E}
     end.
 
-get_external_include(FilePath, #open_context{externalIncludes=ExternalIncludes, 
+get_external_include(FilePath, #open_context{externalIncludes=ExternalIncludes,
                                              pathVars=PathVars}) ->
     ?D(FilePath),
     ExtIncPaths = get_external_modules_files(ExternalIncludes, PathVars),
     get_ext_inc(ExtIncPaths, FilePath).
 
-get_lib_dirs() ->
-    CodeLibs = [D || D <- code:get_path(), D =/= "."],
-    LibDir = code:lib_dir(),
-    Libs = lists:filter(fun(N) -> lists:prefix(LibDir, N) end, CodeLibs),
-    {ok, Libs}.
-
-get_lib_src_include(Dir) ->
-    Dirs = ["src", "include"],
-    R = get_dirs(Dirs, get_lib_dir(Dir), []),
+get_otp_lib_src_includes(StateDir) ->
+    RenewFun = fun(_) ->
+                       CodeLibs = [D || D <- code:get_path(), D =/= "."],
+                       LibDir = code:lib_dir(),
+                       Libs = lists:filter(fun(N) -> lists:prefix(LibDir, N) end, CodeLibs),
+                       LibDirs = [get_lib_dir(Lib) || Lib<-Libs],
+                       R = lists:map(fun(Dir) ->
+                                             SubDirs = ["src", "include"],
+                                             {Dir, get_dirs(SubDirs, get_lib_dir(Dir), [])}
+                                     end, LibDirs),
+                       ?D(R),
+                       R
+               end,
+    VersionFileName = filename:join([code:root_dir(), "releases", "start_erl.data"]),
+    CacheName = filename:join(StateDir, "otp.dirs"),
+    {_Cached, R} =
+        erlide_util:check_and_renew_cached(VersionFileName, CacheName,
+                                           ?CACHE_VERSION, RenewFun, true),
     {ok, R}.
 
 get_dirs([], _, Acc) ->
@@ -130,28 +133,16 @@ get_includes_in_dir(Dir) ->
 %%
 
 filter_includes(Files) ->
-    filter_includes(Files, []).
-
-filter_includes([], Acc) ->
-    lists:reverse(Acc);
-filter_includes([Filename | Rest], Acc) ->
-    case filename:extension(Filename) of
-        ".hrl" ->
-            filter_includes(Rest, [Filename | Acc]);
-        _ ->
-            filter_includes(Rest, Acc)
-    end.
+    [File || File <- Files, filename:extension(File) == ".hrl"].
 
 get_lib_dir(Dir) ->
-    B = filename:basename(Dir),
-    case B of
+    case filename:basename(Dir) of
         "ebin" ->
             filename:dirname(Dir);
         _ ->
             Dir
     end.
-                
-    
+
 try_open(Offset, TokensWComments, BeforeReversedWComments, Context) ->
     Tokens = erlide_text:strip_comments(TokensWComments),
     BeforeReversed = erlide_text:strip_comments(BeforeReversedWComments),
@@ -208,7 +199,7 @@ consider_local([#token{kind=':'} | _]) ->
 consider_local(_) ->
     true.
 
-consider_macro_def([#token{kind=atom, value=define}, #token{kind='-'} | _]) ->
+consider_macro_def([#token{kind=atom, value=define}, #token{kind='-'} | _]) ->
     true;
 consider_macro_def([#token{kind='('} | Rest]) ->
     consider_macro_def(Rest);
@@ -307,9 +298,12 @@ upto_offset([#token{offset=O, length=L}=T | Rest], Offset) when Offset>=O+L ->
     [T | upto_offset(Rest, Offset)];
 upto_offset([], _) ->
     [];
-upto_offset([T | _], _) ->
+upto_offset([T | _], _) ->
     [T].
 
+o_record_def([#token{kind='('}, #token{value=Value, offset=O, length=L}, #token{kind=','} | _Tokens], Offset)
+  when Offset=<O+L ->
+    throw({open, {record, Value}});
 o_record_def([#token{kind='('}, #token{value=Value}, #token{kind=','} | Tokens], Offset) ->
     Between = erlide_np_util:get_between_outer_pars(Tokens, '{', '}'),
     o_record_def_aux(Between, Offset, Value, want_field).
@@ -386,7 +380,7 @@ get_external_modules_files(PackedFileNames, PathVars) ->
     Fun = fun(_Parent, FileName, Acc) -> [replace_path_var(FileName, PathVars) | Acc] end,
     Fun2 = fun(_Parent, _FileName, Acc) -> Acc end,
     FileNames = erlide_util:unpack(PackedFileNames),
-    R = fold_externals(Fun, Fun2, FileNames, PathVars), 
+    R = fold_externals(Fun, Fun2, FileNames, PathVars),
     %%?D(R),
     R.
 

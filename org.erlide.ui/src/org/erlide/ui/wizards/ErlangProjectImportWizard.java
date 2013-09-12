@@ -24,8 +24,10 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubProgressMonitor;
 import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -43,13 +45,14 @@ import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.dialogs.FileSystemElement;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.wizards.datatransfer.FileSystemStructureProvider;
-import org.erlide.backend.BackendCore;
 import org.erlide.core.ErlangCore;
-import org.erlide.core.internal.model.root.OldErlangProjectProperties;
-import org.erlide.core.model.util.PluginUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.root.IErlangProjectProperties;
+import org.erlide.engine.model.root.OldErlangProjectProperties;
+import org.erlide.engine.services.importer.ErlProjectImport;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.perspectives.ErlangPerspective;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
     // {
@@ -86,9 +89,8 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
             filesAndDirs.add(s);
         }
         final String projectPath = mainPage.getProjectPath().toString();
-        final ErlProjectImport epi = ErlideImport.importProject(BackendCore
-                .getBackendManager().getIdeBackend().getRpcSite(), projectPath,
-                filesAndDirs);
+        final ErlProjectImport epi = ErlangEngine.getInstance()
+                .getImportService().importProject(projectPath, filesAndDirs);
         final IPath beamDir = new Path(epi.getBeamDir());
         importIncludeAndSourceDirsPage.setup(projectPath, epi.getDirectories(),
                 epi.getIncludeDirs(), epi.getSourceDirs(), beamDir);
@@ -137,7 +139,8 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
             getContainer().run(false, true, new WorkspaceModifyOperation() {
 
                 @Override
-                protected void execute(IProgressMonitor monitor) {
+                protected void execute(final IProgressMonitor monitor0) {
+                    IProgressMonitor monitor = monitor0;
                     if (monitor == null) {
                         monitor = new NullProgressMonitor();
                     }
@@ -231,11 +234,14 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
      */
     private void reportError(final Exception e) {
         ErlLogger.error(e);
-        ErrorDialog.openError(getShell(), ErlideUIPlugin
-                .getResourceString("wizards.errors.projecterrordesc"),
+        ErrorDialog.openError(
+                getShell(),
+                ErlideUIPlugin
+                        .getResourceString("wizards.errors.projecterrordesc"),
                 ErlideUIPlugin
                         .getResourceString("wizards.errors.projecterrortitle"),
-                PluginUtils.makeStatus(e));
+                new Status(IStatus.ERROR, ErlideUIPlugin.PLUGIN_ID, 0, e
+                        .getMessage(), e));
     }
 
     protected boolean createProject(final IProgressMonitor monitor,
@@ -269,7 +275,7 @@ public class ErlangProjectImportWizard extends Wizard implements IImportWizard {
             // new SubProgressMonitor(monitor, 30));
             project.open(IResource.BACKGROUND_REFRESH, new SubProgressMonitor(
                     monitor, 300));
-            final OldErlangProjectProperties erlangProjectProperties = new OldErlangProjectProperties(
+            final IErlangProjectProperties erlangProjectProperties = new OldErlangProjectProperties(
                     project);
             erlangProjectProperties.setIncludeDirs(includeDirs);
             erlangProjectProperties.setSourceDirs(sourceDirs);

@@ -10,26 +10,20 @@
  *******************************************************************************/
 package org.erlide.ui.prefs;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.jface.dialogs.ControlEnableState;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.Viewer;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -38,32 +32,17 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.eclipse.ui.dialogs.PreferencesUtil;
-import org.eclipse.ui.dialogs.PropertyPage;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlModel;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.services.builder.CompilerOption;
-import org.erlide.core.services.builder.CompilerOption.PathsOption;
-import org.erlide.core.services.builder.CompilerOptions;
-import org.erlide.utils.ErlLogger;
+import org.erlide.core.builder.CompilerOption;
+import org.erlide.core.builder.CompilerOption.PathsOption;
+import org.erlide.core.builder.CompilerOptions;
+import org.erlide.util.ErlLogger;
 import org.osgi.service.prefs.BackingStoreException;
 
 import com.google.common.collect.Lists;
 
-public class CompilerPreferencePage extends PropertyPage implements
-        IWorkbenchPreferencePage {
+public class CompilerPreferencePage extends ProjectSpecificPreferencePage {
     CompilerOptions prefs;
-    private Composite prefsComposite;
-    private IProject fProject;
-    private Button fUseProjectSettings;
-    private Link fChangeWorkspaceSettings;
-    protected ControlEnableState fBlockEnableState;
     private final List<Button> optionButtons;
     private Text text;
     private Text text_1;
@@ -178,21 +157,14 @@ public class CompilerPreferencePage extends PropertyPage implements
         } else {
             prefs = new CompilerOptions(fProject);
         }
-        try {
-            prefs.load();
-        } catch (final BackingStoreException e) {
-            ErlLogger.warn(e);
-        }
+        prefs.load();
         updateUI();
     }
 
+    @Override
     protected boolean hasProjectSpecificOptions(final IProject project) {
         final CompilerOptions p = new CompilerOptions(project);
         return p.hasOptionsAtLowestScope();
-    }
-
-    private boolean isProjectPreferencePage() {
-        return fProject != null;
     }
 
     @Override
@@ -206,156 +178,12 @@ public class CompilerPreferencePage extends PropertyPage implements
         return lblSelectTheCompiler;
     }
 
-    protected void enableProjectSpecificSettings(
-            final boolean useProjectSpecificSettings) {
-        fUseProjectSettings.setSelection(useProjectSpecificSettings);
-        enablePreferenceContent(useProjectSpecificSettings);
-        fChangeWorkspaceSettings.setEnabled(!useProjectSpecificSettings);
-        // doStatusChanged();
-    }
-
-    private void enablePreferenceContent(
-            final boolean useProjectSpecificSettings) {
-        if (useProjectSpecificSettings) {
-            if (fBlockEnableState != null) {
-                fBlockEnableState.restore();
-                fBlockEnableState = null;
-            }
-        } else {
-            if (fBlockEnableState == null) {
-                fBlockEnableState = ControlEnableState.disable(prefsComposite);
-            }
-        }
-    }
-
-    private void createProjectSpecificSettingsCheckBoxAndLink(
-            final Composite parent) {
-        if (isProjectPreferencePage()) {
-            final Composite composite = new Composite(parent, SWT.NONE);
-            composite.setFont(parent.getFont());
-            final GridLayout layout = new GridLayout(2, false);
-            layout.marginHeight = 0;
-            layout.marginWidth = 0;
-            composite.setLayout(layout);
-            composite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true,
-                    false));
-
-            // final IDialogFieldListener listener = new IDialogFieldListener()
-            // {
-            // public void dialogFieldChanged(final DialogField field) {
-            // final boolean enabled = ((SelectionButtonDialogField) field)
-            // .isSelected();
-            // enableProjectSpecificSettings(enabled);
-            //
-            // if (enabled && getData() != null) {
-            // applyData(getData());
-            // }
-            // }
-            // };
-
-            fUseProjectSettings = new Button(composite, SWT.CHECK);
-            fUseProjectSettings.setText("Enable project specific settings");
-            fUseProjectSettings.addSelectionListener(new SelectionAdapter() {
-                @Override
-                public void widgetSelected(final SelectionEvent e) {
-                    final boolean sel = fUseProjectSettings.getSelection();
-                    enableProjectSpecificSettings(sel);
-                    super.widgetSelected(e);
-                }
-            });
-            // fUseProjectSettings.setDialogFieldListener(listener);
-            // fUseProjectSettings
-            // .setLabelText(PreferencesMessages.PropertyAndPreferencePage_useprojectsettings_label);
-            // LayoutUtil.setHorizontalGrabbing(fUseProjectSettings
-            // .getSelectionButton(null));
-
-            if (true) { // if (offerLink()) {
-                fChangeWorkspaceSettings = createLink(composite,
-                        "Configure Workspace settings...");
-                fChangeWorkspaceSettings.setLayoutData(new GridData(SWT.END,
-                        SWT.CENTER, false, false));
-            }
-            // else {
-            // LayoutUtil.setHorizontalSpan(fUseProjectSettings
-            // .getSelectionButton(null), 2);
-            // }
-
-            final Label horizontalLine = new Label(composite, SWT.SEPARATOR
-                    | SWT.HORIZONTAL);
-            horizontalLine.setLayoutData(new GridData(GridData.FILL,
-                    GridData.FILL, true, false, 2, 1));
-            horizontalLine.setFont(composite.getFont());
-        } else { // if (supportsProjectSpecificOptions() && offerLink()) {
-            fChangeWorkspaceSettings = createLink(parent,
-                    "Configure project specific settings..");
-            fChangeWorkspaceSettings.setLayoutData(new GridData(SWT.END,
-                    SWT.CENTER, true, false));
-        }
-
-    }
-
-    private Link createLink(final Composite composite, final String theText) {
-        final Link link = new Link(composite, SWT.NONE);
-        link.setFont(composite.getFont());
-        link.setText("<A>" + theText + "</A>"); //$NON-NLS-1$//$NON-NLS-2$
-        link.addSelectionListener(new SelectionListener() {
-            @Override
-            public void widgetSelected(final SelectionEvent e) {
-                doLinkActivated((Link) e.widget);
-            }
-
-            @Override
-            public void widgetDefaultSelected(final SelectionEvent e) {
-                doLinkActivated((Link) e.widget);
-            }
-        });
-        return link;
-    }
-
-    void doLinkActivated(final Link widget) {
-        if (isProjectPreferencePage()) {
-            openWorkspacePreferences(null);
-        } else {
-            final List<IProject> erlProjects = new ArrayList<IProject>();
-            final Set<IProject> projectsWithSpecifics = new HashSet<IProject>();
-            final IErlModel model = ErlModelManager.getErlangModel();
-            try {
-                for (final IErlProject ep : model.getErlangProjects()) {
-                    final IProject p = ep.getWorkspaceProject();
-                    if (hasProjectSpecificOptions(p)) {
-                        projectsWithSpecifics.add(p);
-                    }
-                    erlProjects.add(p);
-                }
-            } catch (final ErlModelException e) {
-            }
-            final ProjectSelectionDialog dialog = new ProjectSelectionDialog(
-                    getShell(), erlProjects, projectsWithSpecifics);
-            if (dialog.open() == Window.OK) {
-                final IProject res = (IProject) dialog.getFirstResult();
-                openProjectProperties(res);
-            }
-        }
-    }
-
-    private void openProjectProperties(final IProject project) {
-        final String id = getPropertyPageID();
-        if (id != null) {
-            PreferencesUtil.createPropertyDialogOn(getShell(), project, id,
-                    new String[] { id }, null).open();
-        }
-    }
-
-    protected final void openWorkspacePreferences(final Object data) {
-        final String id = getPreferencePageID();
-        PreferencesUtil.createPreferenceDialogOn(getShell(), id,
-                new String[] { id }, data).open();
-    }
-
+    @Override
     protected String getPreferencePageID() {
         return "org.erlide.ui.preferences.compiler";
     }
 
+    @Override
     protected String getPropertyPageID() {
         return "org.erlide.ui.properties.compilerPreferencePage";
     }
@@ -377,14 +205,6 @@ public class CompilerPreferencePage extends PropertyPage implements
         });
         optionButtons.add(b);
         return b;
-    }
-
-    enum OptionStatus {
-        //@formatter:off
-        OK, 
-        ERROR, 
-        NO_RUNTIME
-        //@formatter:off
     }
 
     @Override
@@ -415,20 +235,22 @@ public class CompilerPreferencePage extends PropertyPage implements
     }
 
     private void updateUI() {
-        for(final Button b: optionButtons){
+        for (final Button b : optionButtons) {
             final CompilerOption key = (CompilerOption) b.getData();
             b.setSelection(prefs.getBooleanOption(key));
         }
-        final Iterable<String> paths = prefs.getPathsOption(CompilerOption.INCLUDE_DIRS);
-        if(paths!=null) {
+        final Iterable<String> paths = prefs
+                .getPathsOption(CompilerOption.INCLUDE_DIRS);
+        if (paths != null) {
             text.setText(PathsOption.toString(paths));
         }
-        final String parseTransform = prefs.getSimpleOption(CompilerOption.PARSE_TRANSFORM);
-        if(parseTransform!=null) {
+        final String parseTransform = prefs
+                .getSimpleOption(CompilerOption.PARSE_TRANSFORM);
+        if (parseTransform != null) {
             text_1.setText(parseTransform);
         }
         final String custom = prefs.getSimpleOption(CompilerOption.CUSTOM);
-        if(custom!=null) {
+        if (custom != null) {
             text_2.setText(custom);
         }
     }
@@ -439,16 +261,12 @@ public class CompilerPreferencePage extends PropertyPage implements
         super.setElement(element);
     }
 
-    @Override
-    public void init(final IWorkbench workbench) {
-        performDefaults();
-    }
-
     @SuppressWarnings("unused")
-    private static class MacrosTableContentProvider implements IStructuredContentProvider {
+    private static class MacrosTableContentProvider implements
+            IStructuredContentProvider {
         @Override
         public Object[] getElements(final Object inputElement) {
-            return new Object[]{"aaa", "vvv"};
+            return new Object[] { "aaa", "vvv" };
         }
 
         @Override
@@ -462,15 +280,23 @@ public class CompilerPreferencePage extends PropertyPage implements
     }
 
     @SuppressWarnings("unused")
-    private class MacrosTableLabelProvider extends LabelProvider implements ITableLabelProvider {
+    private class MacrosTableLabelProvider extends LabelProvider implements
+            ITableLabelProvider {
         @Override
         public Image getColumnImage(final Object element, final int columnIndex) {
             return null;
         }
+
         @Override
         public String getColumnText(final Object element, final int columnIndex) {
             return element.toString();
         }
+    }
+
+    @Override
+    protected void openProjectPreferences() {
+        // TODO Auto-generated method stub
+
     }
 
 }

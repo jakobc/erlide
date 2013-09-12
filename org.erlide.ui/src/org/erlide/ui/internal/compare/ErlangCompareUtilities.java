@@ -24,12 +24,12 @@ import org.eclipse.compare.IEncodedStreamContentAccessor;
 import org.eclipse.compare.IStreamContentAccessor;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.erlide.core.model.erlang.IErlAttribute;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlPreprocessorDef;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElement.Kind;
+import org.erlide.engine.model.erlang.IErlAttribute;
+import org.erlide.engine.model.erlang.IErlFunction;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.erlang.IErlPreprocessorDef;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
 
 class ErlangCompareUtilities {
 
@@ -73,21 +73,22 @@ class ErlangCompareUtilities {
      */
     static String getErlElementID(final IErlElement e) {
         final StringBuilder sb = new StringBuilder();
-        final IErlElement.Kind kind = e.getKind();
+        final ErlElementKind kind = e.getKind();
         sb.append(kind);
-        if (kind == Kind.FUNCTION) {
+        if (kind == ErlElementKind.FUNCTION) {
             final IErlFunction f = (IErlFunction) e;
             sb.append(f.getNameWithArity());
-        } else if (kind == Kind.CLAUSE) {
+        } else if (kind == ErlElementKind.CLAUSE) {
             final IErlFunctionClause fc = (IErlFunctionClause) e;
             sb.append(fc.getHead());
-        } else if (kind == Kind.ATTRIBUTE) {
+        } else if (kind == ErlElementKind.ATTRIBUTE) {
             final IErlAttribute a = (IErlAttribute) e;
             sb.append(a.getName());
             if (a.getValue() != null) {
                 sb.append(a.getValue().toString());
             }
-        } else if (kind == Kind.RECORD_DEF || kind == Kind.MACRO_DEF) {
+        } else if (kind == ErlElementKind.RECORD_DEF
+                || kind == ErlElementKind.MACRO_DEF) {
             final IErlPreprocessorDef pd = (IErlPreprocessorDef) e;
             sb.append(pd.getDefinedName());
         }

@@ -36,11 +36,11 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.progress.UIJob;
 import org.eclipse.wb.swt.SWTResourceManager;
-import org.erlide.backend.BackendCore;
-import org.erlide.runtime.ErlUtils;
-import org.erlide.runtime.IRpcSite;
-import org.erlide.utils.ErlLogger;
-import org.erlide.utils.LogUtil;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.runtime.api.IRpcSite;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.LogUtil;
+import org.erlide.util.erlang.ErlUtils;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -190,8 +190,8 @@ public class ReportPreferencePage extends PreferencePage implements
     }
 
     private static void fetchErlangSystemInfo() {
-        final IRpcSite ideBackend = BackendCore.getBackendManager()
-                .getIdeBackend().getRpcSite();
+        @SuppressWarnings("deprecation")
+        final IRpcSite ideBackend = ErlangEngine.getInstance().getBackend();
         final String info = getSystemInfo(ideBackend);
         ErlLogger.info("\n++++++++++++++++++++++\n" + info);
     }

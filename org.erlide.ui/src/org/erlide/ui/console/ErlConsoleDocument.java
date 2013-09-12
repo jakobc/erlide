@@ -10,16 +10,21 @@
  *******************************************************************************/
 package org.erlide.ui.console;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.jface.text.rules.FastPartitioner;
 import org.eclipse.jface.text.rules.IPartitionTokenScanner;
-import org.eclipse.swt.widgets.Display;
-import org.erlide.backend.console.BackendShellListener;
-import org.erlide.backend.console.IBackendShell;
-import org.erlide.backend.console.IoRequest.IoRequestKind;
+import org.erlide.runtime.shell.BackendShellListener;
+import org.erlide.runtime.shell.IBackendShell;
+import org.erlide.runtime.shell.IoRequest.IoRequestKind;
+import org.erlide.ui.util.DisplayUtils;
+import org.erlide.util.ErlLogger;
 
 public final class ErlConsoleDocument extends Document implements
         BackendShellListener {
@@ -40,10 +45,10 @@ public final class ErlConsoleDocument extends Document implements
             LEGAL_CONTENT_TYPES = ss;
         }
 
-        Assert.isNotNull(shell);
+        assertThat(shell, is(not(nullValue())));
         this.shell = shell;
         shell.addListener(this);
-        changed(shell);
+        changed();
 
         final IDocumentPartitioner partitioner = new FastPartitioner(
                 createScanner(), LEGAL_CONTENT_TYPES);
@@ -56,19 +61,16 @@ public final class ErlConsoleDocument extends Document implements
     }
 
     @Override
-    public void changed(final IBackendShell aShell) {
-        if (aShell != shell) {
-            return;
-        }
+    public void changed() {
         final String text = shell.getText();
-        Display.getDefault().asyncExec(new Runnable() {
+        DisplayUtils.asyncExec(new Runnable() {
 
             @Override
             public void run() {
                 try {
                     replace(0, getLength(), text);
                 } catch (final BadLocationException e) {
-                    e.printStackTrace();
+                    ErlLogger.error(e);
                 }
             }
         });

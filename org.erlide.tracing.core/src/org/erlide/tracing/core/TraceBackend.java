@@ -8,10 +8,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.erlide.backend.BackendCore;
-import org.erlide.backend.BackendData;
-import org.erlide.backend.IBackend;
-import org.erlide.backend.events.ErlangEventHandler;
+import org.erlide.backend.api.BackendData;
+import org.erlide.backend.api.IBackend;
+import org.erlide.runtime.events.ErlEvent;
+import org.erlide.runtime.events.ErlangEventHandler;
 import org.erlide.runtime.rpc.RpcException;
 import org.erlide.runtime.runtimeinfo.RuntimeInfo;
 import org.erlide.tracing.core.mvc.model.TraceCollections;
@@ -22,8 +24,7 @@ import org.erlide.tracing.core.mvc.model.treenodes.ITreeNode;
 import org.erlide.tracing.core.mvc.model.treenodes.TracingResultsNode;
 import org.erlide.tracing.core.preferences.PreferenceNames;
 import org.erlide.tracing.core.utils.TraceDataHandler;
-import org.erlide.utils.ErlLogger;
-import org.osgi.service.event.Event;
+import org.erlide.util.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangInt;
@@ -32,6 +33,7 @@ import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.common.eventbus.Subscribe;
 
 /**
  * Singleton class used for communication with trace node.
@@ -82,17 +84,19 @@ public class TraceBackend {
 
     private class TraceEventHandler extends ErlangEventHandler {
 
-        public TraceEventHandler(final IBackend backend) {
-            super(EVENT_NAME, backend);
+        public TraceEventHandler(final String backendName) {
+            super(EVENT_NAME, backendName);
         }
 
         private final TraceDataHandler dataHandler = new TraceDataHandler();
         private boolean firstTrace = true;
 
-        @Override
-        public void handleEvent(final Event event) {
-            final OtpErlangObject message = (OtpErlangObject) event
-                    .getProperty("DATA");
+        @Subscribe
+        public void handleEvent(final ErlEvent event) {
+            if (!event.getTopic().equals(getTopic())) {
+                return;
+            }
+            final OtpErlangObject message = event.getEvent();
             if (message != null) {
                 OtpErlangObject errorReason = null;
                 // System.out.println("data: " + data);
@@ -150,8 +154,9 @@ public class TraceBackend {
                         tracing = true;
                         getBackend(true);
                         loadingFileInfo = true;
-                        handler = new TraceEventHandler(tracerBackend);
-                        handler.register();
+                        handler = new TraceEventHandler(tracerBackend.getName());
+                        tracerBackend.getRuntime().registerEventListener(
+                                handler);
 
                         // list of nodes being traced
                         final List<OtpErlangObject> erlangObjects = new ArrayList<OtpErlangObject>();
@@ -205,9 +210,7 @@ public class TraceBackend {
                             tracing = false;
                         }
                     } catch (final Exception e) {
-                        e.printStackTrace();
-                        ErlLogger.error("Could not start tracing tool: "
-                                + e.getMessage());
+                        ErlLogger.error(e);
                         status = TracingStatus.EXCEPTION_THROWN;
                         errorObject = e;
                         tracing = false;
@@ -223,22 +226,21 @@ public class TraceBackend {
         if (((OtpErlangAtom) tuple.elementAt(0)).atomValue().equals("error")) {
             errorObject = tuple.elementAt(1);
             return TracingStatus.ERROR;
+        }
+        final OtpErlangList nodeNames = (OtpErlangList) tuple.elementAt(1);
+        activatedNodes = new ArrayList<String>();
+        for (final OtpErlangObject nodeName : nodeNames) {
+            final String nodeNameString = ((OtpErlangAtom) nodeName)
+                    .atomValue();
+            activatedNodes.add(nodeNameString);
+            notActivatedNodes.remove(nodeNameString);
+        }
+        if (activatedNodes.size() == 0) {
+            return TracingStatus.NO_ACTIVATED_NODES;
+        } else if (notActivatedNodes.size() != 0) {
+            return TracingStatus.NOT_ALL_NODES_ACTIVATED;
         } else {
-            final OtpErlangList nodeNames = (OtpErlangList) tuple.elementAt(1);
-            activatedNodes = new ArrayList<String>();
-            for (final OtpErlangObject nodeName : nodeNames) {
-                final String nodeNameString = ((OtpErlangAtom) nodeName)
-                        .atomValue();
-                activatedNodes.add(nodeNameString);
-                notActivatedNodes.remove(nodeNameString);
-            }
-            if (activatedNodes.size() == 0) {
-                return TracingStatus.NO_ACTIVATED_NODES;
-            } else if (notActivatedNodes.size() != 0) {
-                return TracingStatus.NOT_ALL_NODES_ACTIVATED;
-            } else {
-                return TracingStatus.OK;
-            }
+            return TracingStatus.OK;
         }
     }
 
@@ -328,9 +330,10 @@ public class TraceBackend {
                     try {
                         loading = true;
                         loadingFileInfo = true;
-                        handler = new TraceEventHandler(tracerBackend);
+                        handler = new TraceEventHandler(tracerBackend.getName());
                         getBackend(true);
-                        handler.register();
+                        tracerBackend.getRuntime().registerEventListener(
+                                handler);
                         tracerBackend.getRpcSite().call(
                                 Constants.ERLANG_HELPER_MODULE, FUN_FILE_INFO,
                                 "s", new OtpErlangString(path));
@@ -362,10 +365,11 @@ public class TraceBackend {
                         loading = true;
                         loadingFileInfo = false;
                         startIndex = theStartIndex;
-                        handler = new TraceEventHandler(tracerBackend);
+                        handler = new TraceEventHandler(tracerBackend.getName());
                         getBackend(true);
                         TraceCollections.getTracesList().clear();
-                        handler.register();
+                        tracerBackend.getRuntime().registerEventListener(
+                                handler);
                         final OtpErlangLong start = new OtpErlangLong(
                                 theStartIndex);
                         final OtpErlangLong stop = new OtpErlangLong(endIndex);
@@ -601,7 +605,7 @@ public class TraceBackend {
     }
 
     private IBackend createBackend() {
-        final RuntimeInfo info = RuntimeInfo.copy(BackendCore
+        final RuntimeInfo info = new RuntimeInfo(BackendCore
                 .getRuntimeInfoCatalog().getErlideRuntime());
         try {
             final BackendData data = getBackendData(info);
@@ -610,12 +614,12 @@ public class TraceBackend {
                     .createExecutionBackend(data);
             return b;
         } catch (final Exception e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
         return null;
     }
 
-    private BackendData getBackendData(final RuntimeInfo rinfo) {
+    private BackendData getBackendData(final @NonNull RuntimeInfo rinfo) {
         final BackendData backendData = new BackendData(rinfo);
         final String nodeName = Activator.getDefault().getPreferenceStore()
                 .getString(PreferenceNames.NODE_NAME);

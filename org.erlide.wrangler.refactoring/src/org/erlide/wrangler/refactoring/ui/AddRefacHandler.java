@@ -2,7 +2,6 @@ package org.erlide.wrangler.refactoring.ui;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,15 +18,14 @@ import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.ui.PlatformUI;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlAttribute;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.erlang.IErlScanner;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.root.IErlElement.Kind;
-import org.erlide.core.model.root.IErlProject;
-import org.erlide.core.model.util.ModelUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlAttribute;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.ErlElementKind;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.services.parsing.ScannerService;
 import org.erlide.wrangler.refactoring.Activator;
 import org.erlide.wrangler.refactoring.backend.UserRefactoringsManager;
 import org.erlide.wrangler.refactoring.backend.internal.WranglerBackendManager;
@@ -57,9 +55,8 @@ public class AddRefacHandler extends AbstractHandler {
                     public String isValid(final String newText) {
                         if (internalV.isValid(newText)) {
                             return null;
-                        } else {
-                            return "Please type a correct module name!";
                         }
+                        return "Please type a correct module name!";
                     }
                 });
 
@@ -81,19 +78,18 @@ public class AddRefacHandler extends AbstractHandler {
         if (!addAndLoad(callbackModule, type)) {
             showErrorMesg("Can not load callback module");
             return null;
-        } else {
-            if (type.equals(RefacType.ELEMENTARY)) {
-                UserRefactoringsManager.getInstance().addMyElementary(
-                        callbackModule);
-            } else {
-                UserRefactoringsManager.getInstance().addMyComposite(
-                        callbackModule);
-            }
-
-            MessageDialog.openInformation(PlatformUI.getWorkbench()
-                    .getActiveWorkbenchWindow().getShell(),
-                    "Add user-defined refactoring", "Success!");
         }
+        if (type.equals(RefacType.ELEMENTARY)) {
+            UserRefactoringsManager.getInstance().addMyElementary(
+                    callbackModule);
+        } else {
+            UserRefactoringsManager.getInstance()
+                    .addMyComposite(callbackModule);
+        }
+
+        MessageDialog.openInformation(PlatformUI.getWorkbench()
+                .getActiveWorkbenchWindow().getShell(),
+                "Add user-defined refactoring", "Success!");
 
         return null;
     }
@@ -108,9 +104,9 @@ public class AddRefacHandler extends AbstractHandler {
     private RefacType checkType(final String callbackModule) {
 
         try {
-            final IErlModule module = ErlModelManager.getErlangModel()
+            final IErlModule module = ErlangEngine.getInstance().getModel()
                     .findModule(callbackModule);
-            IErlScanner scanner = module.getScanner();
+            final ScannerService scanner = module.getScanner();
             try {
                 module.resetAndCacheScannerAndParser(null);
             } finally {
@@ -118,7 +114,7 @@ public class AddRefacHandler extends AbstractHandler {
             }
 
             for (final IErlElement el : module
-                    .getChildrenOfKind(Kind.ATTRIBUTE)) {
+                    .getChildrenOfKind(ErlElementKind.ATTRIBUTE)) {
                 final IErlAttribute attr = (IErlAttribute) el;
                 if (attr.getName().equals("behaviour")
                         || attr.getName().equals("behavior")) {
@@ -162,12 +158,17 @@ public class AddRefacHandler extends AbstractHandler {
         String path;
 
         try {
-            if (ErlModelManager.getErlangModel().findModule(callbackModule) == null) {
+            if (ErlangEngine.getInstance().getModel()
+                    .findModule(callbackModule) == null) {
                 return null;
             }
 
-            final IErlProject project = ModelUtils.getProject(ErlModelManager
-                    .getErlangModel().findModule(callbackModule));
+            final IErlProject project = ErlangEngine
+                    .getInstance()
+                    .getModelUtilService()
+                    .getProject(
+                            ErlangEngine.getInstance().getModel()
+                                    .findModule(callbackModule));
             path = project.getWorkspaceProject().getLocation()
                     .append(project.getOutputLocation())
                     .append(callbackModule + ".beam").toOSString();
@@ -204,35 +205,32 @@ public class AddRefacHandler extends AbstractHandler {
             }
         }
 
-        InputStream in;
-        OutputStream out;
+        InputStream in = null;
+        OutputStream out = null;
         try {
             in = new FileInputStream(source);
-        } catch (final FileNotFoundException e) {
-            return false;
-        }
-        try {
             out = new FileOutputStream(dest);
-        } catch (final FileNotFoundException e) {
-            return false;
-        }
-
-        try {
             final byte[] buf = new byte[1024];
             int len;
             while ((len = in.read(buf)) > 0) {
                 out.write(buf, 0, len);
             }
         } catch (final IOException e) {
+            return false;
+        } finally {
             try {
-                in.close();
-                out.close();
+                if (in != null) {
+                    in.close();
+                }
             } catch (final IOException ignore) {
             }
-
-            return false;
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (final IOException ignore) {
+            }
         }
-
         return true;
     }
 

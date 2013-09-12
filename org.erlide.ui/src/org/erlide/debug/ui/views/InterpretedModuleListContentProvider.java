@@ -7,21 +7,19 @@ import java.util.List;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.jface.viewers.Viewer;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlModel;
-import org.erlide.core.model.root.IErlProject;
 import org.erlide.debug.ui.utils.ModuleListContentProvider;
-import org.erlide.launch.ErlLaunchAttributes;
-import org.erlide.ui.util.ErlModelUtils;
-import org.erlide.utils.CommonUtils;
-import org.erlide.utils.ErlLogger;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.IErlModel;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlProject;
+import org.erlide.engine.util.CommonUtils;
+import org.erlide.runtime.api.ErlRuntimeAttributes;
+import org.erlide.util.ErlLogger;
 
 public class InterpretedModuleListContentProvider extends
         ModuleListContentProvider {
 
-    @SuppressWarnings("unchecked")
     @Override
     public void inputChanged(final Viewer viewer, final Object oldInput,
             final Object newInput) {
@@ -29,9 +27,10 @@ public class InterpretedModuleListContentProvider extends
         if (newInput instanceof ILaunchConfiguration) {
             final ILaunchConfiguration launchConfiguration = (ILaunchConfiguration) newInput;
             try {
+                @SuppressWarnings("unchecked")
                 final List<String> interpret = launchConfiguration
                         .getAttribute(
-                                ErlLaunchAttributes.DEBUG_INTERPRET_MODULES,
+                                ErlRuntimeAttributes.DEBUG_INTERPRET_MODULES,
                                 new ArrayList<String>());
                 addModules(interpret);
             } catch (final CoreException e) {
@@ -53,14 +52,14 @@ public class InterpretedModuleListContentProvider extends
      *            moduleName;...)
      */
     public void addModules(final Collection<String> interpret) {
-        final IErlModel model = ErlModelManager.getErlangModel();
+        final IErlModel model = ErlangEngine.getInstance().getModel();
         for (final String projectColonModule : interpret) {
             // project:module | module
             final String[] projectModule = projectColonModule.split(":");
             IErlModule module = null;
             if (projectModule.length > 1) {
-                final IErlProject project = ErlModelUtils
-                        .getProjectByName(projectModule[0]);
+                final IErlProject project = (IErlProject) model
+                        .getChildNamed(projectModule[0]);
                 if (project != null) {
                     final String mName = projectModule[1];
                     try {

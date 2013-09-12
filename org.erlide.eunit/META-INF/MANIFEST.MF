@@ -1,23 +1,26 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Eunit
+Bundle-Name: %pluginName
 Bundle-SymbolicName: org.erlide.eunit;singleton:=true
-Bundle-Version: 0.9.0.qualifier
+Bundle-Version: 0.24.0.qualifier
+Bundle-ClassPath: .
 Bundle-Activator: org.erlide.eunit.EUnitPlugin
-Require-Bundle: org.eclipse.compare,
+Require-Bundle: 
+ org.eclipse.compare,
  org.eclipse.core.runtime,
- org.eclipse.debug.core,
  org.eclipse.debug.ui,
  org.eclipse.jface.text,
  org.eclipse.osgi.services,
  org.eclipse.ui,
- org.eclipse.ui.editors,
  org.eclipse.ui.ide,
  org.erlide.core,
- org.erlide.jinterface,
- org.erlide.ui,
+ org.erlide.model.api,
  org.erlide.libs,
- com.google.guava,
- org.erlide.runtime
+ org.erlide.runtime,
+ org.erlide.ui,
+ org.erlide.util,
+ org.eclipse.ui.workbench.texteditor,
+ org.eclipse.ui.editors,
+ org.erlide.backend
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

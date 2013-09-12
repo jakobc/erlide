@@ -1,6 +1,9 @@
 package org.erlide.ui.console;
 
-import org.eclipse.core.runtime.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.graphics.Color;
 
@@ -23,7 +26,7 @@ public class ScriptStyleRange extends StyleRange {
     public ScriptStyleRange(final int start, final int len, final Color fore,
             final Color back, final int scriptType) {
         super(start, len, fore, back);
-        Assert.isTrue(len >= 0);
+        assertThat(len, is(greaterThanOrEqualTo(0)));
         this.scriptType = scriptType;
     }
 

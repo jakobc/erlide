@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 import com.ericsson.otp.erlang.OtpEpmd;
 
@@ -44,7 +44,7 @@ public final class EpmdWatcher {
     private final Map<String, List<IErlNodeMonitor>> monitors = new HashMap<String, List<IErlNodeMonitor>>();
     private boolean epmdStarted = false;
 
-    synchronized public void addHost(final String host) {
+    public synchronized void addHost(final String host) {
         if (hosts.contains(host)) {
             return;
         }
@@ -52,7 +52,7 @@ public final class EpmdWatcher {
         nodeMap.put(host, new ArrayList<String>());
     }
 
-    synchronized public void removeHost(final String host) {
+    public synchronized void removeHost(final String host) {
         hosts.remove(host);
         nodeMap.remove(host);
     }

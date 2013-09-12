@@ -1,20 +1,23 @@
 /*******************************************************************************
  * Copyright (c) 2000, 2004 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials 
+ * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package org.erlide.ui.dialogfields;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.viewers.CheckStateChangedEvent;
 import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ICheckStateListener;
@@ -55,7 +58,7 @@ public class CheckedListDialogField<Element> extends ListDialogField<Element> {
      * behaviour)
      */
     public void setCheckAllButtonIndex(final int checkButtonIndex) {
-        Assert.isTrue(checkButtonIndex < fButtonLabels.length);
+        assertThat(checkButtonIndex, is(lessThan(fButtonLabels.length)));
         fCheckAllButtonIndex = checkButtonIndex;
     }
 
@@ -66,7 +69,7 @@ public class CheckedListDialogField<Element> extends ListDialogField<Element> {
      * behaviour)
      */
     public void setUncheckAllButtonIndex(final int uncheckButtonIndex) {
-        Assert.isTrue(uncheckButtonIndex < fButtonLabels.length);
+        assertThat(uncheckButtonIndex, is(lessThan(fButtonLabels.length)));
         fUncheckAllButtonIndex = uncheckButtonIndex;
     }
 
@@ -207,7 +210,6 @@ public class CheckedListDialogField<Element> extends ListDialogField<Element> {
         checkStateChanged();
     }
 
-    @SuppressWarnings("unchecked")
     protected void doCheckStateChanged(final CheckStateChangedEvent e) {
         if (e.getChecked()) {
             fCheckElements.add((Element) e.getElement());

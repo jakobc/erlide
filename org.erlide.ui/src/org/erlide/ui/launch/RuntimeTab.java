@@ -35,13 +35,14 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.erlide.backend.BackendCore;
-import org.erlide.launch.ErlLaunchAttributes;
-import org.erlide.runtime.HostnameUtils;
-import org.erlide.runtime.NodeHostClassifier;
-import org.erlide.runtime.NodeHostClassifier.HostnameType;
-import org.erlide.runtime.NodeHostClassifier.NodeType;
-import org.erlide.runtime.RuntimeData;
+import org.erlide.runtime.api.ErlRuntimeAttributes;
+import org.erlide.runtime.api.RuntimeData;
 import org.erlide.runtime.runtimeinfo.RuntimeInfo;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.HostnameUtils;
+import org.erlide.util.NodeHostClassifier;
+import org.erlide.util.NodeHostClassifier.HostnameType;
+import org.erlide.util.NodeHostClassifier.NodeType;
 
 public class RuntimeTab extends AbstractLaunchConfigurationTab {
 
@@ -241,36 +242,36 @@ public class RuntimeTab extends AbstractLaunchConfigurationTab {
 
     @Override
     public void setDefaults(final ILaunchConfigurationWorkingCopy config) {
-        config.setAttribute(ErlLaunchAttributes.START_ME, true);
-        config.setAttribute(ErlLaunchAttributes.RUNTIME_NAME,
-                ErlLaunchAttributes.DEFAULT_RUNTIME_NAME);
-        config.setAttribute(ErlLaunchAttributes.NODE_NAME, "");
-        config.setAttribute(ErlLaunchAttributes.COOKIE, "");
-        config.setAttribute(ErlLaunchAttributes.WORKING_DIR,
-                ErlLaunchAttributes.DEFAULT_WORKING_DIR);
-        config.setAttribute(ErlLaunchAttributes.EXTRA_ARGS, "");
-        config.setAttribute(ErlLaunchAttributes.LOAD_ALL_NODES, false);
+        config.setAttribute(ErlRuntimeAttributes.START_ME, true);
+        config.setAttribute(ErlRuntimeAttributes.RUNTIME_NAME,
+                ErlRuntimeAttributes.DEFAULT_RUNTIME_NAME);
+        config.setAttribute(ErlRuntimeAttributes.NODE_NAME, "");
+        config.setAttribute(ErlRuntimeAttributes.COOKIE, "");
+        config.setAttribute(ErlRuntimeAttributes.WORKING_DIR,
+                ErlRuntimeAttributes.DEFAULT_WORKING_DIR);
+        config.setAttribute(ErlRuntimeAttributes.EXTRA_ARGS, "");
+        config.setAttribute(ErlRuntimeAttributes.LOAD_ALL_NODES, false);
     }
 
     @Override
     public void initializeFrom(final ILaunchConfiguration config) {
         try {
             final String runtimeName = config.getAttribute(
-                    ErlLaunchAttributes.RUNTIME_NAME, "");
+                    ErlRuntimeAttributes.RUNTIME_NAME, "");
             runtimesCombo.select(runtimesCombo.indexOf(runtimeName));
         } catch (final CoreException e) {
             runtimesCombo.setText("");
         }
         try {
             final String node = config.getAttribute(
-                    ErlLaunchAttributes.NODE_NAME, "");
+                    ErlRuntimeAttributes.NODE_NAME, "");
             nameText.setText(node);
         } catch (final CoreException e) {
             nameText.setText("");
         }
         try {
             final boolean longName = config.getAttribute(
-                    ErlLaunchAttributes.USE_LONG_NAME, true);
+                    ErlRuntimeAttributes.USE_LONG_NAME, true);
             longNameButton.setSelection(longName);
             shortNameButton.setSelection(!longName);
         } catch (final CoreException e) {
@@ -278,36 +279,36 @@ public class RuntimeTab extends AbstractLaunchConfigurationTab {
         }
         try {
             final String cookie = config.getAttribute(
-                    ErlLaunchAttributes.COOKIE, "");
+                    ErlRuntimeAttributes.COOKIE, "");
             cookieText.setText(cookie);
         } catch (final CoreException e) {
             cookieText.setText("");
         }
         try {
             final boolean startMe = config.getAttribute(
-                    ErlLaunchAttributes.START_ME, true);
+                    ErlRuntimeAttributes.START_ME, true);
             startNodeCheckbox.setSelection(startMe);
         } catch (final CoreException e) {
             startNodeCheckbox.setSelection(false);
         }
         try {
             final String wdir = config.getAttribute(
-                    ErlLaunchAttributes.WORKING_DIR,
-                    ErlLaunchAttributes.DEFAULT_WORKING_DIR);
+                    ErlRuntimeAttributes.WORKING_DIR,
+                    ErlRuntimeAttributes.DEFAULT_WORKING_DIR);
             workingDirText.setText(wdir);
         } catch (final CoreException e) {
-            workingDirText.setText(ErlLaunchAttributes.DEFAULT_WORKING_DIR);
+            workingDirText.setText(ErlRuntimeAttributes.DEFAULT_WORKING_DIR);
         }
         try {
             final String xtra = config.getAttribute(
-                    ErlLaunchAttributes.EXTRA_ARGS, "");
+                    ErlRuntimeAttributes.EXTRA_ARGS, "");
             argsText.setText(xtra);
         } catch (final CoreException e) {
             argsText.setText("");
         }
         try {
             final boolean loadAll = config.getAttribute(
-                    ErlLaunchAttributes.LOAD_ALL_NODES, false);
+                    ErlRuntimeAttributes.LOAD_ALL_NODES, false);
             distributedLoadCheck.setSelection(loadAll);
         } catch (final CoreException e) {
             distributedLoadCheck.setSelection(true);
@@ -316,21 +317,21 @@ public class RuntimeTab extends AbstractLaunchConfigurationTab {
 
     @Override
     public void performApply(final ILaunchConfigurationWorkingCopy config) {
-        config.setAttribute(ErlLaunchAttributes.RUNTIME_NAME,
+        config.setAttribute(ErlRuntimeAttributes.RUNTIME_NAME,
                 runtimesCombo.getText());
-        config.setAttribute(ErlLaunchAttributes.START_ME,
+        config.setAttribute(ErlRuntimeAttributes.START_ME,
                 startNodeCheckbox.getSelection());
-        config.setAttribute(ErlLaunchAttributes.NODE_NAME, nameText.getText()
+        config.setAttribute(ErlRuntimeAttributes.NODE_NAME, nameText.getText()
                 .trim());
-        config.setAttribute(ErlLaunchAttributes.USE_LONG_NAME,
+        config.setAttribute(ErlRuntimeAttributes.USE_LONG_NAME,
                 longNameButton.getSelection());
-        config.setAttribute(ErlLaunchAttributes.COOKIE, cookieText.getText()
+        config.setAttribute(ErlRuntimeAttributes.COOKIE, cookieText.getText()
                 .trim());
-        config.setAttribute(ErlLaunchAttributes.WORKING_DIR,
+        config.setAttribute(ErlRuntimeAttributes.WORKING_DIR,
                 workingDirText.getText());
-        config.setAttribute(ErlLaunchAttributes.EXTRA_ARGS, argsText.getText()
+        config.setAttribute(ErlRuntimeAttributes.EXTRA_ARGS, argsText.getText()
                 .trim());
-        config.setAttribute(ErlLaunchAttributes.LOAD_ALL_NODES,
+        config.setAttribute(ErlRuntimeAttributes.LOAD_ALL_NODES,
                 distributedLoadCheck.getSelection());
     }
 
@@ -343,7 +344,7 @@ public class RuntimeTab extends AbstractLaunchConfigurationTab {
     public boolean isValid(final ILaunchConfiguration config) {
         setErrorMessage(null);
         final String name = nameText.getText().trim();
-        if (!name.equals("") && !RuntimeData.validateNodeName(name)) {
+        if (!"".equals(name) && !RuntimeData.validateNodeName(name)) {
             setErrorMessage(String.format("Node name '%s' is invalid.", name));
             return false;
         }
@@ -381,17 +382,32 @@ public class RuntimeTab extends AbstractLaunchConfigurationTab {
                 .getText().trim());
 
         longNameButton.setEnabled(!(state.mode == NodeType.LOCAL_STANDALONE)
-                && state.host == HostnameType.NONE);
+                && state.host == HostnameType.NONE
+                && HostnameUtils.canUseLongNames());
         shortNameButton.setEnabled(!(state.mode == NodeType.LOCAL_STANDALONE)
-                && state.host == HostnameType.NONE);
+                && state.host == HostnameType.NONE
+                && HostnameUtils.canUseShortNames());
+        ErlLogger.debug("state.mode=%s, state.host=%s", state.mode, state.host);
 
-        if (state.host == HostnameType.LONG) {
+        switch (state.host) {
+        case LONG:
             longNameButton.setSelection(true);
             shortNameButton.setSelection(false);
-        }
-        if (state.host == HostnameType.SHORT) {
+            break;
+        case SHORT:
             longNameButton.setSelection(false);
             shortNameButton.setSelection(true);
+            break;
+        case NONE:
+            if (!HostnameUtils.canUseShortNames()) {
+                longNameButton.setSelection(true);
+                shortNameButton.setSelection(false);
+            }
+            if (!HostnameUtils.canUseLongNames()) {
+                longNameButton.setSelection(false);
+                shortNameButton.setSelection(true);
+            }
+            break;
         }
 
         final boolean isLong = longNameButton.getSelection();

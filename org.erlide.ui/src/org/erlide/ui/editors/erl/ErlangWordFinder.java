@@ -2,13 +2,13 @@ package org.erlide.ui.editors.erl;
 
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.Region;
-import org.erlide.core.model.erlang.ErlToken;
-import org.erlide.core.model.erlang.IErlModule;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.services.parsing.ErlToken;
 
 public final class ErlangWordFinder {
 
     public static IRegion findWord(final IErlModule module,
-            final ErlangEditor editor, final int offset) {
+            final AbstractErlangEditor editor, final int offset) {
         if (module == null) {
             return null;
         }

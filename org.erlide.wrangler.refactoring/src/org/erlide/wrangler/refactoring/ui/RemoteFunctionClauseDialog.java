@@ -25,12 +25,13 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
-import org.erlide.core.model.ErlModelException;
-import org.erlide.core.model.erlang.IErlFunction;
-import org.erlide.core.model.erlang.IErlFunctionClause;
-import org.erlide.core.model.erlang.IErlModule;
-import org.erlide.core.model.root.IErlElement;
-import org.erlide.core.model.util.ModelUtils;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.ErlModelException;
+import org.erlide.engine.model.erlang.IErlFunction;
+import org.erlide.engine.model.erlang.IErlFunctionClause;
+import org.erlide.engine.model.erlang.IErlModule;
+import org.erlide.engine.model.root.IErlElement;
+import org.erlide.util.ErlLogger;
 import org.erlide.wrangler.refactoring.selection.IErlMemberSelection;
 import org.erlide.wrangler.refactoring.util.GlobalParameters;
 import org.erlide.wrangler.refactoring.util.WranglerUtils;
@@ -95,9 +96,12 @@ public class RemoteFunctionClauseDialog extends AbstractInputDialog {
         functionClausesTree.setLayoutData(treeData);
 
         try {
-            final Collection<IErlModule> erlmodules = ModelUtils.getProject(
-                    GlobalParameters.getWranglerSelection().getErlElement())
-                    .getModules();
+            final Collection<IErlModule> erlmodules = ErlangEngine
+                    .getInstance()
+                    .getModelUtilService()
+                    .getProject(
+                            GlobalParameters.getWranglerSelection()
+                                    .getErlElement()).getModules();
 
             for (final IErlModule m : erlmodules) {
                 // must refresh the scanner!
@@ -164,7 +168,7 @@ public class RemoteFunctionClauseDialog extends AbstractInputDialog {
 
             });
         } catch (final ErlModelException e) {
-            e.printStackTrace();
+            ErlLogger.error(e);
         }
 
         applyDialogFont(composite);

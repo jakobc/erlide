@@ -25,7 +25,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.erlide.ui.dialogs.OpenModuleDialog;
 import org.erlide.ui.editors.erl.IErlangHelpContextIds;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public final class OpenModuleHandler extends Action implements IHandler,
         IWorkbenchWindowActionDelegate {
@@ -85,7 +85,7 @@ public final class OpenModuleHandler extends Action implements IHandler,
             files.add((IFile) resource);
         }
 
-        if (files.size() > 0) {
+        if (!files.isEmpty()) {
 
             final IWorkbenchWindow window = PlatformUI.getWorkbench()
                     .getActiveWorkbenchWindow();
@@ -126,8 +126,9 @@ public final class OpenModuleHandler extends Action implements IHandler,
                                 files.add(con);
                             }
                         }
-                        if (files.size() == 0) {
-                            // final IFile file = ModelUtils.openExternal(null,
+                        if (files.isEmpty()) {
+                            // final IFile file =
+                            // ErlangEngine.getInstance().getModelUtilService().openExternal(null,
                             // path);
                             // files.add(file);
                         }

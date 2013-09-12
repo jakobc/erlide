@@ -43,16 +43,16 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.ContainerSelectionDialog;
-import org.erlide.core.model.erlang.ModuleKind;
-import org.erlide.core.model.root.ErlModelManager;
-import org.erlide.core.model.root.IErlProject;
+import org.erlide.engine.ErlangEngine;
+import org.erlide.engine.model.erlang.ModuleKind;
+import org.erlide.engine.model.root.IErlProject;
 import org.erlide.ui.internal.ErlideUIPlugin;
 import org.erlide.ui.templates.ErlangSourceContextTypeModule;
 import org.erlide.ui.templates.ModuleVariableResolver;
 import org.erlide.ui.wizards.templates.ExportedFunctionsVariableResolver;
 import org.erlide.ui.wizards.templates.LocalFunctionsVariableResolver;
-import org.erlide.utils.ErlLogger;
-import org.erlide.utils.SystemConfiguration;
+import org.erlide.util.ErlLogger;
+import org.erlide.util.SystemConfiguration;
 
 /**
  * The "New" wizard page allows setting the container for the new file as well
@@ -168,7 +168,7 @@ public class ErlangFileWizardPage extends WizardPage {
         for (final Template element : moduleTemplates) {
             final String name = element.getName();
             skeleton.add(name);
-            if (name.equals("module")) {
+            if ("module".equals(name)) {
                 defaultSkeleton = i;
             }
             ++i;
@@ -187,8 +187,7 @@ public class ErlangFileWizardPage extends WizardPage {
      */
 
     private void initialize() {
-        if (fSelection != null && !fSelection.isEmpty()
-                && fSelection instanceof IStructuredSelection) {
+        if (fSelection instanceof IStructuredSelection && !fSelection.isEmpty()) {
             final IStructuredSelection ssel = (IStructuredSelection) fSelection;
             if (ssel.size() > 1) {
                 return;
@@ -203,11 +202,11 @@ public class ErlangFileWizardPage extends WizardPage {
                     container = resource.getParent();
                 }
                 final IProject project = resource.getProject();
-                final IErlProject erlProject = ErlModelManager.getErlangModel()
-                        .getErlangProject(project);
+                final IErlProject erlProject = ErlangEngine.getInstance()
+                        .getModel().getErlangProject(project);
                 String txt = container.getFullPath().toString();
                 final Collection<IPath> sourceDirs = erlProject.getSourceDirs();
-                if (sourceDirs.size() > 0) {
+                if (!sourceDirs.isEmpty()) {
                     final IPath sourceDirWithinContainer = sourceDirWithinContainer(
                             sourceDirs, container);
                     if (sourceDirWithinContainer != null) {
@@ -232,10 +231,8 @@ public class ErlangFileWizardPage extends WizardPage {
                 final IResource member = container.findMember(sourceDir);
                 if (member != null) {
                     return member.getFullPath();
-                } else {
-                    ErlLogger.warn("Could not find %s in %s", sourceDir,
-                            container);
                 }
+                ErlLogger.warn("Could not find %s in %s", sourceDir, container);
             }
         }
         return null;

@@ -40,7 +40,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.ElementListSelectionDialog;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.IProgressService;
-import org.erlide.backend.IBackend;
+import org.erlide.backend.api.IBackend;
 import org.erlide.tracing.core.ITraceNodeObserver;
 import org.erlide.tracing.core.ProcessFlag;
 import org.erlide.tracing.core.ProcessMode;
@@ -69,7 +69,8 @@ import org.erlide.tracing.core.ui.dialogs.RunnableWithProgress;
 import org.erlide.tracing.core.ui.dialogs.SelectConfigurationDialog;
 import org.erlide.tracing.core.utils.ConfigurationManager;
 import org.erlide.tracing.core.utils.TracingStatusHandler;
-import org.erlide.utils.ErlLogger;
+import org.erlide.ui.util.DisplayUtils;
+import org.erlide.util.ErlLogger;
 
 /**
  * Control panel for tracing settings.
@@ -673,7 +674,7 @@ public class ControlPanelView extends ViewPart implements ITraceNodeObserver {
             public void widgetSelected(final SelectionEvent e) {
                 for (final IBackend backend : NodeHelper.getBackends(true)) {
                     final TracedNode node = new TracedNode();
-                    node.setNodeName(backend.getNodeName());
+                    node.setNodeName(backend.getName());
                     TraceBackend.getInstance().addTracedNode(node);
                 }
                 nodesTableViewer.refresh();
@@ -848,7 +849,7 @@ public class ControlPanelView extends ViewPart implements ITraceNodeObserver {
 
     @Override
     public void startTracing() {
-        Display.getDefault().asyncExec(new Runnable() {
+        DisplayUtils.asyncExec(new Runnable() {
             @Override
             public void run() {
                 startStopAction.setImageDescriptor(PlatformUI.getWorkbench()

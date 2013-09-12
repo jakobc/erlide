@@ -10,7 +10,7 @@ import org.eclipse.jface.text.templates.TemplateException;
 import org.eclipse.jface.text.templates.TemplateTranslator;
 import org.erlide.runtime.rpc.RpcException;
 import org.erlide.ui.editors.erl.actions.IndentAction;
-import org.erlide.utils.ErlLogger;
+import org.erlide.util.ErlLogger;
 
 public class ErlangTemplateContext extends DocumentTemplateContext {
 
@@ -25,8 +25,10 @@ public class ErlangTemplateContext extends DocumentTemplateContext {
         return evaluate(template, false);
     }
 
-    public TemplateBuffer evaluate(Template template, final boolean indentFrom0)
-            throws BadLocationException, TemplateException {
+    public TemplateBuffer evaluate(final Template template0,
+            final boolean indentFrom0) throws BadLocationException,
+            TemplateException {
+        Template template = template0;
         if (!canEvaluate(template)) {
             return null;
         }
